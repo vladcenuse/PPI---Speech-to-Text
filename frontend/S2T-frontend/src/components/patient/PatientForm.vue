@@ -13,7 +13,8 @@
               v-model="formData.name"
               type="text"
               class="form-input"
-              :class="{ 'form-input--error': errors.name }"
+              :class="{ 'form-input--error': errors.name, 'form-input--disabled': isViewMode }"
+              :disabled="isViewMode"
               placeholder="Enter full name"
               required
             />
@@ -27,7 +28,8 @@
               v-model.number="formData.age"
               type="number"
               class="form-input"
-              :class="{ 'form-input--error': errors.age }"
+              :class="{ 'form-input--error': errors.age, 'form-input--disabled': isViewMode }"
+              :disabled="isViewMode"
               placeholder="Age"
               min="0"
               max="150"
@@ -44,7 +46,8 @@
               id="gender"
               v-model="formData.gender"
               class="form-select"
-              :class="{ 'form-select--error': errors.gender }"
+              :class="{ 'form-select--error': errors.gender, 'form-select--disabled': isViewMode }"
+              :disabled="isViewMode"
               required
             >
               <option value="">Select gender</option>
@@ -61,6 +64,8 @@
               v-model="formData.dateOfBirth"
               type="date"
               class="form-input"
+              :class="{ 'form-input--disabled': isViewMode }"
+              :disabled="isViewMode"
             />
           </div>
         </div>
@@ -78,6 +83,8 @@
               v-model="formData.phone"
               type="tel"
               class="form-input"
+              :class="{ 'form-input--disabled': isViewMode }"
+              :disabled="isViewMode"
               placeholder="0712345678"
             />
           </div>
@@ -89,6 +96,8 @@
               v-model="formData.email"
               type="email"
               class="form-input"
+              :class="{ 'form-input--disabled': isViewMode }"
+              :disabled="isViewMode"
               placeholder="example@email.com"
             />
           </div>
@@ -100,6 +109,8 @@
             id="address"
             v-model="formData.address"
             class="form-textarea"
+            :class="{ 'form-textarea--disabled': isViewMode }"
+            :disabled="isViewMode"
             placeholder="Enter complete address"
             rows="3"
           ></textarea>
@@ -117,6 +128,8 @@
               id="bloodType"
               v-model="formData.bloodType"
               class="form-select"
+              :class="{ 'form-select--disabled': isViewMode }"
+              :disabled="isViewMode"
             >
               <option value="">Select blood type</option>
               <option value="A+">A+</option>
@@ -137,6 +150,8 @@
               v-model="formData.insuranceNumber"
               type="text"
               class="form-input"
+              :class="{ 'form-input--disabled': isViewMode }"
+              :disabled="isViewMode"
               placeholder="Insurance number"
             />
           </div>
@@ -148,6 +163,8 @@
             id="medicalHistory"
             v-model="formData.medicalHistory"
             class="form-textarea"
+            :class="{ 'form-textarea--disabled': isViewMode }"
+            :disabled="isViewMode"
             placeholder="Describe the patient's medical history"
             rows="4"
           ></textarea>
@@ -159,6 +176,8 @@
             id="allergies"
             v-model="formData.allergies"
             class="form-textarea"
+            :class="{ 'form-textarea--disabled': isViewMode }"
+            :disabled="isViewMode"
             placeholder="List of known allergies"
             rows="3"
           ></textarea>
@@ -170,6 +189,8 @@
             id="currentMedications"
             v-model="formData.currentMedications"
             class="form-textarea"
+            :class="{ 'form-textarea--disabled': isViewMode }"
+            :disabled="isViewMode"
             placeholder="List of current medications"
             rows="3"
           ></textarea>
@@ -181,6 +202,8 @@
             id="emergencyContact"
             v-model="formData.emergencyContact"
             class="form-textarea"
+            :class="{ 'form-textarea--disabled': isViewMode }"
+            :disabled="isViewMode"
             placeholder="Emergency contact information"
             rows="2"
           ></textarea>
@@ -199,9 +222,10 @@
           type="button"
           variant="outline"
           @click="handleCancel"
-          text="Cancel"
+          :text="isViewMode ? 'Close' : 'Cancel'"
         />
         <Button
+          v-if="!isViewMode"
           type="submit"
           variant="primary"
           :loading="isSubmitting"
@@ -222,6 +246,10 @@ const props = defineProps({
   patient: {
     type: Object,
     default: null
+  },
+  isViewMode: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -250,23 +278,66 @@ const formData = reactive({
 })
 
 // Initialize form data
-if (props.patient) {
-  Object.assign(formData, {
-    name: props.patient.name || '',
-    age: props.patient.age || null,
-    gender: props.patient.gender || '',
-    dateOfBirth: props.patient.dateOfBirth || '',
-    phone: props.patient.phone || '',
-    email: props.patient.email || '',
-    address: props.patient.address || '',
-    bloodType: props.patient.bloodType || '',
-    insuranceNumber: props.patient.insuranceNumber || '',
-    medicalHistory: props.patient.medicalHistory || '',
-    allergies: props.patient.allergies || '',
-    currentMedications: props.patient.currentMedications || '',
-    emergencyContact: props.patient.emergencyContact || ''
-  })
+const initializeFormData = () => {
+  const patientData = props.patient?.value || props.patient
+  console.log('Initializing form with patient data:', patientData)
+  
+  if (patientData) {
+    console.log('Patient data found, populating form')
+    Object.assign(formData, {
+      name: patientData.name || '',
+      age: patientData.age || null,
+      gender: patientData.gender || '',
+      dateOfBirth: patientData.dateOfBirth || '',
+      phone: patientData.phone || '',
+      email: patientData.email || '',
+      address: patientData.address || '',
+      bloodType: patientData.bloodType || '',
+      insuranceNumber: patientData.insuranceNumber || '',
+      medicalHistory: patientData.medicalHistory || '',
+      allergies: patientData.allergies || '',
+      currentMedications: patientData.currentMedications || '',
+      emergencyContact: patientData.emergencyContact || ''
+    })
+    console.log('Form data after assignment:', formData)
+  } else {
+    console.log('No patient data, initializing form for new patient')
+    // Reset form for new patient
+    Object.assign(formData, {
+      name: '',
+      age: null,
+      gender: '',
+      dateOfBirth: '',
+      phone: '',
+      email: '',
+      address: '',
+      bloodType: '',
+      insuranceNumber: '',
+      medicalHistory: '',
+      allergies: '',
+      currentMedications: '',
+      emergencyContact: ''
+    })
+  }
 }
+
+// Initialize form data
+initializeFormData()
+
+// Watch for changes in patient prop
+watch(() => props.patient, (newPatient) => {
+  console.log('Patient prop changed:', newPatient)
+  console.log('Patient prop type:', typeof newPatient)
+  console.log('Patient prop value:', newPatient?.value || newPatient)
+  initializeFormData()
+}, { immediate: true })
+
+// Watch for changes in view mode
+watch(() => props.isViewMode, (newViewMode) => {
+  console.log('View mode changed:', newViewMode)
+  // Reinitialize form data when view mode changes
+  initializeFormData()
+})
 
 // Methods
 const validateForm = () => {
@@ -322,22 +393,37 @@ const isValidPhone = (phone) => {
 }
 
 const handleSubmit = async () => {
+  console.log('handleSubmit called')
+  console.log('Form data:', formData)
+  console.log('Props patient:', props.patient)
+  
   if (!validateForm()) {
+    console.log('Form validation failed')
     return
   }
 
+  console.log('Form validation passed')
   isSubmitting.value = true
 
   try {
+    // Get the actual patient data from the computed property
+    const currentPatient = props.patient?.value || props.patient
+    console.log('Current patient data for ID extraction:', currentPatient)
+    console.log('Patient ID:', currentPatient?.id)
+    console.log('Patient createdAt:', currentPatient?.createdAt)
+    
     // Create patient model with form data
     const patientData = new PatientFormModel({
       ...formData,
       // Preserve existing ID if editing
-      id: props.patient?.id || null,
+      id: currentPatient?.id || null,
       // Preserve existing timestamps if editing
-      createdAt: props.patient?.createdAt || new Date().toISOString(),
+      createdAt: currentPatient?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString()
     })
+    
+    console.log('Created patient model:', patientData)
+    console.log('Emitting save event with:', patientData.toJSON())
     
     // Emit save event with the patient data
     emit('save', patientData.toJSON())
@@ -481,6 +567,22 @@ watch(formData, () => {
   gap: 1rem;
   padding-top: 1rem;
   border-top: 1px solid #e5e7eb;
+}
+
+.form-input--disabled,
+.form-select--disabled,
+.form-textarea--disabled {
+  background-color: #f5f5f5;
+  color: #666;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.form-input--disabled:focus,
+.form-select--disabled:focus,
+.form-textarea--disabled:focus {
+  border-color: #ddd;
+  box-shadow: none;
 }
 
 /* Responsive design */

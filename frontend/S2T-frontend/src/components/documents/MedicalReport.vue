@@ -205,8 +205,10 @@ const handleFieldClick = (fieldName) => {
 }
 
 const updateField = (fieldName, value) => {
+  console.log(`MedicalReport: Updating field ${fieldName} with value:`, value)
   localData[fieldName] = value
   emit('field-update', fieldName, value)
+  console.log(`MedicalReport: Emitted field-update event for ${fieldName}`)
 }
 </script>
 

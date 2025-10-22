@@ -2,47 +2,75 @@
   <header class="header-bar">
     <div class="header-content">
       <div class="logo-section">
-        <div class="logo-icon">
+        <div class="logo-icon" @click="navigateToSection('home')">
           <svg viewBox="0 0 24 24" fill="currentColor" class="microphone-icon">
             <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
             <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
           </svg>
         </div>
-        <h1 class="app-title">Speech-to-Text Medical</h1>
+        <h1 class="app-title" @click="navigateToSection('home')">Speech-to-Text Medical</h1>
       </div>
       <nav class="navigation">
-        <router-link to="/" class="nav-link">
+        <button 
+          @click="navigateToSection('home')"
+          :class="['nav-link', { 'nav-link--active': currentSection === 'home' }]"
+        >
           <svg viewBox="0 0 24 24" fill="currentColor" class="nav-icon">
             <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
           </svg>
           <span class="nav-text">Home</span>
-        </router-link>
-        <router-link to="/patients" class="nav-link">
+        </button>
+        <button 
+          @click="navigateToSection('patients')"
+          :class="['nav-link', { 'nav-link--active': currentSection === 'patients' }]"
+        >
           <svg viewBox="0 0 24 24" fill="currentColor" class="nav-icon">
             <path d="M16 4c0-1.11.89-2 2-2s2 .89 2 2-.89 2-2 2-2-.89-2-2zm4 18v-6h2.5l-2.54-7.63A1.5 1.5 0 0 0 18.54 8H17c-.8 0-1.54.37-2.01.99L14 10.5l-1.5-2.01A2.5 2.5 0 0 0 10.5 8H9.46c-.8 0-1.54.37-2.01.99L5 10.5l-1.5-2.01A2.5 2.5 0 0 0 1.5 8H.5v2h1c.28 0 .5.22.5.5s-.22.5-.5.5H.5v2h1c.28 0 .5.22.5.5s-.22.5-.5.5H.5v2h1c.28 0 .5.22.5.5s-.22.5-.5.5H.5V22h2.5v-6H5v6h2v-6h1.5v6H11v-6h1.5v6H15v-6h1.5v6H20z"/>
           </svg>
           <span class="nav-text">Patients</span>
-        </router-link>
-        <router-link to="/recording" class="nav-link">
+        </button>
+        <button 
+          @click="navigateToSection('recording')"
+          :class="['nav-link', { 'nav-link--active': currentSection === 'recording' }]"
+        >
           <svg viewBox="0 0 24 24" fill="currentColor" class="nav-icon">
             <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
             <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
           </svg>
           <span class="nav-text">Recording</span>
-        </router-link>
-        <router-link to="/documents" class="nav-link">
+        </button>
+        <button 
+          @click="navigateToSection('documents')"
+          :class="['nav-link', { 'nav-link--active': currentSection === 'documents' }]"
+        >
           <svg viewBox="0 0 24 24" fill="currentColor" class="nav-icon">
             <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
           </svg>
           <span class="nav-text">Documents</span>
-        </router-link>
+        </button>
       </nav>
     </div>
   </header>
 </template>
 
 <script setup>
-// Header component for navigation
+import { defineProps, defineEmits } from 'vue'
+
+// Props
+const props = defineProps({
+  currentSection: {
+    type: String,
+    default: 'home'
+  }
+})
+
+// Emits
+const emit = defineEmits(['section-change'])
+
+// Methods
+const navigateToSection = (section) => {
+  emit('section-change', section)
+}
 </script>
 
 <style scoped>
@@ -71,6 +99,7 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  cursor: pointer;
 }
 
 .logo-icon {
@@ -112,6 +141,12 @@
   -webkit-text-fill-color: transparent;
   background-clip: text;
   letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.app-title:hover {
+  transform: scale(1.05);
 }
 
 .navigation {
@@ -136,6 +171,8 @@
   letter-spacing: 0.5px;
   text-transform: uppercase;
   font-size: 0.9rem;
+  background: none;
+  cursor: pointer;
 }
 
 .nav-link::before {
@@ -160,7 +197,8 @@
   box-shadow: 0 8px 25px rgba(255, 255, 255, 0.2);
 }
 
-.nav-link.router-link-active {
+.nav-link.router-link-active,
+.nav-link--active {
   background: rgba(255, 255, 255, 0.2);
   border-color: rgba(255, 255, 255, 0.4);
   box-shadow: 0 8px 25px rgba(255, 255, 255, 0.3);

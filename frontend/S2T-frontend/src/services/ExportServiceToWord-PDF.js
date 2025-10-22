@@ -16,16 +16,19 @@ class ExportService {
    */
   async exportPatientToWord(patient, recordings = []) {
     try {
-      // For MVP, create a simple HTML document that can be saved as Word
+      // Generate proper HTML content for Word
       const htmlContent = this.generatePatientDocumentHTML(patient, recordings)
       
-      // Create and download the document
-      const blob = new Blob([htmlContent], { type: 'application/msword' })
+      // Create proper Word-compatible HTML with correct MIME type
+      const wordHtml = this.wrapForWordDocument(htmlContent)
+      
+      // Use text/html MIME type for HTML documents that Word can open
+      const blob = new Blob([wordHtml], { type: 'text/html;charset=utf-8' })
       const url = URL.createObjectURL(blob)
       
       const link = document.createElement('a')
       link.href = url
-      link.download = `Pacient_${patient.name.replace(/\s+/g, '_')}_${this.formatDate(new Date())}.doc`
+      link.download = `Pacient_${patient.name.replace(/\s+/g, '_')}_${this.formatDate(new Date())}.html`
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
@@ -44,30 +47,87 @@ class ExportService {
    */
   async exportPatientToPDF(patient, recordings = []) {
     try {
-      // For MVP, create HTML content that can be printed as PDF
+      // Generate HTML content optimized for PDF printing
       const htmlContent = this.generatePatientDocumentHTML(patient, recordings)
       
-      // Open in new window for printing
-      const printWindow = window.open('', '_blank')
+      // Create a new window for PDF generation
+      const printWindow = window.open('', '_blank', 'width=800,height=600')
+      
+      if (!printWindow) {
+        throw new Error('Popup blocked. Please allow popups for this site.')
+      }
+      
+      // Write HTML content to the new window
       printWindow.document.write(htmlContent)
       printWindow.document.close()
       
-      // Add print styles
+      // Add PDF-optimized styles
       const style = printWindow.document.createElement('style')
       style.textContent = `
         @media print {
-          body { font-family: Arial, sans-serif; margin: 20px; }
-          .header { border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px; }
-          .section { margin-bottom: 20px; }
-          .section h3 { color: #333; border-bottom: 1px solid #ccc; }
-          .observation { background: #f5f5f5; padding: 10px; margin: 10px 0; border-left: 4px solid #007bff; }
+          body { 
+            font-family: Arial, sans-serif; 
+            margin: 0; 
+            padding: 20px; 
+            font-size: 12px;
+            line-height: 1.4;
+          }
+          .header { 
+            border-bottom: 2px solid #333; 
+            padding-bottom: 10px; 
+            margin-bottom: 20px; 
+          }
+          .section { 
+            margin-bottom: 15px; 
+            page-break-inside: avoid;
+          }
+          .section h3 { 
+            color: #333; 
+            border-bottom: 1px solid #ccc; 
+            font-size: 14px;
+            margin-bottom: 10px;
+          }
+          .observation { 
+            background: #f5f5f5; 
+            padding: 8px; 
+            margin: 8px 0; 
+            border-left: 3px solid #007bff; 
+            font-size: 11px;
+          }
+          .info-grid {
+            display: table;
+            width: 100%;
+          }
+          .info-item {
+            display: table-row;
+          }
+          .info-label, .info-value {
+            display: table-cell;
+            padding: 2px 5px;
+            border-bottom: 1px solid #eee;
+          }
+          .info-label {
+            font-weight: bold;
+            width: 30%;
+          }
+        }
+        @page {
+          margin: 1cm;
+          size: A4;
         }
       `
       printWindow.document.head.appendChild(style)
       
-      // Trigger print dialog
-      printWindow.focus()
-      printWindow.print()
+      // Wait for content to load, then trigger print
+      setTimeout(() => {
+        printWindow.focus()
+        printWindow.print()
+        
+        // Close the window after printing
+        setTimeout(() => {
+          printWindow.close()
+        }, 1000)
+      }, 500)
       
       return { success: true }
     } catch (error) {
@@ -77,102 +137,172 @@ class ExportService {
   }
 
   /**
+   * Wrap HTML content for Word document compatibility
+   */
+  wrapForWordDocument(htmlContent) {
+    return `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office"
+            xmlns:w="urn:schemas-microsoft-com:office:word"
+            xmlns="http://www.w3.org/TR/REC-html40">
+      <head>
+        <meta charset="utf-8">
+        <meta name="ProgId" content="Word.Document">
+        <meta name="Generator" content="Microsoft Word 15">
+        <meta name="Originator" content="Microsoft Word 15">
+        <style>
+          @page {
+            size: 8.5in 11in;
+            margin: 1in;
+          }
+          body {
+            font-family: 'Times New Roman', serif;
+            font-size: 12pt;
+            line-height: 1.5;
+            margin: 0;
+            padding: 0;
+          }
+          h1 {
+            font-size: 16pt;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 20pt;
+          }
+          h3 {
+            font-size: 14pt;
+            font-weight: bold;
+            margin-top: 20pt;
+            margin-bottom: 10pt;
+            border-bottom: 1pt solid #000;
+            padding-bottom: 5pt;
+          }
+          .info-grid {
+            display: table;
+            width: 100%;
+            margin-bottom: 10pt;
+          }
+          .info-item {
+            display: table-row;
+          }
+          .info-label {
+            display: table-cell;
+            font-weight: bold;
+            width: 30%;
+            padding: 2pt 5pt;
+            vertical-align: top;
+          }
+          .info-value {
+            display: table-cell;
+            padding: 2pt 5pt;
+            vertical-align: top;
+          }
+          .observation {
+            background-color: #f8f8f8;
+            border-left: 3pt solid #007bff;
+            padding: 8pt;
+            margin: 8pt 0;
+            font-size: 11pt;
+          }
+          .footer {
+            margin-top: 30pt;
+            padding-top: 10pt;
+            border-top: 1pt solid #ccc;
+            font-size: 10pt;
+            color: #666;
+            text-align: center;
+          }
+        </style>
+      </head>
+      <body>
+        ${htmlContent}
+      </body>
+      </html>
+    `
+  }
+
+  /**
    * Generate HTML content for patient document
    */
   generatePatientDocumentHTML(patient, recordings = []) {
     const currentDate = this.formatDate(new Date())
     
     return `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="UTF-8">
-        <title>Fisa Pacientului - ${patient.name}</title>
-        <style>
-          body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
-          .header { border-bottom: 2px solid #333; padding-bottom: 15px; margin-bottom: 30px; }
-          .header h1 { color: #333; margin: 0; }
-          .header .date { color: #666; font-size: 14px; }
-          .section { margin-bottom: 25px; }
-          .section h3 { color: #333; border-bottom: 1px solid #ccc; padding-bottom: 5px; }
-          .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-          .info-item { margin-bottom: 10px; }
-          .info-label { font-weight: bold; color: #555; }
-          .observation { background: #f8f9fa; padding: 15px; margin: 10px 0; border-left: 4px solid #007bff; border-radius: 4px; }
-          .observation .timestamp { font-size: 12px; color: #666; margin-bottom: 5px; }
-          .transcription { background: #e8f4fd; border-left-color: #28a745; }
-          .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #ccc; font-size: 12px; color: #666; }
-        </style>
-      </head>
-      <body>
         <div class="header">
           <h1>FISA PACIENTULUI</h1>
           <div class="date">Generat la: ${currentDate}</div>
         </div>
 
         <div class="section">
-          <h3>PERSONAL INFORMATION</h3>
+          <h3>INFORMATII PERSONALE</h3>
           <div class="info-grid">
             <div class="info-item">
-              <span class="info-label">Nume:</span> ${patient.name}
+              <span class="info-label">Nume:</span>
+              <span class="info-value">${patient.name}</span>
             </div>
             <div class="info-item">
-              <span class="info-label">Age:</span> ${patient.age} years old
+              <span class="info-label">Varsta:</span>
+              <span class="info-value">${patient.age} ani</span>
             </div>
             <div class="info-item">
-              <span class="info-label">Sex:</span> ${patient.gender}
+              <span class="info-label">Sex:</span>
+              <span class="info-value">${patient.gender}</span>
             </div>
             <div class="info-item">
-              <span class="info-label">Date of Birth:</span> ${patient.dateOfBirth || 'N/A'}
+              <span class="info-label">Data nasterii:</span>
+              <span class="info-value">${patient.dateOfBirth || 'N/A'}</span>
             </div>
             <div class="info-item">
-              <span class="info-label">Telefon:</span> ${patient.phone || 'N/A'}
+              <span class="info-label">Telefon:</span>
+              <span class="info-value">${patient.phone || 'N/A'}</span>
             </div>
             <div class="info-item">
-              <span class="info-label">Email:</span> ${patient.email || 'N/A'}
+              <span class="info-label">Email:</span>
+              <span class="info-value">${patient.email || 'N/A'}</span>
             </div>
-          </div>
-          <div class="info-item">
-            <span class="info-label">Address:</span> ${patient.address || 'N/A'}
+            <div class="info-item">
+              <span class="info-label">Adresa:</span>
+              <span class="info-value">${patient.address || 'N/A'}</span>
+            </div>
           </div>
         </div>
 
         <div class="section">
-          <h3>MEDICAL INFORMATION</h3>
+          <h3>INFORMATII MEDICALE</h3>
           <div class="info-grid">
             <div class="info-item">
-              <span class="info-label">Grup sanguin:</span> ${patient.bloodType || 'N/A'}
+              <span class="info-label">Grup sanguin:</span>
+              <span class="info-value">${patient.bloodType || 'N/A'}</span>
             </div>
             <div class="info-item">
-              <span class="info-label">Insurance Number:</span> ${patient.insuranceNumber || 'N/A'}
+              <span class="info-label">Numar asigurare:</span>
+              <span class="info-value">${patient.insuranceNumber || 'N/A'}</span>
             </div>
           </div>
           <div class="info-item">
-            <span class="info-label">Medical History:</span><br>
-            ${patient.medicalHistory || 'No information available'}
+            <span class="info-label">Istoric medical:</span>
+            <span class="info-value">${patient.medicalHistory || 'Nu exista informatii'}</span>
           </div>
           <div class="info-item">
-            <span class="info-label">Allergies:</span><br>
-            ${patient.allergies || 'No known allergies'}
+            <span class="info-label">Alergii:</span>
+            <span class="info-value">${patient.allergies || 'Nu sunt cunoscute alergii'}</span>
           </div>
           <div class="info-item">
-            <span class="info-label">Current Medications:</span><br>
-            ${patient.currentMedications || 'No medications'}
+            <span class="info-label">Medicamente curente:</span>
+            <span class="info-value">${patient.currentMedications || 'Nu exista medicamente'}</span>
           </div>
           <div class="info-item">
-            <span class="info-label">Emergency Contact:</span><br>
-            ${patient.emergencyContact || 'No information available'}
+            <span class="info-label">Contact urgenta:</span>
+            <span class="info-value">${patient.emergencyContact || 'Nu exista informatii'}</span>
           </div>
         </div>
 
         ${recordings.length > 0 ? `
         <div class="section">
-          <h3>OBSERVATIONS AND TRANSCRIPTIONS</h3>
+          <h3>OBSERVATII SI TRANSCRIPTII</h3>
           ${recordings.map(recording => `
             <div class="observation ${recording.transcription ? 'transcription' : ''}">
               <div class="timestamp">
                 ${this.formatDate(recording.timestamp)} - 
-                ${recording.transcription ? 'Audio transcription' : 'Manual observation'}
+                ${recording.transcription ? 'Transcriptie audio' : 'Observatie manuala'}
               </div>
               <div class="content">
                 ${recording.transcription || recording.text}
@@ -184,10 +314,8 @@ class ExportService {
 
         <div class="footer">
           <p>Document generat automat de sistemul Speech-to-Text Medical</p>
-          <p>Generation date: ${currentDate}</p>
+          <p>Data generarii: ${currentDate}</p>
         </div>
-      </body>
-      </html>
     `
   }
 

@@ -57,8 +57,22 @@ export function usePatientViewModel() {
     state.error = null
 
     try {
-      // Try to load from cookies first
-      let savedPatients = cookieService.getJSON('patients', [])
+      // Try to load from localStorage first (more reliable than cookies)
+      let savedPatients = null
+      
+      try {
+        const localStorageData = localStorage.getItem('s2t-patients')
+        if (localStorageData) {
+          savedPatients = JSON.parse(localStorageData)
+        }
+      } catch (error) {
+        console.warn('Failed to load from localStorage:', error)
+      }
+      
+      // Fallback to cookies if localStorage is empty
+      if (!savedPatients || savedPatients.length === 0) {
+        savedPatients = cookieService.getJSON('patients', [])
+      }
       
       // If no saved patients, use mock data
       if (savedPatients.length === 0) {
@@ -109,10 +123,10 @@ export function usePatientViewModel() {
         ]
         
         state.patients = mockPatients
-        // Save mock data to cookies
-        cookieService.setJSON('patients', mockPatients)
+        // Save mock data to both localStorage and cookies
+        savePatientsToStorage(mockPatients)
       } else {
-        // Load saved patients from cookies
+        // Load saved patients from storage
         state.patients = savedPatients.map(patientData => new PatientForm(patientData))
       }
       
@@ -124,6 +138,27 @@ export function usePatientViewModel() {
       })
     } finally {
       state.isLoading = false
+    }
+  }
+
+  // Helper function to save patients to both localStorage and cookies
+  const savePatientsToStorage = (patients) => {
+    try {
+      // Save to localStorage (primary storage)
+      localStorage.setItem('s2t-patients', JSON.stringify(patients))
+      
+      // Save to cookies as backup
+      cookieService.setJSON('patients', patients)
+      
+      console.log(`Saved ${patients.length} patients to storage`)
+    } catch (error) {
+      console.error('Failed to save patients to storage:', error)
+      // Try cookies as fallback
+      try {
+        cookieService.setJSON('patients', patients)
+      } catch (cookieError) {
+        console.error('Failed to save patients to cookies:', cookieError)
+      }
     }
   }
 
@@ -152,8 +187,8 @@ export function usePatientViewModel() {
       // Show success toast
       toastService.success(`Pacientul "${newPatient.name}" a fost creat cu succes!`)
       
-      // Save to cookies for persistence
-      cookieService.setJSON('patients', state.patients)
+      // Save to storage for persistence
+      savePatientsToStorage(state.patients)
       
       return { success: true, patient: newPatient }
     } catch (error) {
@@ -191,6 +226,10 @@ export function usePatientViewModel() {
       }
 
       state.patients[patientIndex] = updatedPatient
+      
+      // Save to storage for persistence
+      savePatientsToStorage(state.patients)
+      
       return { success: true, patient: updatedPatient }
     } catch (error) {
       state.error = error.message
@@ -211,6 +250,10 @@ export function usePatientViewModel() {
       }
 
       state.patients.splice(patientIndex, 1)
+      
+      // Save to storage for persistence
+      savePatientsToStorage(state.patients)
+      
       return { success: true }
     } catch (error) {
       state.error = error.message
@@ -225,7 +268,11 @@ export function usePatientViewModel() {
   }
 
   const setCurrentPatient = (patient) => {
+    console.log('setCurrentPatient called with:', patient)
+    console.log('Patient type:', typeof patient)
+    console.log('Patient value:', patient?.value || patient)
     state.currentPatient = patient
+    console.log('state.currentPatient set to:', state.currentPatient)
   }
 
   const addPatientObservation = (patientId, observation) => {
@@ -299,7 +346,10 @@ export function usePatientViewModel() {
   return {
     // State
     patients: filteredPatients,
-    currentPatient: computed(() => state.currentPatient),
+    currentPatient: computed(() => {
+      console.log('currentPatient computed called, state.currentPatient:', state.currentPatient)
+      return state.currentPatient
+    }),
     isLoading: computed(() => state.isLoading),
     error: computed(() => state.error),
     searchQuery: computed(() => state.searchQuery),

@@ -1,35 +1,11 @@
 <template>
   <div id="app">
-    <router-view />
-    
-    <!-- Global Toast Notifications -->
-    <GlobalToast position="top-left" />
+    <MainView />
   </div>
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
-import GlobalToast from '@/components/common/GlobalToast.vue'
-import { cookieService } from '@/services/CookieService.js'
-import { errorService } from '@/services/ErrorService.js'
-
-// Initialize services
-onMounted(() => {
-  // Initialize cookie service
-  cookieService.cleanup()
-  
-  // Initialize error service
-  console.log('Error service initialized')
-  
-  // Set up global error handler
-  window.addEventListener('unhandledrejection', (event) => {
-    errorService.handleError(event.reason, 'unhandledPromiseRejection')
-  })
-  
-  window.addEventListener('error', (event) => {
-    errorService.handleError(event.error, 'globalError')
-  })
-})
+import MainView from '@/views/MainView.vue'
 </script>
 
 <style>
