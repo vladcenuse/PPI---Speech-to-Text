@@ -1,15 +1,83 @@
+<template>
+  <div id="app">
+    <router-view />
+    
+    <!-- Global Toast Notifications -->
+    <GlobalToast position="top-left" />
+  </div>
+</template>
+
 <script setup>
-import { ref, onMounted } from 'vue'
-import axios from 'axios'
+import { onMounted } from 'vue'
+import GlobalToast from '@/components/common/GlobalToast.vue'
+import { cookieService } from '@/services/CookieService.js'
+import { errorService } from '@/services/ErrorService.js'
 
-const message = ref('Loading...')
-
-onMounted(async () => {
-  const res = await axios.get('http://127.0.0.1:8000/')
-  message.value = res.data.message
+// Initialize services
+onMounted(() => {
+  // Initialize cookie service
+  cookieService.cleanup()
+  
+  // Initialize error service
+  console.log('Error service initialized')
+  
+  // Set up global error handler
+  window.addEventListener('unhandledrejection', (event) => {
+    errorService.handleError(event.reason, 'unhandledPromiseRejection')
+  })
+  
+  window.addEventListener('error', (event) => {
+    errorService.handleError(event.error, 'globalError')
+  })
 })
 </script>
 
-<template>
-  <h1>{{ message }}</h1>
-</template>
+<style>
+#app {
+  font-family: Avenir, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: #2c3e50;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+}
+
+/* Global styles for better UX */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Focus styles for accessibility */
+button:focus,
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 2px solid #667eea;
+  outline-offset: 2px;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+</style>
