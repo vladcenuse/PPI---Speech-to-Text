@@ -9,7 +9,7 @@ export const appConfig = {
     name: 'Speech-to-Text Medical System',
     version: '1.0.0',
     description: 'Automate patient file creation with intelligent speech recognition',
-    author: 'Medical Team'
+    author: 'Vladutz Simion, Buhaitu Andrei, Chisu Grasu',
   },
 
   // API Configuration
