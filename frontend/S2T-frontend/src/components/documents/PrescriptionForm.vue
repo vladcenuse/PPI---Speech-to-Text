@@ -9,7 +9,7 @@
         </div>
         <div class="info-item">
           <label>Patient:</label>
-          <span>{{ patientData.patientName || 'Select Patient' }}</span>
+          <span>{{ patientData.name || 'Select Patient' }}</span>
         </div>
       </div>
     </div>
@@ -18,23 +18,32 @@
       <!-- Medications -->
       <div class="form-section">
         <h3>Prescribed Medications</h3>
-        <div 
-          class="field-container"
-          :class="{ 'field-container--recording': isRecording && currentField === 'medications' }"
-          @click="handleFieldClick('medications')"
-        >
+        <div class="field-container">
           <label>Medication names and types:</label>
-          <div class="field-input">
+          <div class="input-with-button">
             <textarea 
               v-model="localData.medications"
               placeholder="Click to record or type prescribed medications..."
               rows="4"
               @input="updateField('medications', $event.target.value)"
+              @click="handleFieldClick('medications')"
+              :class="{ 'recording-active': isRecording && currentField === 'medications' }"
             ></textarea>
-            <div v-if="isRecording && currentField === 'medications'" class="recording-indicator">
-              <div class="recording-dot"></div>
-              <span>Recording...</span>
-            </div>
+            <button 
+              type="button"
+              class="record-button"
+              :class="{ 'recording': isRecording && currentField === 'medications' }"
+              @click="startRecording('medications')"
+              :disabled="isRecording"
+            >
+              <svg v-if="isRecording && currentField === 'medications'" viewBox="0 0 24 24" fill="currentColor" class="stop-icon">
+                <rect x="6" y="6" width="12" height="12" rx="2"/>
+              </svg>
+              <svg v-else viewBox="0 0 24 24" fill="currentColor" class="mic-icon">
+                <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+              </svg>
+            </button>
           </div>
         </div>
       </div>
@@ -42,23 +51,32 @@
       <!-- Dosage -->
       <div class="form-section">
         <h3>Dosage Instructions</h3>
-        <div 
-          class="field-container"
-          :class="{ 'field-container--recording': isRecording && currentField === 'dosage' }"
-          @click="handleFieldClick('dosage')"
-        >
+        <div class="field-container">
           <label>Dosage amounts and frequency:</label>
-          <div class="field-input">
+          <div class="input-with-button">
             <textarea 
               v-model="localData.dosage"
               placeholder="Click to record or type dosage instructions..."
               rows="3"
               @input="updateField('dosage', $event.target.value)"
+              @click="handleFieldClick('dosage')"
+              :class="{ 'recording-active': isRecording && currentField === 'dosage' }"
             ></textarea>
-            <div v-if="isRecording && currentField === 'dosage'" class="recording-indicator">
-              <div class="recording-dot"></div>
-              <span>Recording...</span>
-            </div>
+            <button 
+              type="button"
+              class="record-button"
+              :class="{ 'recording': isRecording && currentField === 'dosage' }"
+              @click="startRecording('dosage')"
+              :disabled="isRecording"
+            >
+              <svg v-if="isRecording && currentField === 'dosage'" viewBox="0 0 24 24" fill="currentColor" class="stop-icon">
+                <rect x="6" y="6" width="12" height="12" rx="2"/>
+              </svg>
+              <svg v-else viewBox="0 0 24 24" fill="currentColor" class="mic-icon">
+                <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+              </svg>
+            </button>
           </div>
         </div>
       </div>
@@ -66,23 +84,32 @@
       <!-- Instructions -->
       <div class="form-section">
         <h3>Special Instructions</h3>
-        <div 
-          class="field-container"
-          :class="{ 'field-container--recording': isRecording && currentField === 'instructions' }"
-          @click="handleFieldClick('instructions')"
-        >
+        <div class="field-container">
           <label>Special instructions and warnings:</label>
-          <div class="field-input">
+          <div class="input-with-button">
             <textarea 
               v-model="localData.instructions"
               placeholder="Click to record or type special instructions..."
               rows="4"
               @input="updateField('instructions', $event.target.value)"
+              @click="handleFieldClick('instructions')"
+              :class="{ 'recording-active': isRecording && currentField === 'instructions' }"
             ></textarea>
-            <div v-if="isRecording && currentField === 'instructions'" class="recording-indicator">
-              <div class="recording-dot"></div>
-              <span>Recording...</span>
-            </div>
+            <button 
+              type="button"
+              class="record-button"
+              :class="{ 'recording': isRecording && currentField === 'instructions' }"
+              @click="startRecording('instructions')"
+              :disabled="isRecording"
+            >
+              <svg v-if="isRecording && currentField === 'instructions'" viewBox="0 0 24 24" fill="currentColor" class="stop-icon">
+                <rect x="6" y="6" width="12" height="12" rx="2"/>
+              </svg>
+              <svg v-else viewBox="0 0 24 24" fill="currentColor" class="mic-icon">
+                <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+              </svg>
+            </button>
           </div>
         </div>
       </div>
@@ -90,23 +117,32 @@
       <!-- Follow-up -->
       <div class="form-section">
         <h3>Follow-up Instructions</h3>
-        <div 
-          class="field-container"
-          :class="{ 'field-container--recording': isRecording && currentField === 'followUp' }"
-          @click="handleFieldClick('followUp')"
-        >
+        <div class="field-container">
           <label>Follow-up appointments and monitoring:</label>
-          <div class="field-input">
+          <div class="input-with-button">
             <textarea 
               v-model="localData.followUp"
               placeholder="Click to record or type follow-up instructions..."
               rows="3"
               @input="updateField('followUp', $event.target.value)"
+              @click="handleFieldClick('followUp')"
+              :class="{ 'recording-active': isRecording && currentField === 'followUp' }"
             ></textarea>
-            <div v-if="isRecording && currentField === 'followUp'" class="recording-indicator">
-              <div class="recording-dot"></div>
-              <span>Recording...</span>
-            </div>
+            <button 
+              type="button"
+              class="record-button"
+              :class="{ 'recording': isRecording && currentField === 'followUp' }"
+              @click="startRecording('followUp')"
+              :disabled="isRecording"
+            >
+              <svg v-if="isRecording && currentField === 'followUp'" viewBox="0 0 24 24" fill="currentColor" class="stop-icon">
+                <rect x="6" y="6" width="12" height="12" rx="2"/>
+              </svg>
+              <svg v-else viewBox="0 0 24 24" fill="currentColor" class="mic-icon">
+                <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+              </svg>
+            </button>
           </div>
         </div>
       </div>
@@ -125,10 +161,18 @@ const props = defineProps({
   isRecording: {
     type: Boolean,
     default: false
+  },
+  currentField: {
+    type: String,
+    default: ''
   }
 })
 
 const emit = defineEmits(['field-click', 'field-update'])
+
+// Recording state
+const isRecording = ref(false)
+const currentField = ref('')
 
 // Local reactive data
 const localData = reactive({
@@ -150,6 +194,44 @@ watch(() => props.patientData, (newData) => {
 
 const handleFieldClick = (fieldName) => {
   emit('field-click', fieldName)
+}
+
+const startRecording = async (fieldName) => {
+  if (isRecording.value) {
+    console.log('Already recording, please wait...')
+    return
+  }
+
+  try {
+    console.log(`Starting recording for field: ${fieldName}`)
+    isRecording.value = true
+    currentField.value = fieldName
+    
+    // Request microphone access
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+    console.log('Microphone access granted')
+    
+    // Simulate 5-second recording
+    setTimeout(() => {
+      stopRecording(fieldName)
+    }, 5000)
+    
+  } catch (error) {
+    console.error('Failed to start recording:', error)
+    isRecording.value = false
+    currentField.value = ''
+    alert('Microphone access denied. Please allow microphone access to use speech-to-text.')
+  }
+}
+
+const stopRecording = (fieldName) => {
+  console.log(`Stopping recording for field: ${fieldName}`)
+  isRecording.value = false
+  currentField.value = ''
+  
+  // Simulate transcription result
+  const mockTranscription = `Transcribed text for ${fieldName} field. This is a placeholder transcription.`
+  updateField(fieldName, mockTranscription)
 }
 
 const updateField = (fieldName, value) => {
@@ -252,12 +334,14 @@ const updateField = (fieldName, value) => {
   margin-bottom: 0.5rem;
 }
 
-.field-input {
-  position: relative;
+.input-with-button {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
 }
 
-.field-input textarea {
-  width: 100%;
+.input-with-button textarea {
+  flex: 1;
   border: 1px solid #ced4da;
   border-radius: 6px;
   padding: 0.75rem;
@@ -267,10 +351,52 @@ const updateField = (fieldName, value) => {
   transition: all 0.3s ease;
 }
 
-.field-input textarea:focus {
+.input-with-button textarea:focus {
   outline: none;
   border-color: #667eea;
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.record-button {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+}
+
+.record-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.record-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.record-button.recording {
+  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+  animation: pulse 2s infinite;
+}
+
+.recording-active {
+  border-color: #ffc107 !important;
+  box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.1) !important;
+}
+
+.mic-icon,
+.stop-icon {
+  width: 20px;
+  height: 20px;
 }
 
 .recording-indicator {

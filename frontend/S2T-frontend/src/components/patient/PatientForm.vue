@@ -64,9 +64,10 @@
               v-model="formData.dateOfBirth"
               type="date"
               class="form-input"
-              :class="{ 'form-input--disabled': isViewMode }"
+              :class="{ 'form-input--error': errors.dateOfBirth, 'form-input--disabled': isViewMode }"
               :disabled="isViewMode"
             />
+            <span v-if="errors.dateOfBirth" class="form-error">{{ errors.dateOfBirth }}</span>
           </div>
         </div>
       </div>
@@ -279,30 +280,51 @@ const formData = reactive({
 
 // Initialize form data
 const initializeFormData = () => {
-  const patientData = props.patient?.value || props.patient
-  console.log('Initializing form with patient data:', patientData)
-  
-  if (patientData) {
-    console.log('Patient data found, populating form')
-    Object.assign(formData, {
-      name: patientData.name || '',
-      age: patientData.age || null,
-      gender: patientData.gender || '',
-      dateOfBirth: patientData.dateOfBirth || '',
-      phone: patientData.phone || '',
-      email: patientData.email || '',
-      address: patientData.address || '',
-      bloodType: patientData.bloodType || '',
-      insuranceNumber: patientData.insuranceNumber || '',
-      medicalHistory: patientData.medicalHistory || '',
-      allergies: patientData.allergies || '',
-      currentMedications: patientData.currentMedications || '',
-      emergencyContact: patientData.emergencyContact || ''
-    })
-    console.log('Form data after assignment:', formData)
-  } else {
-    console.log('No patient data, initializing form for new patient')
-    // Reset form for new patient
+  try {
+    const patientData = props.patient?.value || props.patient
+    console.log('Initializing form with patient data:', patientData)
+    
+    if (patientData && typeof patientData === 'object') {
+      console.log('Patient data found, populating form')
+      // Safely assign form data with proper type checking and fallbacks
+      Object.assign(formData, {
+        name: (typeof patientData.name === 'string') ? patientData.name.trim() : '',
+        age: (typeof patientData.age === 'number' && !isNaN(patientData.age)) ? patientData.age : null,
+        gender: (typeof patientData.gender === 'string') ? patientData.gender.trim() : '',
+        dateOfBirth: (typeof patientData.dateOfBirth === 'string') ? patientData.dateOfBirth.trim() : '',
+        phone: (typeof patientData.phone === 'string') ? patientData.phone.trim() : '',
+        email: (typeof patientData.email === 'string') ? patientData.email.trim() : '',
+        address: (typeof patientData.address === 'string') ? patientData.address.trim() : '',
+        bloodType: (typeof patientData.bloodType === 'string') ? patientData.bloodType.trim() : '',
+        insuranceNumber: (typeof patientData.insuranceNumber === 'string') ? patientData.insuranceNumber.trim() : '',
+        medicalHistory: (typeof patientData.medicalHistory === 'string') ? patientData.medicalHistory.trim() : '',
+        allergies: (typeof patientData.allergies === 'string') ? patientData.allergies.trim() : '',
+        currentMedications: (typeof patientData.currentMedications === 'string') ? patientData.currentMedications.trim() : '',
+        emergencyContact: (typeof patientData.emergencyContact === 'string') ? patientData.emergencyContact.trim() : ''
+      })
+      console.log('Form data after assignment:', formData)
+    } else {
+      console.log('No patient data, initializing form for new patient')
+      // Reset form for new patient with safe defaults
+      Object.assign(formData, {
+        name: '',
+        age: null,
+        gender: '',
+        dateOfBirth: '',
+        phone: '',
+        email: '',
+        address: '',
+        bloodType: '',
+        insuranceNumber: '',
+        medicalHistory: '',
+        allergies: '',
+        currentMedications: '',
+        emergencyContact: ''
+      })
+    }
+  } catch (error) {
+    console.error('Error initializing form data:', error)
+    // Reset to safe defaults if initialization fails
     Object.assign(formData, {
       name: '',
       age: null,
@@ -346,37 +368,75 @@ const validateForm = () => {
   
   let isValid = true
 
-  // Validate required fields
-  if (!formData.name.trim()) {
-    errors.name = 'Name is required'
-    isValid = false
-  }
+  try {
+    // Validate required fields with better error handling
+    if (!formData.name || typeof formData.name !== 'string' || !formData.name.trim()) {
+      errors.name = 'Name is required'
+      isValid = false
+    } else if (formData.name.trim().length < 2) {
+      errors.name = 'Name must be at least 2 characters long'
+      isValid = false
+    }
 
-  if (!formData.age || formData.age < 0 || formData.age > 150) {
-    errors.age = 'Age must be between 0 and 150 years'
-    isValid = false
-  }
+    // Validate age with better error handling
+    if (formData.age === null || formData.age === undefined || formData.age === '') {
+      errors.age = 'Age is required'
+      isValid = false
+    } else {
+      const age = Number(formData.age)
+      if (isNaN(age) || age < 0 || age > 150) {
+        errors.age = 'Age must be a number between 0 and 150 years'
+        isValid = false
+      }
+    }
 
-  if (!formData.gender) {
-    errors.gender = 'Gender is required'
-    isValid = false
-  }
+    // Validate gender
+    if (!formData.gender || typeof formData.gender !== 'string' || !formData.gender.trim()) {
+      errors.gender = 'Gender is required'
+      isValid = false
+    }
 
-  // Validate email if provided
-  if (formData.email && !isValidEmail(formData.email)) {
-    errors.email = 'Email address is not valid'
-    isValid = false
-  }
+    // Validate email if provided
+    if (formData.email && formData.email.trim()) {
+      if (!isValidEmail(formData.email.trim())) {
+        errors.email = 'Email address is not valid'
+        isValid = false
+      }
+    }
 
-  // Validate phone if provided
-  if (formData.phone && !isValidPhone(formData.phone)) {
-    errors.phone = 'Phone number is not valid'
-    isValid = false
-  }
+    // Validate phone if provided
+    if (formData.phone && formData.phone.trim()) {
+      if (!isValidPhone(formData.phone.trim())) {
+        errors.phone = 'Phone number is not valid'
+        isValid = false
+      }
+    }
 
-  // Show general error if validation fails
-  if (!isValid) {
-    errors.general = 'Please fill in all required fields and correct the displayed errors.'
+    // Validate date of birth if provided
+    if (formData.dateOfBirth && formData.dateOfBirth.trim()) {
+      const birthDate = new Date(formData.dateOfBirth)
+      const today = new Date()
+      if (isNaN(birthDate.getTime())) {
+        errors.dateOfBirth = 'Date of birth is not valid'
+        isValid = false
+      } else if (birthDate > today) {
+        errors.dateOfBirth = 'Date of birth cannot be in the future'
+        isValid = false
+      } else if (birthDate.getFullYear() < 1900) {
+        errors.dateOfBirth = 'Date of birth cannot be before 1900'
+        isValid = false
+      }
+    }
+
+    // Show general error if validation fails
+    if (!isValid) {
+      errors.general = 'Please fill in all required fields and correct the displayed errors.'
+    }
+
+  } catch (validationError) {
+    console.error('Validation error:', validationError)
+    errors.general = 'An error occurred during validation. Please check your input.'
+    isValid = false
   }
 
   return isValid
@@ -397,6 +457,12 @@ const handleSubmit = async () => {
   console.log('Form data:', formData)
   console.log('Props patient:', props.patient)
   
+  // Prevent multiple submissions
+  if (isSubmitting.value) {
+    console.log('Already submitting, ignoring duplicate submission')
+    return
+  }
+  
   if (!validateForm()) {
     console.log('Form validation failed')
     return
@@ -412,9 +478,26 @@ const handleSubmit = async () => {
     console.log('Patient ID:', currentPatient?.id)
     console.log('Patient createdAt:', currentPatient?.createdAt)
     
-    // Create patient model with form data
+    // Sanitize form data before creating patient model
+    const sanitizedFormData = {
+      name: (formData.name || '').trim(),
+      age: Number(formData.age) || null,
+      gender: (formData.gender || '').trim(),
+      dateOfBirth: (formData.dateOfBirth || '').trim(),
+      phone: (formData.phone || '').trim(),
+      email: (formData.email || '').trim(),
+      address: (formData.address || '').trim(),
+      bloodType: (formData.bloodType || '').trim(),
+      insuranceNumber: (formData.insuranceNumber || '').trim(),
+      medicalHistory: (formData.medicalHistory || '').trim(),
+      allergies: (formData.allergies || '').trim(),
+      currentMedications: (formData.currentMedications || '').trim(),
+      emergencyContact: (formData.emergencyContact || '').trim()
+    }
+    
+    // Create patient model with sanitized form data
     const patientData = new PatientFormModel({
-      ...formData,
+      ...sanitizedFormData,
       // Preserve existing ID if editing
       id: currentPatient?.id || null,
       // Preserve existing timestamps if editing
@@ -429,8 +512,12 @@ const handleSubmit = async () => {
     emit('save', patientData.toJSON())
   } catch (error) {
     console.error('Error saving patient:', error)
-    // Show error to user
-    errors.general = 'An error occurred while saving the patient. Please try again.'
+    // Show error to user with more specific error message
+    if (error.message) {
+      errors.general = `Error: ${error.message}`
+    } else {
+      errors.general = 'An error occurred while saving the patient. Please check your input and try again.'
+    }
   } finally {
     isSubmitting.value = false
   }

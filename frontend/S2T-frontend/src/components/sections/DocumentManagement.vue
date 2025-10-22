@@ -32,6 +32,16 @@
         <h3>{{ selectedDocument.name }}</h3>
         <div class="form-actions">
           <button
+            @click="saveDocument"
+            class="export-button save-button"
+            :disabled="!hasFormData"
+          >
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M15,9H5V5H15M12,19A3,3 0 0,1 9,16A3,3 0 0,1 12,13A3,3 0 0,1 15,16A3,3 0 0,1 12,19M17,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V7L17,3Z"/>
+            </svg>
+            <span>Save Document</span>
+          </button>
+          <button
             @click="debugData"
             class="export-button debug-button"
           >
@@ -60,6 +70,63 @@
             </svg>
             <span>Export Word</span>
           </button>
+        </div>
+      </div>
+
+      <!-- Patient Selection -->
+      <div class="patient-selection-section">
+        <div class="patient-selection-header">
+          <h4>Select Patient for Document</h4>
+          <button 
+            @click="showPatientSelector = !showPatientSelector"
+            class="patient-selector-toggle"
+            :class="{ 'active': showPatientSelector }"
+          >
+            {{ selectedPatient ? 'Change Patient' : 'Select Patient' }}
+            <span class="toggle-icon">{{ showPatientSelector ? '▲' : '▼' }}</span>
+          </button>
+        </div>
+        
+        <div v-if="showPatientSelector" class="patient-selector">
+          <div class="patient-search">
+            <input 
+              v-model="patientSearchQuery"
+              type="text" 
+              placeholder="Search patients..."
+              class="patient-search-input"
+            />
+          </div>
+          <div class="patient-list">
+            <div 
+              v-for="patient in filteredPatients" 
+              :key="patient.id"
+              class="patient-option"
+              :class="{ 'selected': selectedPatient?.id === patient.id }"
+              @click="selectPatient(patient)"
+            >
+              <div class="patient-avatar">
+                {{ getPatientInitials(patient.name) }}
+              </div>
+              <div class="patient-info">
+                <div class="patient-name">{{ patient.name }}</div>
+                <div class="patient-details">{{ patient.age }} years old • {{ patient.gender }}</div>
+              </div>
+            </div>
+            <div v-if="filteredPatients.length === 0" class="no-patients">
+              <p>No patients found. <a href="#" @click.prevent="navigateToPatients">Create a new patient</a></p>
+            </div>
+          </div>
+        </div>
+        
+        <div v-if="selectedPatient" class="selected-patient-info">
+          <div class="selected-patient-avatar">
+            {{ getPatientInitials(selectedPatient.name) }}
+          </div>
+          <div class="selected-patient-details">
+            <div class="selected-patient-name">{{ selectedPatient.name }}</div>
+            <div class="selected-patient-meta">{{ selectedPatient.age }} years old • {{ selectedPatient.gender }}</div>
+          </div>
+          <button @click="clearPatientSelection" class="clear-patient-btn">✕</button>
         </div>
       </div>
 
@@ -92,10 +159,21 @@ import MedicalReport from '@/components/documents/MedicalReport.vue'
 import ConsultationForm from '@/components/documents/ConsultationForm.vue'
 import PrescriptionForm from '@/components/documents/PrescriptionForm.vue'
 import FirstTimeNewPatient from '@/components/documents/FirstTimeNewPatient.vue'
+import { usePatientViewModel } from '@/viewmodels/PatientViewModel.js'
+import { toastService } from '@/services/ToastService.js'
+
+// ViewModels
+const patientVM = usePatientViewModel()
 
 // State
 const selectedDocument = ref(null)
+const selectedPatient = ref(null)
+const showPatientSelector = ref(false)
+const patientSearchQuery = ref('')
 const patientData = reactive({
+  // Document Information
+  date: new Date().toISOString().split('T')[0], // Today's date in YYYY-MM-DD format
+  
   // Personal Information
   name: '',
   age: '',
@@ -182,10 +260,98 @@ const hasFormData = computed(() => {
   )
 })
 
+const filteredPatients = computed(() => {
+  if (!patientSearchQuery.value.trim()) {
+    return patientVM.patients.value || []
+  }
+  
+  const query = patientSearchQuery.value.toLowerCase()
+  return (patientVM.patients.value || []).filter(patient => 
+    patient.name.toLowerCase().includes(query) ||
+    patient.gender.toLowerCase().includes(query) ||
+    (patient.age && patient.age.toString().includes(query))
+  )
+})
+
 // Methods
 const selectDocument = (template) => {
   selectedDocument.value = template
+  // Update date to today's date when selecting a new document
+  patientData.date = new Date().toISOString().split('T')[0]
   console.log('Selected document:', template.name)
+}
+
+const selectPatient = (patient) => {
+  selectedPatient.value = patient
+  showPatientSelector.value = false
+  
+  // Update patient data with selected patient's information
+  updatePatientDataFromSelection(patient)
+  
+  console.log('Selected patient for document:', patient.name)
+}
+
+const clearPatientSelection = () => {
+  selectedPatient.value = null
+  // Clear patient-specific data
+  clearPatientData()
+  console.log('Cleared patient selection')
+}
+
+const updatePatientDataFromSelection = (patient) => {
+  // Update the patientData reactive object with the selected patient's information
+  Object.assign(patientData, {
+    date: new Date().toISOString().split('T')[0], // Keep today's date
+    name: patient.name || '',
+    age: patient.age || '',
+    gender: patient.gender || '',
+    phone: patient.phone || '',
+    email: patient.email || '',
+    address: patient.address || '',
+    bloodType: patient.bloodType || '',
+    insuranceNumber: patient.insuranceNumber || '',
+    medicalHistory: patient.medicalHistory || '',
+    allergies: patient.allergies || '',
+    currentMedications: patient.currentMedications || '',
+    emergencyContact: patient.emergencyContact || '',
+    // Add patient ID for reference
+    patientId: patient.id
+  })
+}
+
+const clearPatientData = () => {
+  // Clear patient-specific fields but keep document-specific fields
+  Object.assign(patientData, {
+    date: new Date().toISOString().split('T')[0], // Keep today's date
+    name: '',
+    age: '',
+    gender: '',
+    phone: '',
+    email: '',
+    address: '',
+    bloodType: '',
+    insuranceNumber: '',
+    medicalHistory: '',
+    allergies: '',
+    currentMedications: '',
+    emergencyContact: '',
+    patientId: null
+  })
+}
+
+const getPatientInitials = (name) => {
+  if (!name) return '??'
+  const names = name.trim().split(' ')
+  if (names.length >= 2) {
+    return (names[0][0] + names[names.length - 1][0]).toUpperCase()
+  }
+  return names[0][0].toUpperCase()
+}
+
+const navigateToPatients = () => {
+  // This would navigate to the patients section
+  // For now, we'll just show an alert
+  alert('Please go to the Patients tab to create a new patient.')
 }
 
 const getTemplateCardClass = (template) => {
@@ -218,6 +384,50 @@ const handleFieldUpdate = (fieldName, value) => {
   }
 }
 
+const saveDocument = () => {
+  if (!hasFormData.value) {
+    toastService.warning(
+      'No Data to Save',
+      'Please fill in some data before saving the document.'
+    )
+    return
+  }
+  
+  if (!selectedPatient.value) {
+    toastService.warning(
+      'No Patient Selected',
+      'Please select a patient before saving the document.'
+    )
+    return
+  }
+  
+  // Create document record
+  const documentRecord = {
+    id: Date.now(),
+    patientId: selectedPatient.value.id,
+    patientName: selectedPatient.value.name,
+    documentType: selectedDocument.value.name,
+    documentId: selectedDocument.value.id,
+    date: patientData.date,
+    data: { ...patientData },
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  }
+  
+  // Save to localStorage (in a real app, this would be sent to a backend)
+  const savedDocuments = JSON.parse(localStorage.getItem('medicalDocuments') || '[]')
+  savedDocuments.push(documentRecord)
+  localStorage.setItem('medicalDocuments', JSON.stringify(savedDocuments))
+  
+  // Show success notification
+  toastService.success(
+    'Document Saved Successfully!',
+    `"${selectedDocument.value.name}" has been saved for ${selectedPatient.value.name}.`
+  )
+  
+  console.log('Document saved:', documentRecord)
+}
+
 const debugData = () => {
   console.log('=== DEBUG DATA ===')
   console.log('Selected Document:', selectedDocument.value)
@@ -234,9 +444,11 @@ const debugData = () => {
 const generatePDFContent = () => {
   const documentName = selectedDocument.value.name
   const currentDate = new Date().toLocaleDateString()
+  const patientName = selectedPatient.value ? selectedPatient.value.name : 'No Patient Selected'
   
   console.log('Generating PDF content for:', documentName)
   console.log('Current patientData:', patientData)
+  console.log('Selected patient:', selectedPatient.value)
   
   let content = `
     <!DOCTYPE html>
@@ -313,6 +525,9 @@ const generatePDFContent = () => {
       <div class="header">
         <h1>${documentName}</h1>
         <div class="date">Generated on: ${currentDate}</div>
+        <div class="patient-info-header">
+          <strong>Patient:</strong> ${patientName}
+        </div>
       </div>
   `
   
@@ -348,9 +563,11 @@ const generatePDFContent = () => {
 const generateWordContent = () => {
   const documentName = selectedDocument.value.name
   const currentDate = new Date().toLocaleDateString()
+  const patientName = selectedPatient.value ? selectedPatient.value.name : 'No Patient Selected'
   
   console.log('Generating Word content for:', documentName)
   console.log('Current patientData:', patientData)
+  console.log('Selected patient:', selectedPatient.value)
   
   let content = `
     <!DOCTYPE html>
@@ -425,6 +642,9 @@ const generateWordContent = () => {
       <div class="header">
         <h1>${documentName}</h1>
         <div class="date">Generated on: ${currentDate}</div>
+        <div class="patient-info-header">
+          <strong>Patient:</strong> ${patientName}
+        </div>
       </div>
   `
   
@@ -523,8 +743,18 @@ const exportToWord = () => {
 }
 
 // Lifecycle
-onMounted(() => {
+onMounted(async () => {
   console.log('Document management mounted')
+  // Ensure date is set to today
+  patientData.date = new Date().toISOString().split('T')[0]
+  
+  // Load patients when component mounts
+  try {
+    await patientVM.loadPatients()
+    console.log('Patients loaded for document management')
+  } catch (error) {
+    console.error('Error loading patients:', error)
+  }
 })
 </script>
 
@@ -758,6 +988,16 @@ onMounted(() => {
   transform: none;
 }
 
+.save-button {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+}
+
+.save-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(40, 167, 69, 0.3);
+}
+
 .debug-button {
   background: linear-gradient(135deg, #ff6b6b, #ee5a24);
   color: white;
@@ -844,6 +1084,228 @@ onMounted(() => {
   text-shadow: 0 1px 5px rgba(0,0,0,0.2);
 }
 
+/* Patient Selection Styles */
+.patient-selection-section {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  padding: 1.5rem;
+  border-radius: 15px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 2rem;
+}
+
+.patient-selection-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.patient-selection-header h4 {
+  color: white;
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.patient-selector-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.patient-selector-toggle:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+}
+
+.patient-selector-toggle.active {
+  background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
+}
+
+.toggle-icon {
+  font-size: 0.8rem;
+  transition: transform 0.3s ease;
+}
+
+.patient-selector {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  max-height: 300px;
+  overflow: hidden;
+}
+
+.patient-search {
+  padding: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.patient-search-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: white;
+  font-size: 0.9rem;
+  backdrop-filter: blur(10px);
+}
+
+.patient-search-input::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.patient-search-input:focus {
+  outline: none;
+  border-color: rgba(102, 126, 234, 0.5);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.patient-list {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.patient-option {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.patient-option:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.patient-option.selected {
+  background: rgba(102, 126, 234, 0.2);
+  border-left: 3px solid #667eea;
+}
+
+.patient-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.patient-info {
+  flex: 1;
+}
+
+.patient-name {
+  color: white;
+  font-weight: 600;
+  font-size: 1rem;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.patient-details {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.85rem;
+  margin-top: 0.25rem;
+}
+
+.selected-patient-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(102, 126, 234, 0.1);
+  border-radius: 10px;
+  border: 1px solid rgba(102, 126, 234, 0.2);
+  margin-top: 1rem;
+}
+
+.selected-patient-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 1.1rem;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.selected-patient-details {
+  flex: 1;
+}
+
+.selected-patient-name {
+  color: white;
+  font-weight: 600;
+  font-size: 1.1rem;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.selected-patient-meta {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9rem;
+  margin-top: 0.25rem;
+}
+
+.clear-patient-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(255, 107, 107, 0.2);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  color: #ff6b6b;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.clear-patient-btn:hover {
+  background: rgba(255, 107, 107, 0.3);
+  transform: scale(1.1);
+}
+
+.no-patients {
+  padding: 2rem;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.no-patients a {
+  color: #667eea;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.no-patients a:hover {
+  text-decoration: underline;
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
   .document-management {
@@ -865,6 +1327,16 @@ onMounted(() => {
   
   .export-button {
     flex: 1;
+    justify-content: center;
+  }
+  
+  .patient-selection-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+  
+  .patient-selector-toggle {
     justify-content: center;
   }
 }

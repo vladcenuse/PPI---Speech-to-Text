@@ -109,13 +109,19 @@
             variant="secondary" 
             size="small"
             @click="editPatient(patient)"
-            text="Edit"
+            text="Edit Patient Information"
           />
           <Button 
             variant="outline" 
             size="small"
             @click="viewPatient(patient)"
-            text="View"
+            text="View Patient Information"
+          />
+          <Button 
+            variant="info" 
+            size="small"
+            @click="viewMedicalRecords(patient)"
+            text="View Medical Records"
           />
           <Button 
             variant="error" 
@@ -155,6 +161,71 @@
       />
     </Modal>
 
+    <!-- Medical Records Modal -->
+    <Modal 
+      :is-open="showMedicalRecordsModal" 
+      @close="closeMedicalRecordsModal"
+      size="large"
+    >
+      <div class="medical-records-modal">
+        <div class="modal-header">
+          <h3>Medical Records - {{ selectedPatientForRecords?.name }}</h3>
+          <button @click="closeMedicalRecordsModal" class="close-btn">✕</button>
+        </div>
+        
+        <div class="records-content">
+          <div v-if="medicalRecords.length === 0" class="no-records">
+            <div class="no-records-icon">📋</div>
+            <h4>No Medical Records Found</h4>
+            <p>This patient doesn't have any medical records yet.</p>
+          </div>
+          
+          <div v-else class="records-list">
+            <div 
+              v-for="record in medicalRecords" 
+              :key="record.id" 
+              class="record-item"
+            >
+              <div class="record-header">
+                <div class="record-type">{{ record.documentType }}</div>
+                <div class="record-date">{{ new Date(record.date).toLocaleDateString() }}</div>
+              </div>
+              
+              <div class="record-preview">
+                <div class="preview-field" v-if="record.data.chiefComplaint">
+                  <strong>Chief Complaint:</strong> {{ record.data.chiefComplaint.substring(0, 100) }}{{ record.data.chiefComplaint.length > 100 ? '...' : '' }}
+                </div>
+                <div class="preview-field" v-if="record.data.symptoms">
+                  <strong>Symptoms:</strong> {{ record.data.symptoms.substring(0, 100) }}{{ record.data.symptoms.length > 100 ? '...' : '' }}
+                </div>
+                <div class="preview-field" v-if="record.data.diagnosis">
+                  <strong>Diagnosis:</strong> {{ record.data.diagnosis.substring(0, 100) }}{{ record.data.diagnosis.length > 100 ? '...' : '' }}
+                </div>
+                <div class="preview-field" v-if="record.data.medications">
+                  <strong>Medications:</strong> {{ record.data.medications.substring(0, 100) }}{{ record.data.medications.length > 100 ? '...' : '' }}
+                </div>
+              </div>
+              
+              <div class="record-actions">
+                <button @click="editMedicalRecord(record)" class="action-btn edit-btn">
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"/>
+                  </svg>
+                  Edit
+                </button>
+                <button @click="deleteMedicalRecord(record)" class="action-btn delete-btn">
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/>
+                  </svg>
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Modal>
+
     <!-- Delete Confirmation Modal -->
     <ConfirmModal
       :is-open="showDeleteModal"
@@ -176,9 +247,10 @@ import { ref, reactive, onMounted, watch, computed } from 'vue'
 import Button from '@/components/common/Button.vue'
 import Modal from '@/components/common/Modal.vue'
 import ConfirmModal from '@/components/common/ConfirmModal.vue'
-import Spinner from '@/components/common/Spinner.vue'
-import PatientForm from '@/components/patient/PatientForm.vue'
 import { usePatientViewModel } from '@/viewmodels/PatientViewModel.js'
+import PatientForm from '@/components/patient/PatientForm.vue'
+import { toastService } from '@/services/ToastService.js'
+import Spinner from '@/components/common/Spinner.vue'
 
 // ViewModels
 const patientVM = usePatientViewModel()
@@ -186,7 +258,10 @@ const patientVM = usePatientViewModel()
 // Local state
 const showCreateModal = ref(false)
 const showDeleteModal = ref(false)
+const showMedicalRecordsModal = ref(false)
 const patientToDelete = ref(null)
+const selectedPatientForRecords = ref(null)
+const medicalRecords = ref([])
 const isViewMode = ref(false)
 const localSearchQuery = ref('')
 const localFilters = reactive({
@@ -306,6 +381,51 @@ const viewPatient = (patient) => {
   setCurrentPatient(patient)
   isViewMode.value = true
   showCreateModal.value = true
+}
+
+const loadMedicalRecords = (patientId) => {
+  // Load medical records from localStorage
+  const allDocuments = JSON.parse(localStorage.getItem('medicalDocuments') || '[]')
+  medicalRecords.value = allDocuments.filter(doc => doc.patientId === patientId)
+  console.log(`Loaded ${medicalRecords.value.length} medical records for patient ${patientId}`)
+}
+
+const editMedicalRecord = (record) => {
+  // Navigate to documents tab with pre-filled data
+  // This would require integration with the main app routing
+  console.log('Edit medical record:', record)
+  toastService.info(
+    'Edit Medical Record',
+    `Editing ${record.documentType} from ${new Date(record.date).toLocaleDateString()}. This will open the document editor.`
+  )
+}
+
+const deleteMedicalRecord = (record) => {
+  if (confirm(`Are you sure you want to delete this ${record.documentType}?`)) {
+    const allDocuments = JSON.parse(localStorage.getItem('medicalDocuments') || '[]')
+    const updatedDocuments = allDocuments.filter(doc => doc.id !== record.id)
+    localStorage.setItem('medicalDocuments', JSON.stringify(updatedDocuments))
+    loadMedicalRecords(selectedPatientForRecords.value.id)
+    console.log('Medical record deleted:', record.id)
+    
+    toastService.success(
+      'Medical Record Deleted',
+      `"${record.documentType}" has been successfully deleted.`
+    )
+  }
+}
+
+const closeMedicalRecordsModal = () => {
+  showMedicalRecordsModal.value = false
+  selectedPatientForRecords.value = null
+  medicalRecords.value = []
+}
+
+const viewMedicalRecords = (patient) => {
+  console.log('viewMedicalRecords called with:', patient)
+  selectedPatientForRecords.value = patient
+  showMedicalRecordsModal.value = true
+  loadMedicalRecords(patient.id)
 }
 
 const deletePatient = (patient) => {
@@ -785,6 +905,199 @@ onMounted(async () => {
   .patient-actions {
     flex-direction: row;
     justify-content: space-between;
+  }
+}
+
+/* Medical Records Modal Styles */
+.medical-records-modal {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  max-height: 80vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.modal-header h3 {
+  color: white;
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.close-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.records-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 2rem;
+}
+
+.no-records {
+  text-align: center;
+  padding: 3rem 2rem;
+}
+
+.no-records-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.no-records h4 {
+  color: white;
+  margin-bottom: 0.5rem;
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+.no-records p {
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+}
+
+.records-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.record-item {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 15px;
+  padding: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.record-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+}
+
+.record-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.record-type {
+  color: white;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.record-date {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+}
+
+.record-preview {
+  margin-bottom: 1rem;
+}
+
+.preview-field {
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.preview-field strong {
+  color: white;
+  font-weight: 600;
+}
+
+.record-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.action-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.edit-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.edit-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.delete-btn {
+  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+  color: white;
+}
+
+.delete-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+}
+
+@media (max-width: 768px) {
+  .modal-header {
+    padding: 1rem 1.5rem;
+  }
+  
+  .records-content {
+    padding: 1rem;
+  }
+  
+  .record-item {
+    padding: 1rem;
+  }
+  
+  .record-actions {
+    flex-direction: column;
+  }
+  
+  .action-btn {
+    justify-content: center;
   }
 }
 </style>
