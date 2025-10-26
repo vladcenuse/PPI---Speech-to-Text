@@ -16,7 +16,6 @@ export function useUIStateViewModel() {
     // Modals and dialogs
     modals: {
       patientForm: false,
-      recordingModal: false,
       exportModal: false,
       settingsModal: false,
       confirmationDialog: false
@@ -30,7 +29,6 @@ export function useUIStateViewModel() {
     loading: {
       global: false,
       patients: false,
-      recordings: false,
       export: false
     },
 
@@ -52,11 +50,6 @@ export function useUIStateViewModel() {
     // Form states
     forms: {
       patientForm: {
-        isDirty: false,
-        isValid: false,
-        errors: []
-      },
-      recordingForm: {
         isDirty: false,
         isValid: false,
         errors: []
@@ -102,10 +95,6 @@ export function useUIStateViewModel() {
       '/patients': [
         { label: 'Acasă', path: '/' },
         { label: 'Pacienți', path: '/patients' }
-      ],
-      '/recording': [
-        { label: 'Acasă', path: '/' },
-        { label: 'Înregistrare', path: '/recording' }
       ],
       '/settings': [
         { label: 'Acasă', path: '/' },

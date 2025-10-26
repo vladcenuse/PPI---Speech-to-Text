@@ -41,12 +41,6 @@
           <option value="Male">Male</option>
           <option value="Female">Female</option>
         </select>
-        
-        <select v-model="localFilters.hasRecordings" class="filter-select">
-          <option value="">All patients</option>
-          <option value="true">With recordings</option>
-          <option value="false">Without recordings</option>
-        </select>
       </div>
     </div>
 
@@ -165,15 +159,10 @@
     <Modal 
       :is-open="showMedicalRecordsModal" 
       @close="closeMedicalRecordsModal"
+      :title="`Medical Records - ${selectedPatientForRecords?.name || ''}`"
       size="large"
     >
-      <div class="medical-records-modal">
-        <div class="modal-header">
-          <h3>Medical Records - {{ selectedPatientForRecords?.name }}</h3>
-          <button @click="closeMedicalRecordsModal" class="close-btn">✕</button>
-        </div>
-        
-        <div class="records-content">
+      <div class="medical-records-content">
           <div v-if="medicalRecords.length === 0" class="no-records">
             <div class="no-records-icon">📋</div>
             <h4>No Medical Records Found</h4>
@@ -187,23 +176,8 @@
               class="record-item"
             >
               <div class="record-header">
-                <div class="record-type">{{ record.documentType }}</div>
+                <div class="record-type">{{ record.customName || record.documentType }}</div>
                 <div class="record-date">{{ new Date(record.date).toLocaleDateString() }}</div>
-              </div>
-              
-              <div class="record-preview">
-                <div class="preview-field" v-if="record.data.chiefComplaint">
-                  <strong>Chief Complaint:</strong> {{ record.data.chiefComplaint.substring(0, 100) }}{{ record.data.chiefComplaint.length > 100 ? '...' : '' }}
-                </div>
-                <div class="preview-field" v-if="record.data.symptoms">
-                  <strong>Symptoms:</strong> {{ record.data.symptoms.substring(0, 100) }}{{ record.data.symptoms.length > 100 ? '...' : '' }}
-                </div>
-                <div class="preview-field" v-if="record.data.diagnosis">
-                  <strong>Diagnosis:</strong> {{ record.data.diagnosis.substring(0, 100) }}{{ record.data.diagnosis.length > 100 ? '...' : '' }}
-                </div>
-                <div class="preview-field" v-if="record.data.medications">
-                  <strong>Medications:</strong> {{ record.data.medications.substring(0, 100) }}{{ record.data.medications.length > 100 ? '...' : '' }}
-                </div>
               </div>
               
               <div class="record-actions">
@@ -212,6 +186,12 @@
                     <path d="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"/>
                   </svg>
                   Edit
+                </button>
+                <button @click="exportRecordToWord(record)" class="action-btn word-btn">
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                  </svg>
+                  Word
                 </button>
                 <button @click="deleteMedicalRecord(record)" class="action-btn delete-btn">
                   <svg viewBox="0 0 24 24" fill="currentColor">
@@ -222,7 +202,6 @@
               </div>
             </div>
           </div>
-        </div>
       </div>
     </Modal>
 
@@ -265,8 +244,7 @@ const medicalRecords = ref([])
 const isViewMode = ref(false)
 const localSearchQuery = ref('')
 const localFilters = reactive({
-  gender: '',
-  hasRecordings: ''
+  gender: ''
 })
 
 // Computed properties from ViewModels
@@ -386,17 +364,37 @@ const viewPatient = (patient) => {
 const loadMedicalRecords = (patientId) => {
   // Load medical records from localStorage
   const allDocuments = JSON.parse(localStorage.getItem('medicalDocuments') || '[]')
+  console.log('All documents in localStorage:', allDocuments)
+  console.log('Looking for patientId:', patientId)
   medicalRecords.value = allDocuments.filter(doc => doc.patientId === patientId)
   console.log(`Loaded ${medicalRecords.value.length} medical records for patient ${patientId}`)
+  console.log('Medical records:', medicalRecords.value)
 }
 
 const editMedicalRecord = (record) => {
-  // Navigate to documents tab with pre-filled data
-  // This would require integration with the main app routing
   console.log('Edit medical record:', record)
+  
+  // Store the record to edit globally
+  localStorage.setItem('editingDocumentId', record.id.toString())
+  
+  // Include patientId in the data for reference
+  const documentData = { ...record.data, patientId: record.patientId }
+  localStorage.setItem('editingDocumentData', JSON.stringify(documentData))
+  localStorage.setItem('editingDocumentType', record.documentType)
+  
+  // Trigger navigation to documents tab by emitting an event
+  // The event will be handled in the MainView to switch sections
+  const event = new CustomEvent('navigate-to-documents', { 
+    detail: { documentId: record.id, documentData: documentData, documentType: record.documentType } 
+  })
+  window.dispatchEvent(event)
+  
+  // Close the medical records modal
+  closeMedicalRecordsModal()
+  
   toastService.info(
-    'Edit Medical Record',
-    `Editing ${record.documentType} from ${new Date(record.date).toLocaleDateString()}. This will open the document editor.`
+    'Opening Document',
+    `Loading ${record.documentType} for editing...`
   )
 }
 
@@ -413,6 +411,138 @@ const deleteMedicalRecord = (record) => {
       `"${record.documentType}" has been successfully deleted.`
     )
   }
+}
+
+const exportRecordToWord = (record) => {
+  const documentName = record.customName || record.documentType
+  const currentDate = new Date().toLocaleDateString()
+  const patientName = selectedPatientForRecords.value.name
+  
+  let content = `
+    <!DOCTYPE html>
+    <html xmlns:o="urn:schemas-microsoft-com:office:office"
+          xmlns:w="urn:schemas-microsoft-com:office:word"
+          xmlns="http://www.w3.org/TR/REC-html40">
+    <head>
+      <meta charset="utf-8">
+      <meta name="ProgId" content="Word.Document">
+      <meta name="Generator" content="Microsoft Word 15">
+      <meta name="Originator" content="Microsoft Word 15">
+      <title>${documentName}</title>
+      <!--[if gte mso 9]><xml>
+       <w:WordDocument>
+        <w:View>Print</w:View>
+        <w:Zoom>90</w:Zoom>
+        <w:DoNotOptimizeForBrowser/>
+       </w:WordDocument>
+      </xml><![endif]-->
+      <style>
+        body {
+          font-family: 'Calibri', 'Segoe UI', Arial, sans-serif;
+          line-height: 1.6;
+          color: #333;
+          max-width: 800px;
+          margin: 0 auto;
+          padding: 20px;
+        }
+        .header {
+          text-align: center;
+          border-bottom: 3px solid #667eea;
+          padding-bottom: 20px;
+          margin-bottom: 30px;
+        }
+        .header h1 {
+          color: #667eea;
+          margin: 0;
+          font-size: 24pt;
+        }
+        .header .date {
+          color: #666;
+          font-size: 11pt;
+          margin-top: 10px;
+        }
+        .patient-info-header {
+          margin-top: 15px;
+          color: #444;
+          font-weight: bold;
+        }
+        .field {
+          margin-bottom: 12px;
+        }
+        .field-label {
+          font-weight: bold;
+          color: #555;
+          display: inline-block;
+          min-width: 150px;
+        }
+        .field-value {
+          padding-left: 5px;
+        }
+        .footer {
+          margin-top: 40px;
+          text-align: center;
+          font-size: 9pt;
+          color: #666;
+          border-top: 1px solid #ccc;
+          padding-top: 20px;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>${documentName}</h1>
+        <div class="date">Date: ${new Date(record.date).toLocaleDateString()}</div>
+        <div class="patient-info-header">
+          Patient: ${patientName}
+        </div>
+      </div>
+  `
+  
+  let fieldCount = 0
+  if (record.data) {
+    Object.entries(record.data).forEach(([key, value]) => {
+      if (value && value.toString().trim() !== '' && key !== 'patientId') {
+        const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())
+        content += `
+          <div class="field">
+            <span class="field-label">${label}:</span>
+            <span class="field-value">${value}</span>
+          </div>
+        `
+        fieldCount++
+      }
+    })
+  }
+  
+  content += `
+      <div class="footer">
+        <p>Document generated by Speech-to-Text Medical System</p>
+        <p>Generated on: ${currentDate}</p>
+      </div>
+    </body>
+    </html>
+  `
+  
+  // Create blob with Word MIME type
+  const blob = new Blob([content], { type: 'application/msword' })
+  
+  // Create download link
+  const link = document.createElement('a')
+  link.href = URL.createObjectURL(blob)
+  link.download = `${documentName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.doc`
+  
+  // Trigger download
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  
+  // Clean up
+  URL.revokeObjectURL(link.href)
+  
+  toastService.success(
+    'Word Document Downloaded',
+    'The file has been saved. Open it with Microsoft Word or another compatible word processor.'
+  )
 }
 
 const closeMedicalRecordsModal = () => {
@@ -478,8 +608,21 @@ watch(localSearchQuery, (newQuery) => {
   setSearchQuery(newQuery)
 })
 
+// Debounce filter changes to prevent excessive updates
+let filterDebounceTimer = null
 watch(localFilters, (newFilters) => {
-  setFilters(newFilters)
+  if (filterDebounceTimer) {
+    clearTimeout(filterDebounceTimer)
+  }
+  
+  filterDebounceTimer = setTimeout(() => {
+    // Process filters
+    const processedFilters = {
+      ...newFilters,
+      gender: newFilters.gender === '' ? '' : newFilters.gender
+    }
+    setFilters(processedFilters)
+  }, 150)
 }, { deep: true })
 
 // Lifecycle
@@ -909,54 +1052,10 @@ onMounted(async () => {
 }
 
 /* Medical Records Modal Styles */
-.medical-records-modal {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(20px);
-  border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  max-height: 80vh;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1.5rem 2rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.modal-header h3 {
-  color: white;
-  margin: 0;
-  font-size: 1.5rem;
-  font-weight: 700;
-  text-shadow: 0 2px 8px rgba(0,0,0,0.3);
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 1.5rem;
-  cursor: pointer;
-  padding: 0.5rem;
-  border-radius: 50%;
-  transition: all 0.3s ease;
-}
-
-.close-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-}
-
-.records-content {
-  flex: 1;
+.medical-records-content {
+  padding: 1rem;
+  max-height: 70vh;
   overflow-y: auto;
-  padding: 2rem;
 }
 
 .no-records {
@@ -993,6 +1092,9 @@ onMounted(async () => {
   padding: 1.5rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
   transition: all 0.3s ease;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .record-item:hover {
@@ -1003,9 +1105,9 @@ onMounted(async () => {
 
 .record-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
 }
 
 .record-type {
@@ -1019,26 +1121,10 @@ onMounted(async () => {
   font-size: 0.9rem;
 }
 
-.record-preview {
-  margin-bottom: 1rem;
-}
-
-.preview-field {
-  color: rgba(255, 255, 255, 0.8);
-  margin-bottom: 0.5rem;
-  font-size: 0.9rem;
-  line-height: 1.4;
-}
-
-.preview-field strong {
-  color: white;
-  font-weight: 600;
-}
-
 .record-actions {
   display: flex;
   gap: 0.75rem;
-  justify-content: flex-end;
+  flex-shrink: 0;
 }
 
 .action-btn {
@@ -1079,13 +1165,19 @@ onMounted(async () => {
   box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
 }
 
+.word-btn {
+  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+  color: white;
+}
+
+.word-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+}
+
 @media (max-width: 768px) {
-  .modal-header {
-    padding: 1rem 1.5rem;
-  }
-  
-  .records-content {
-    padding: 1rem;
+  .medical-records-content {
+    padding: 0.5rem;
   }
   
   .record-item {

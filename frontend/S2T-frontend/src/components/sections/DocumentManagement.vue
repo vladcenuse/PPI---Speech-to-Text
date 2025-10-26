@@ -29,7 +29,26 @@
     <!-- Document Form -->
     <div v-if="selectedDocument" class="document-form-section">
       <div class="form-header">
-        <h3>{{ selectedDocument.name }}</h3>
+        <div class="form-title-section">
+          <h3 v-if="!isEditingTitle">{{ currentFormName || selectedDocument?.name || 'Untitled Form' }}</h3>
+          <input 
+            v-else
+            v-model="currentFormName"
+            @blur="finishEditingTitle"
+            @keyup.enter="finishEditingTitle"
+            class="form-name-input"
+            ref="titleInputRef"
+          />
+          <button 
+            @click="startEditingTitle" 
+            class="edit-title-btn"
+            title="Edit form name"
+          >
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"/>
+            </svg>
+          </button>
+        </div>
         <div class="form-actions">
           <button
             @click="saveDocument"
@@ -40,35 +59,6 @@
               <path d="M15,9H5V5H15M12,19A3,3 0 0,1 9,16A3,3 0 0,1 12,13A3,3 0 0,1 15,16A3,3 0 0,1 12,19M17,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V7L17,3Z"/>
             </svg>
             <span>Save Document</span>
-          </button>
-          <button
-            @click="debugData"
-            class="export-button debug-button"
-          >
-            <svg viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M11,16.5L18,9.5L16.5,8L11,13.5L7.5,10L6,11.5L11,16.5Z"/>
-            </svg>
-            <span>Debug Data</span>
-          </button>
-          <button
-            @click="exportToPDF"
-            class="export-button pdf-button"
-            :disabled="!hasFormData"
-          >
-            <svg viewBox="0 0 24 24" fill="currentColor">
-              <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
-            </svg>
-            <span>Export PDF</span>
-          </button>
-          <button
-            @click="exportToWord"
-            class="export-button word-button"
-            :disabled="!hasFormData"
-          >
-            <svg viewBox="0 0 24 24" fill="currentColor">
-              <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
-            </svg>
-            <span>Export Word</span>
           </button>
         </div>
       </div>
@@ -170,6 +160,9 @@ const selectedDocument = ref(null)
 const selectedPatient = ref(null)
 const showPatientSelector = ref(false)
 const patientSearchQuery = ref('')
+const currentFormName = ref('')
+const isEditingTitle = ref(false)
+const titleInputRef = ref(null)
 const patientData = reactive({
   // Document Information
   date: new Date().toISOString().split('T')[0], // Today's date in YYYY-MM-DD format
@@ -275,10 +268,51 @@ const filteredPatients = computed(() => {
 
 // Methods
 const selectDocument = (template) => {
+  // Check if this is a unique template (New Patient Form)
+  if (template.id === 'new-patient-form' && selectedPatient.value) {
+    // Check if a New Patient Form already exists for this patient
+    const allDocuments = JSON.parse(localStorage.getItem('medicalDocuments') || '[]')
+    const existingForm = allDocuments.find(doc => 
+      doc.documentId === 'new-patient-form' && 
+      doc.patientId === selectedPatient.value.id
+    )
+    
+    if (existingForm) {
+      toastService.warning(
+        'Form Already Exists',
+        `This patient already has a New Patient Form. Please edit the existing form or select a different patient.`
+      )
+      return
+    }
+  }
+  
   selectedDocument.value = template
+  // Always set default form name to template name when selecting a new document
+  currentFormName.value = template.name
   // Update date to today's date when selecting a new document
   patientData.date = new Date().toISOString().split('T')[0]
   console.log('Selected document:', template.name)
+  console.log('Current form name:', currentFormName.value)
+}
+
+const startEditingTitle = () => {
+  // Ensure we have a value before editing
+  if (!currentFormName.value || currentFormName.value.trim() === '') {
+    currentFormName.value = selectedDocument.value?.name || 'Untitled Form'
+  }
+  isEditingTitle.value = true
+  // Focus the input after it's rendered
+  setTimeout(() => {
+    titleInputRef.value?.focus()
+  }, 10)
+}
+
+const finishEditingTitle = () => {
+  isEditingTitle.value = false
+  // Ensure form name is not empty
+  if (!currentFormName.value || !currentFormName.value.trim()) {
+    currentFormName.value = selectedDocument.value?.name || 'Untitled Form'
+  }
 }
 
 const selectPatient = (patient) => {
@@ -299,24 +333,28 @@ const clearPatientSelection = () => {
 }
 
 const updatePatientDataFromSelection = (patient) => {
-  // Update the patientData reactive object with the selected patient's information
-  Object.assign(patientData, {
-    date: new Date().toISOString().split('T')[0], // Keep today's date
-    name: patient.name || '',
-    age: patient.age || '',
-    gender: patient.gender || '',
-    phone: patient.phone || '',
-    email: patient.email || '',
-    address: patient.address || '',
-    bloodType: patient.bloodType || '',
-    insuranceNumber: patient.insuranceNumber || '',
-    medicalHistory: patient.medicalHistory || '',
-    allergies: patient.allergies || '',
-    currentMedications: patient.currentMedications || '',
-    emergencyContact: patient.emergencyContact || '',
-    // Add patient ID for reference
-    patientId: patient.id
-  })
+  // Only update basic patient info, don't overwrite document-specific data
+  patientData.date = new Date().toISOString().split('T')[0]
+  patientData.patientId = patient.id
+  patientData.hasPatientSelected = true
+  
+  // Only update fields that don't already have values (to preserve user input)
+  if (!patientData.name || patientData.name === '') patientData.name = patient.name || ''
+  if (!patientData.age || patientData.age === '') patientData.age = patient.age || ''
+  if (!patientData.gender || patientData.gender === '') patientData.gender = patient.gender || ''
+  if (!patientData.phone || patientData.phone === '') patientData.phone = patient.phone || ''
+  if (!patientData.email || patientData.email === '') patientData.email = patient.email || ''
+  if (!patientData.address || patientData.address === '') patientData.address = patient.address || ''
+  if (!patientData.bloodType || patientData.bloodType === '') patientData.bloodType = patient.bloodType || ''
+  if (!patientData.insuranceNumber || patientData.insuranceNumber === '') patientData.insuranceNumber = patient.insuranceNumber || ''
+  if (!patientData.medicalHistory || patientData.medicalHistory === '') patientData.medicalHistory = patient.medicalHistory || ''
+  if (!patientData.allergies || patientData.allergies === '') patientData.allergies = patient.allergies || ''
+  if (!patientData.currentMedications || patientData.currentMedications === '') patientData.currentMedications = patient.currentMedications || ''
+  if (!patientData.emergencyContact || patientData.emergencyContact === '') patientData.emergencyContact = patient.emergencyContact || ''
+  
+  // For New Patient Form - always update these fields (they get locked)
+  patientData.patientName = patient.name || ''
+  patientData.dateOfBirth = patient.dateOfBirth || ''
 }
 
 const clearPatientData = () => {
@@ -401,345 +439,115 @@ const saveDocument = () => {
     return
   }
   
-  // Create document record
-  const documentRecord = {
-    id: Date.now(),
-    patientId: selectedPatient.value.id,
-    patientName: selectedPatient.value.name,
-    documentType: selectedDocument.value.name,
-    documentId: selectedDocument.value.id,
-    date: patientData.date,
-    data: { ...patientData },
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  }
+  // Check if we're editing an existing document
+  let editingDocumentId = localStorage.getItem('editingDocumentId')
   
-  // Save to localStorage (in a real app, this would be sent to a backend)
-  const savedDocuments = JSON.parse(localStorage.getItem('medicalDocuments') || '[]')
-  savedDocuments.push(documentRecord)
-  localStorage.setItem('medicalDocuments', JSON.stringify(savedDocuments))
-  
-  // Show success notification
-  toastService.success(
-    'Document Saved Successfully!',
-    `"${selectedDocument.value.name}" has been saved for ${selectedPatient.value.name}.`
-  )
-  
-  console.log('Document saved:', documentRecord)
-}
-
-const debugData = () => {
-  console.log('=== DEBUG DATA ===')
-  console.log('Selected Document:', selectedDocument.value)
-  console.log('Patient Data:', patientData)
-  console.log('Has Form Data:', hasFormData.value)
-  console.log('Non-empty fields:', Object.entries(patientData).filter(([key, value]) => value && value.toString().trim() !== ''))
-  console.log('==================')
-  
-  const nonEmptyFields = Object.entries(patientData).filter(([key, value]) => value && value.toString().trim() !== '')
-  const message = `Current data:\n\nNon-empty fields: ${nonEmptyFields.length}\n\nFields with data:\n${nonEmptyFields.map(([key, value]) => `${key}: "${value}"`).join('\n')}`
-  alert(message)
-}
-
-const generatePDFContent = () => {
-  const documentName = selectedDocument.value.name
-  const currentDate = new Date().toLocaleDateString()
-  const patientName = selectedPatient.value ? selectedPatient.value.name : 'No Patient Selected'
-  
-  console.log('Generating PDF content for:', documentName)
-  console.log('Current patientData:', patientData)
-  console.log('Selected patient:', selectedPatient.value)
-  
-  let content = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <title>${documentName}</title>
-      <style>
-        @page {
-          size: A4;
-          margin: 2cm;
-        }
-        @media print {
-          body { -webkit-print-color-adjust: exact; }
-          .no-print { display: none; }
-        }
-        body {
-          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-          line-height: 1.6;
-          color: #333;
-          max-width: 800px;
-          margin: 0 auto;
-        }
-        .header {
-          text-align: center;
-          border-bottom: 2px solid #667eea;
-          padding-bottom: 20px;
-          margin-bottom: 30px;
-        }
-        .header h1 {
-          color: #667eea;
-          margin: 0;
-          font-size: 28px;
-        }
-        .header .date {
-          color: #666;
-          font-size: 14px;
-          margin-top: 10px;
-        }
-        .section {
-          margin-bottom: 25px;
-        }
-        .section h2 {
-          color: #667eea;
-          border-bottom: 1px solid #eee;
-          padding-bottom: 5px;
-          margin-bottom: 15px;
-          font-size: 18px;
-        }
-        .field {
-          margin-bottom: 10px;
-          display: flex;
-        }
-        .field-label {
-          font-weight: bold;
-          min-width: 150px;
-          color: #555;
-        }
-        .field-value {
-          flex: 1;
-          padding-left: 10px;
-        }
-        .footer {
-          margin-top: 40px;
-          text-align: center;
-          font-size: 12px;
-          color: #666;
-          border-top: 1px solid #eee;
-          padding-top: 20px;
-        }
-      </style>
-    </head>
-    <body>
-      <div class="header">
-        <h1>${documentName}</h1>
-        <div class="date">Generated on: ${currentDate}</div>
-        <div class="patient-info-header">
-          <strong>Patient:</strong> ${patientName}
-        </div>
-      </div>
-  `
-  
-  let fieldCount = 0
-  Object.entries(patientData).forEach(([key, value]) => {
-    console.log(`Processing field: ${key} = "${value}"`)
-    if (value && value.toString().trim() !== '') {
-      const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())
-      content += `
-        <div class="field">
-          <div class="field-label">${label}:</div>
-          <div class="field-value">${value}</div>
-        </div>
-      `
-      fieldCount++
-    }
-  })
-  
-  console.log(`Added ${fieldCount} fields to PDF content`)
-  
-  content += `
-      <div class="footer">
-        <p>Document generated by Speech-to-Text Medical System</p>
-        <p>Generated on: ${currentDate}</p>
-      </div>
-    </body>
-    </html>
-  `
-  
-  return content
-}
-
-const generateWordContent = () => {
-  const documentName = selectedDocument.value.name
-  const currentDate = new Date().toLocaleDateString()
-  const patientName = selectedPatient.value ? selectedPatient.value.name : 'No Patient Selected'
-  
-  console.log('Generating Word content for:', documentName)
-  console.log('Current patientData:', patientData)
-  console.log('Selected patient:', selectedPatient.value)
-  
-  let content = `
-    <!DOCTYPE html>
-    <html xmlns:o="urn:schemas-microsoft-com:office:office"
-          xmlns:w="urn:schemas-microsoft-com:office:word"
-          xmlns="http://www.w3.org/TR/REC-html40">
-    <head>
-      <meta charset="utf-8">
-      <meta name="ProgId" content="Word.Document">
-      <meta name="Generator" content="Microsoft Word 15">
-      <meta name="Originator" content="Microsoft Word 15">
-      <title>${documentName}</title>
-      <style>
-        body {
-          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-          line-height: 1.6;
-          color: #333;
-          max-width: 800px;
-          margin: 0 auto;
-          padding: 20px;
-        }
-        .header {
-          text-align: center;
-          border-bottom: 2px solid #667eea;
-          padding-bottom: 20px;
-          margin-bottom: 30px;
-        }
-        .header h1 {
-          color: #667eea;
-          margin: 0;
-          font-size: 28px;
-        }
-        .header .date {
-          color: #666;
-          font-size: 14px;
-          margin-top: 10px;
-        }
-        .section {
-          margin-bottom: 25px;
-        }
-        .section h2 {
-          color: #667eea;
-          border-bottom: 1px solid #eee;
-          padding-bottom: 5px;
-          margin-bottom: 15px;
-          font-size: 18px;
-        }
-        .field {
-          margin-bottom: 10px;
-          display: flex;
-        }
-        .field-label {
-          font-weight: bold;
-          min-width: 150px;
-          color: #555;
-        }
-        .field-value {
-          flex: 1;
-          padding-left: 10px;
-        }
-        .footer {
-          margin-top: 40px;
-          text-align: center;
-          font-size: 12px;
-          color: #666;
-          border-top: 1px solid #eee;
-          padding-top: 20px;
-        }
-      </style>
-    </head>
-    <body>
-      <div class="header">
-        <h1>${documentName}</h1>
-        <div class="date">Generated on: ${currentDate}</div>
-        <div class="patient-info-header">
-          <strong>Patient:</strong> ${patientName}
-        </div>
-      </div>
-  `
-  
-  let fieldCount = 0
-  Object.entries(patientData).forEach(([key, value]) => {
-    console.log(`Processing field: ${key} = "${value}"`)
-    if (value && value.toString().trim() !== '') {
-      const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())
-      content += `
-        <div class="field">
-          <div class="field-label">${label}:</div>
-          <div class="field-value">${value}</div>
-        </div>
-      `
-      fieldCount++
-    }
-  })
-  
-  console.log(`Added ${fieldCount} fields to Word content`)
-  
-  content += `
-      <div class="footer">
-        <p>Document generated by Speech-to-Text Medical System</p>
-        <p>Generated on: ${currentDate}</p>
-      </div>
-    </body>
-    </html>
-  `
-  
-  return content
-}
-
-const exportToPDF = () => {
-  if (!hasFormData.value) {
-    alert('Please fill in some data before exporting to PDF.')
-    return
-  }
-  
-  const htmlContent = generatePDFContent()
-  
-  // Open new window with print-optimized content
-  const printWindow = window.open('', '_blank', 'width=800,height=600')
-  printWindow.document.write(htmlContent)
-  
-  // Add print-specific styles
-  printWindow.document.write(`
-    <style>
-      @media print {
-        body { margin: 0; }
-        .no-print { display: none; }
-      }
-    </style>
-  `)
-  
-  printWindow.document.close()
-  
-  // Focus and trigger print dialog
-  setTimeout(() => {
-    printWindow.focus()
-    printWindow.print()
+  // Only check for duplicates for New Patient Form (it should be unique per patient)
+  if (selectedDocument.value.id === 'new-patient-form' && !editingDocumentId) {
+    const allDocuments = JSON.parse(localStorage.getItem('medicalDocuments') || '[]')
+    const existingForm = allDocuments.find(doc => 
+      doc.documentId === 'new-patient-form' && 
+      doc.patientId === selectedPatient.value.id
+    )
     
-    // Close window after printing (optional)
-    setTimeout(() => {
-      printWindow.close()
-    }, 1000)
-  }, 500)
-  
-  console.log('PDF export initiated')
-}
-
-const exportToWord = () => {
-  if (!hasFormData.value) {
-    alert('Please fill in some data before exporting to Word.')
-    return
+    if (existingForm) {
+      const confirmed = confirm(
+        'Warning: This patient already has a New Patient Form. Saving will replace the existing form. Do you want to continue?'
+      )
+      if (!confirmed) {
+        return
+      }
+      // If user confirms, we'll update the existing form
+      localStorage.setItem('editingDocumentId', existingForm.id.toString())
+      editingDocumentId = existingForm.id.toString()
+    }
   }
   
-  const htmlContent = generateWordContent()
+  // Get saved documents
+  const savedDocuments = JSON.parse(localStorage.getItem('medicalDocuments') || '[]')
+  console.log('Current saved documents before save:', savedDocuments)
   
-  // Create blob with Word-compatible HTML
-  const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' })
+  let documentRecord
+  if (editingDocumentId) {
+    console.log('Updating existing document with ID:', editingDocumentId)
+    // Update existing document - preserve original ID format
+    const originalDoc = savedDocuments.find(doc => doc.id == editingDocumentId || doc.id === editingDocumentId)
+    
+    documentRecord = {
+      id: originalDoc?.id || editingDocumentId,
+      patientId: selectedPatient.value.id,
+      patientName: selectedPatient.value.name,
+      documentType: selectedDocument.value.name,
+      documentId: selectedDocument.value.id,
+      customName: currentFormName.value || selectedDocument.value.name, // Store custom name
+      date: patientData.date,
+      data: { ...patientData },
+      createdAt: originalDoc?.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }
+    
+    // Find and update the document - handle both string and number IDs
+    const documentIndex = savedDocuments.findIndex(doc => doc.id == editingDocumentId || doc.id === editingDocumentId)
+    if (documentIndex !== -1) {
+      savedDocuments[documentIndex] = documentRecord
+      console.log('Document updated at index:', documentIndex)
+    } else {
+      console.warn('Document not found for update, adding as new')
+      savedDocuments.push(documentRecord)
+    }
+    
+    // Clear editing flags
+    localStorage.removeItem('editingDocumentId')
+    localStorage.removeItem('editingDocumentData')
+    localStorage.removeItem('editingDocumentType')
+    
+    toastService.success(
+      'Document Updated Successfully!',
+      `"${currentFormName.value || selectedDocument.value.name}" has been updated for ${selectedPatient.value.name}.`
+    )
+    
+    // Show confirmation alert
+    setTimeout(() => {
+      alert('✓ Document has been successfully updated!')
+    }, 100)
+  } else {
+    console.log('Creating new document')
+    // Create new document record - use a more unique ID
+    documentRecord = {
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      patientId: selectedPatient.value.id,
+      patientName: selectedPatient.value.name,
+      documentType: selectedDocument.value.name,
+      documentId: selectedDocument.value.id,
+      customName: currentFormName.value || selectedDocument.value.name, // Store custom name
+      date: patientData.date,
+      data: { ...patientData },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }
+    
+    savedDocuments.push(documentRecord)
+    console.log('Added new document to array')
+    
+    toastService.success(
+      'Document Saved Successfully!',
+      `"${currentFormName.value || selectedDocument.value.name}" has been saved for ${selectedPatient.value.name}.`
+    )
+    
+    // Show confirmation alert
+    setTimeout(() => {
+      alert('✓ Document has been successfully saved!')
+    }, 100)
+  }
   
-  // Create download link
-  const link = document.createElement('a')
-  link.href = URL.createObjectURL(blob)
-  link.download = `${selectedDocument.value.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.html`
+  // Save to localStorage
+  localStorage.setItem('medicalDocuments', JSON.stringify(savedDocuments))
+  console.log('Total documents saved:', savedDocuments.length)
+  console.log('Document saved:', documentRecord)
   
-  // Trigger download
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  
-  // Clean up
-  URL.revokeObjectURL(link.href)
-  
-  console.log('Word export completed')
+  // Verify what's in localStorage
+  const verifyDocuments = JSON.parse(localStorage.getItem('medicalDocuments') || '[]')
+  console.log('Verification - Documents in localStorage:', verifyDocuments)
 }
 
 // Lifecycle
@@ -755,6 +563,80 @@ onMounted(async () => {
   } catch (error) {
     console.error('Error loading patients:', error)
   }
+  
+  // Check if we're editing an existing document - use setTimeout to ensure DOM is ready
+  setTimeout(() => {
+    const editingDocumentId = localStorage.getItem('editingDocumentId')
+    if (editingDocumentId) {
+      console.log('Found document to edit:', editingDocumentId)
+      const editingDocumentData = JSON.parse(localStorage.getItem('editingDocumentData') || '{}')
+      const editingDocumentType = localStorage.getItem('editingDocumentType')
+      
+      console.log('Editing data:', editingDocumentData)
+      console.log('Document type:', editingDocumentType)
+      
+      // Map document types to template IDs
+      const typeToTemplateId = {
+        'New Patient Form': 'new-patient-form',
+        'Medical Report': 'medical-report',
+        'Consultation Form': 'consultation-form',
+        'Prescription Form': 'prescription-form'
+      }
+      
+      // Find the document template
+      const templateId = typeToTemplateId[editingDocumentType]
+      const template = documentTemplates.value.find(t => t.id === templateId)
+      
+      console.log('Looking for template with ID:', templateId)
+      console.log('Available templates:', documentTemplates.value.map(t => t.id))
+      
+      if (template) {
+        // Select the document template
+        selectedDocument.value = template
+        console.log('Selected template:', template.name)
+        
+        // Small delay to ensure the template is selected
+        setTimeout(() => {
+          // Load the patient for this document
+          if (editingDocumentData.patientId) {
+            const patient = patientVM.patients.value.find(p => p.id === editingDocumentData.patientId)
+            console.log('Looking for patient with ID:', editingDocumentData.patientId)
+            console.log('Available patients:', patientVM.patients.value.map(p => ({ id: p.id, name: p.name })))
+            
+            if (patient) {
+              selectedPatient.value = patient
+              console.log('Selected patient:', patient.name)
+              showPatientSelector.value = false
+            }
+          }
+          
+          // Populate form data with the saved document data
+          // This should happen after patient selection to preserve form data
+          Object.keys(editingDocumentData).forEach(key => {
+            if (editingDocumentData[key] !== null && editingDocumentData[key] !== undefined && editingDocumentData[key] !== '') {
+              patientData[key] = editingDocumentData[key]
+            }
+          })
+          
+          // Load custom form name if it exists, otherwise use template name
+          const savedDocumentsList = JSON.parse(localStorage.getItem('medicalDocuments') || '[]')
+          const editingDoc = savedDocumentsList.find(doc => doc.id == editingDocumentId || doc.id === editingDocumentId)
+          if (editingDoc && editingDoc.customName) {
+            currentFormName.value = editingDoc.customName
+          } else {
+            currentFormName.value = template.name
+          }
+          
+          console.log('Form data populated:', patientData)
+          
+          // Don't clear editing flags here - they will be cleared when saving
+          // The flags are only for loading the data, not for tracking state
+        }, 100)
+      } else {
+        console.error('Template not found for document type:', editingDocumentType)
+      }
+    }
+  }, 100)
 })
 </script>
 
@@ -948,12 +830,60 @@ onMounted(async () => {
   gap: 1rem;
 }
 
+.form-title-section {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
 .form-header h3 {
   color: white;
   margin: 0;
   font-size: 1.8rem;
   font-weight: 700;
   text-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.form-name-input {
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  color: white;
+  font-size: 1.8rem;
+  font-weight: 700;
+  min-width: 200px;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.form-name-input:focus {
+  outline: none;
+  border-color: rgba(102, 126, 234, 0.5);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+}
+
+.edit-title-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 0.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.edit-title-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.edit-title-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(102, 126, 234, 0.4);
+  transform: scale(1.05);
 }
 
 .form-actions {

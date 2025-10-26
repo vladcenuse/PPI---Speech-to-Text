@@ -12,10 +12,12 @@
             :value="formData.patientName"
             @input="updateField('patientName', $event.target.value)"
             @click="emitFieldClick('patientName')"
-            :class="{ 'recording-active': isMicrophoneActive && activeRecordingField === 'patientName' }"
+            :class="{ 'recording-active': isMicrophoneActive && activeRecordingField === 'patientName', 'field-locked': isFieldLocked }"
+            :disabled="isFieldLocked"
             placeholder="Enter patient's full name"
           />
           <button 
+            v-if="!isFieldLocked"
             type="button"
             class="record-button"
             :class="{ 'recording': isRecording && currentRecordingField === 'patientName' }"
@@ -28,7 +30,7 @@
       </div>
 
       <div class="form-group">
-        <label for="dateOfBirth">Date of Birth</label>
+        <label for="dateOfBirth">Date of Birth *</label>
         <div class="input-with-button">
           <input 
             type="date" 
@@ -36,9 +38,12 @@
             :value="formData.dateOfBirth"
             @input="updateField('dateOfBirth', $event.target.value)"
             @click="emitFieldClick('dateOfBirth')"
-            :class="{ 'recording-active': isMicrophoneActive && activeRecordingField === 'dateOfBirth' }"
+            :class="{ 'recording-active': isMicrophoneActive && activeRecordingField === 'dateOfBirth', 'field-locked': isFieldLocked }"
+            :disabled="isFieldLocked"
+            required
           />
           <button 
+            v-if="!isFieldLocked"
             type="button"
             class="record-button"
             :class="{ 'recording': isRecording && currentRecordingField === 'dateOfBirth' }"
@@ -51,14 +56,16 @@
       </div>
 
       <div class="form-group">
-        <label for="gender">Gender</label>
+        <label for="gender">Gender *</label>
         <div class="input-with-button">
           <select 
             id="gender" 
             :value="formData.gender"
             @change="updateField('gender', $event.target.value)"
             @click="emitFieldClick('gender')"
-            :class="{ 'recording-active': isMicrophoneActive && activeRecordingField === 'gender' }"
+            :class="{ 'recording-active': isMicrophoneActive && activeRecordingField === 'gender', 'field-locked': isFieldLocked }"
+            :disabled="isFieldLocked"
+            required
           >
             <option value="">Select Gender</option>
             <option value="Male">Male</option>
@@ -67,6 +74,7 @@
             <option value="Prefer not to say">Prefer not to say</option>
           </select>
           <button 
+            v-if="!isFieldLocked"
             type="button"
             class="record-button"
             :class="{ 'recording': isRecording && currentRecordingField === 'gender' }"
@@ -384,7 +392,7 @@
 </template>
 
 <script setup>
-import { reactive, inject, watch, ref } from 'vue'
+import { reactive, inject, watch, ref, computed } from 'vue'
 
 const props = defineProps({
   isMicrophoneActive: Boolean,
@@ -392,6 +400,12 @@ const props = defineProps({
     type: Object,
     default: () => ({})
   }
+})
+
+// Computed property to check if fields should be locked
+const isFieldLocked = computed(() => {
+  // Lock fields if patient is selected (hasPatientSelected is true)
+  return props.patientData?.hasPatientSelected === true
 })
 
 const emit = defineEmits(['field-click', 'field-update'])
@@ -650,5 +664,19 @@ watch(() => props.patientData, (newData) => {
   to {
     box-shadow: 0 0 0 6px rgba(255, 193, 7, 0.7);
   }
+}
+
+/* Locked field styles */
+.field-locked {
+  background-color: #f5f5f5 !important;
+  color: #666 !important;
+  cursor: not-allowed !important;
+  border-color: #ccc !important;
+  opacity: 0.7;
+}
+
+.field-locked:focus {
+  border-color: #ccc !important;
+  box-shadow: none !important;
 }
 </style>
