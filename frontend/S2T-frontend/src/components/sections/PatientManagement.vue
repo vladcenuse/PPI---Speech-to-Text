@@ -230,6 +230,7 @@ import { usePatientViewModel } from '@/viewmodels/PatientViewModel.js'
 import PatientForm from '@/components/patient/PatientForm.vue'
 import { toastService } from '@/services/ToastService.js'
 import Spinner from '@/components/common/Spinner.vue'
+import { apiClient } from '@/services/ApiClient.js'
 
 // ViewModels
 const patientVM = usePatientViewModel()
@@ -361,14 +362,132 @@ const viewPatient = (patient) => {
   showCreateModal.value = true
 }
 
-const loadMedicalRecords = (patientId) => {
-  // Load medical records from localStorage
-  const allDocuments = JSON.parse(localStorage.getItem('medicalDocuments') || '[]')
-  console.log('All documents in localStorage:', allDocuments)
-  console.log('Looking for patientId:', patientId)
-  medicalRecords.value = allDocuments.filter(doc => doc.patientId === patientId)
-  console.log(`Loaded ${medicalRecords.value.length} medical records for patient ${patientId}`)
-  console.log('Medical records:', medicalRecords.value)
+const loadMedicalRecords = async (patientId) => {
+  try {
+    console.log('Loading medical records for patient:', patientId)
+    
+    // Fetch all document types from backend API
+    const [newPatientForms, medicalReports, consultationForms, prescriptionForms] = await Promise.all([
+      apiClient.get(`/new-patient-forms/patient/${patientId}`).catch(() => []),
+      apiClient.get(`/medical-reports/patient/${patientId}`).catch(() => []),
+      apiClient.get(`/consultation-forms/patient/${patientId}`).catch(() => []),
+      apiClient.get(`/prescription-forms/patient/${patientId}`).catch(() => [])
+    ])
+    
+    // Combine and transform all documents to a unified format
+    const allDocuments = []
+    
+    // Transform new patient forms
+    if (Array.isArray(newPatientForms)) {
+      newPatientForms.forEach(form => {
+        allDocuments.push({
+          id: form.id,
+          patientId: form.patient_id,
+          patientName: selectedPatientForRecords.value?.name || '',
+          documentType: 'New Patient Form',
+          documentId: 'new-patient-form',
+          customName: form.custom_name,
+          date: form.date,
+          data: {
+            patientName: form.patient_name,
+            dateOfBirth: form.date_of_birth,
+            gender: form.gender,
+            contactInfo: form.contact_info,
+            chiefComplaint: form.chief_complaint,
+            presentIllness: form.present_illness,
+            pastMedicalHistory: form.past_medical_history,
+            medications: form.medications,
+            allergies: form.allergies,
+            familyHistory: form.family_history,
+            socialHistory: form.social_history,
+            vitalSigns: form.vital_signs,
+            physicalExam: form.physical_exam,
+            assessment: form.assessment,
+            plan: form.plan,
+            followUp: form.follow_up,
+            date: form.date
+          }
+        })
+      })
+    }
+    
+    // Transform medical reports
+    if (Array.isArray(medicalReports)) {
+      medicalReports.forEach(form => {
+        allDocuments.push({
+          id: form.id,
+          patientId: form.patient_id,
+          patientName: selectedPatientForRecords.value?.name || '',
+          documentType: 'Medical Report',
+          documentId: 'medical-report',
+          customName: form.custom_name,
+          date: form.date,
+          data: {
+            chiefComplaint: form.chief_complaint,
+            historyOfPresentIllness: form.history_of_present_illness,
+            physicalExamination: form.physical_examination,
+            diagnosis: form.diagnosis,
+            treatment: form.treatment,
+            recommendations: form.recommendations,
+            date: form.date
+          }
+        })
+      })
+    }
+    
+    // Transform consultation forms
+    if (Array.isArray(consultationForms)) {
+      consultationForms.forEach(form => {
+        allDocuments.push({
+          id: form.id,
+          patientId: form.patient_id,
+          patientName: selectedPatientForRecords.value?.name || '',
+          documentType: 'Consultation Form',
+          documentId: 'consultation-form',
+          customName: form.custom_name,
+          date: form.date,
+          data: {
+            symptoms: form.symptoms,
+            vitalSigns: form.vital_signs,
+            assessment: form.assessment,
+            plan: form.plan,
+            date: form.date
+          }
+        })
+      })
+    }
+    
+    // Transform prescription forms
+    if (Array.isArray(prescriptionForms)) {
+      prescriptionForms.forEach(form => {
+        allDocuments.push({
+          id: form.id,
+          patientId: form.patient_id,
+          patientName: selectedPatientForRecords.value?.name || '',
+          documentType: 'Prescription Form',
+          documentId: 'prescription-form',
+          customName: form.custom_name,
+          date: form.date,
+          data: {
+            medications: form.medications,
+            dosage: form.dosage,
+            instructions: form.instructions,
+            followUp: form.follow_up,
+            date: form.date
+          }
+        })
+      })
+    }
+    
+    medicalRecords.value = allDocuments
+    console.log(`Loaded ${medicalRecords.value.length} medical records for patient ${patientId}`)
+    console.log('Medical records:', medicalRecords.value)
+    
+  } catch (error) {
+    console.error('Error loading medical records:', error)
+    toastService.error('Failed to load medical records', error.message)
+    medicalRecords.value = []
+  }
 }
 
 const editMedicalRecord = (record) => {
@@ -377,10 +496,11 @@ const editMedicalRecord = (record) => {
   // Store the record to edit globally
   localStorage.setItem('editingDocumentId', record.id.toString())
   
-  // Include patientId in the data for reference
+  // Include patientId, customName, and other metadata in the data
   const documentData = { ...record.data, patientId: record.patientId }
   localStorage.setItem('editingDocumentData', JSON.stringify(documentData))
   localStorage.setItem('editingDocumentType', record.documentType)
+  localStorage.setItem('editingDocumentCustomName', record.customName || '')
   
   // Trigger navigation to documents tab by emitting an event
   // The event will be handled in the MainView to switch sections
@@ -398,18 +518,39 @@ const editMedicalRecord = (record) => {
   )
 }
 
-const deleteMedicalRecord = (record) => {
+const deleteMedicalRecord = async (record) => {
   if (confirm(`Are you sure you want to delete this ${record.documentType}?`)) {
-    const allDocuments = JSON.parse(localStorage.getItem('medicalDocuments') || '[]')
-    const updatedDocuments = allDocuments.filter(doc => doc.id !== record.id)
-    localStorage.setItem('medicalDocuments', JSON.stringify(updatedDocuments))
-    loadMedicalRecords(selectedPatientForRecords.value.id)
-    console.log('Medical record deleted:', record.id)
-    
-    toastService.success(
-      'Medical Record Deleted',
-      `"${record.documentType}" has been successfully deleted.`
-    )
+    try {
+      // Determine the API endpoint based on document type
+      const formTypeEndpoints = {
+        'new-patient-form': 'new-patient-forms',
+        'medical-report': 'medical-reports',
+        'consultation-form': 'consultation-forms',
+        'prescription-form': 'prescription-forms'
+      }
+      
+      const endpoint = formTypeEndpoints[record.documentId]
+      if (!endpoint) {
+        toastService.error('Unknown document type')
+        return
+      }
+      
+      await apiClient.delete(`/${endpoint}/${record.id}`)
+      
+      // Reload medical records to reflect the deletion
+      await loadMedicalRecords(selectedPatientForRecords.value.id)
+      
+      toastService.success(
+        'Medical Record Deleted',
+        `"${record.documentType}" has been successfully deleted.`
+      )
+    } catch (error) {
+      console.error('Error deleting medical record:', error)
+      toastService.error(
+        'Failed to delete medical record',
+        error.message
+      )
+    }
   }
 }
 
@@ -551,11 +692,11 @@ const closeMedicalRecordsModal = () => {
   medicalRecords.value = []
 }
 
-const viewMedicalRecords = (patient) => {
+const viewMedicalRecords = async (patient) => {
   console.log('viewMedicalRecords called with:', patient)
   selectedPatientForRecords.value = patient
   showMedicalRecordsModal.value = true
-  loadMedicalRecords(patient.id)
+  await loadMedicalRecords(patient.id)
 }
 
 const deletePatient = (patient) => {

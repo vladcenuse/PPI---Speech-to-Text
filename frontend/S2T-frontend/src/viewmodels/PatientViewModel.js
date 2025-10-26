@@ -57,82 +57,36 @@ export function usePatientViewModel() {
     state.error = null
 
     try {
-      // Try to load from localStorage first (more reliable than cookies)
-      let savedPatients = null
+      console.log('🔵 Loading patients from backend API...')
+      // Load patients from backend API
+      const patientsData = await apiClient.getPatients()
+      console.log('✅ Backend API response:', patientsData)
       
-      try {
-        const localStorageData = localStorage.getItem('s2t-patients')
-        if (localStorageData) {
-          savedPatients = JSON.parse(localStorageData)
-        }
-      } catch (error) {
-        console.warn('Failed to load from localStorage:', error)
-      }
+      state.patients = patientsData.map(patientData => new PatientForm({
+        id: patientData.id,
+        name: patientData.name,
+        age: patientData.age,
+        gender: patientData.gender,
+        dateOfBirth: patientData.date_of_birth,
+        phone: patientData.phone,
+        email: patientData.email,
+        address: patientData.address,
+        medicalHistory: patientData.medical_history,
+        allergies: patientData.allergies,
+        currentMedications: patientData.current_medications,
+        bloodType: patientData.blood_type,
+        insuranceNumber: patientData.insurance_number,
+        emergencyContact: patientData.emergency_contact,
+        createdAt: patientData.created_at,
+        updatedAt: patientData.updated_at
+      }))
       
-      // Fallback to cookies if localStorage is empty
-      if (!savedPatients || savedPatients.length === 0) {
-        savedPatients = cookieService.getJSON('patients', [])
-      }
-      
-      // If no saved patients, use mock data
-      if (savedPatients.length === 0) {
-        const mockPatients = [
-          new PatientForm({
-            id: 1,
-            name: 'Ion Popescu',
-            age: 45,
-            gender: 'Male',
-            phone: '0712345678',
-            email: 'ion.popescu@email.com',
-            medicalHistory: 'Arterial hypertension, type 2 diabetes',
-            allergies: 'Penicillin',
-            currentMedications: 'Metformin 500mg, Lisinopril 10mg',
-            bloodType: 'A+',
-            observations: [
-              {
-                id: 1,
-                text: 'Patient presents with chest pain and breathing difficulties.',
-                timestamp: new Date().toISOString(),
-                type: 'transcription'
-              }
-            ]
-          }),
-          new PatientForm({
-            id: 2,
-            name: 'Maria Ionescu',
-            age: 32,
-            gender: 'Female',
-            phone: '0798765432',
-            email: 'maria.ionescu@email.com',
-            medicalHistory: 'Iron deficiency anemia',
-            allergies: 'No known allergies',
-            currentMedications: 'Suplimente de fier',
-            bloodType: 'O+'
-          }),
-          new PatientForm({
-            id: 3,
-            name: 'Gheorghe Dumitrescu',
-            age: 67,
-            gender: 'Male',
-            phone: '0711111111',
-            medicalHistory: 'Ischemic heart disease, arthritis',
-            allergies: 'Aspirin',
-            currentMedications: 'Aspirin 100mg, Atorvastatin 20mg',
-            bloodType: 'B+'
-          })
-        ]
-        
-        state.patients = mockPatients
-        // Save mock data to both localStorage and cookies
-        savePatientsToStorage(mockPatients)
-      } else {
-        // Load saved patients from storage
-        state.patients = savedPatients.map(patientData => new PatientForm(patientData))
-      }
-      
+      console.log(`✅ Loaded ${state.patients.length} patients from database`)
       toastService.info(`Loaded ${state.patients.length} patients`)
     } catch (error) {
+      console.error('❌ Error loading patients:', error)
       state.error = error.message
+      toastService.error('Failed to load patients', error.message)
       errorService.handleError(error, 'loadPatients', {
         userMessage: 'Error loading patients'
       })
@@ -167,28 +121,50 @@ export function usePatientViewModel() {
     state.error = null
 
     try {
-      const newPatient = new PatientForm({
-        ...patientData,
-        id: Date.now(), // Simple ID generation for MVP
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      })
-
-      // Validate patient data
-      const validation = newPatient.validate()
-      if (!validation.isValid) {
-        const error = new Error(validation.errors.join(', '))
-        error.type = 'validation'
-        throw error
+      // Prepare data for backend API (convert camelCase to snake_case)
+      const apiData = {
+        name: patientData.name,
+        age: patientData.age,
+        gender: patientData.gender,
+        date_of_birth: patientData.dateOfBirth,
+        phone: patientData.phone,
+        email: patientData.email,
+        address: patientData.address,
+        medical_history: patientData.medicalHistory,
+        allergies: patientData.allergies,
+        current_medications: patientData.currentMedications,
+        blood_type: patientData.bloodType,
+        insurance_number: patientData.insuranceNumber,
+        emergency_contact: patientData.emergencyContact
       }
+
+      // Create patient via API
+      const createdPatient = await apiClient.createPatient(apiData)
+      
+      // Convert snake_case response to camelCase for frontend
+      const newPatient = new PatientForm({
+        id: createdPatient.id,
+        name: createdPatient.name,
+        age: createdPatient.age,
+        gender: createdPatient.gender,
+        dateOfBirth: createdPatient.date_of_birth,
+        phone: createdPatient.phone,
+        email: createdPatient.email,
+        address: createdPatient.address,
+        medicalHistory: createdPatient.medical_history,
+        allergies: createdPatient.allergies,
+        currentMedications: createdPatient.current_medications,
+        bloodType: createdPatient.blood_type,
+        insuranceNumber: createdPatient.insurance_number,
+        emergencyContact: createdPatient.emergency_contact,
+        createdAt: createdPatient.created_at,
+        updatedAt: createdPatient.updated_at
+      })
 
       state.patients.push(newPatient)
       
       // Show success toast
       toastService.success(`Pacientul "${newPatient.name}" a fost creat cu succes!`)
-      
-      // Save to storage for persistence
-      savePatientsToStorage(state.patients)
       
       return { success: true, patient: newPatient }
     } catch (error) {
@@ -207,28 +183,51 @@ export function usePatientViewModel() {
     state.error = null
 
     try {
-      const patientIndex = state.patients.findIndex(p => p.id === patientId)
-      if (patientIndex === -1) {
-        throw new Error('Patient not found')
+      // Prepare data for backend API (convert camelCase to snake_case)
+      const apiData = {
+        name: patientData.name,
+        age: patientData.age,
+        gender: patientData.gender,
+        date_of_birth: patientData.dateOfBirth,
+        phone: patientData.phone,
+        email: patientData.email,
+        address: patientData.address,
+        medical_history: patientData.medicalHistory,
+        allergies: patientData.allergies,
+        current_medications: patientData.currentMedications,
+        blood_type: patientData.bloodType,
+        insurance_number: patientData.insuranceNumber,
+        emergency_contact: patientData.emergencyContact
       }
 
+      // Update patient via API
+      const updatedPatientData = await apiClient.updatePatient(patientId, apiData)
+      
+      // Convert snake_case response to camelCase for frontend
       const updatedPatient = new PatientForm({
-        ...state.patients[patientIndex],
-        ...patientData,
-        id: patientId,
-        updatedAt: new Date().toISOString()
+        id: updatedPatientData.id,
+        name: updatedPatientData.name,
+        age: updatedPatientData.age,
+        gender: updatedPatientData.gender,
+        dateOfBirth: updatedPatientData.date_of_birth,
+        phone: updatedPatientData.phone,
+        email: updatedPatientData.email,
+        address: updatedPatientData.address,
+        medicalHistory: updatedPatientData.medical_history,
+        allergies: updatedPatientData.allergies,
+        currentMedications: updatedPatientData.current_medications,
+        bloodType: updatedPatientData.blood_type,
+        insuranceNumber: updatedPatientData.insurance_number,
+        emergencyContact: updatedPatientData.emergency_contact,
+        createdAt: updatedPatientData.created_at,
+        updatedAt: updatedPatientData.updated_at
       })
 
-      // Validate patient data
-      const validation = updatedPatient.validate()
-      if (!validation.isValid) {
-        throw new Error(validation.errors.join(', '))
+      // Update local state
+      const patientIndex = state.patients.findIndex(p => p.id === patientId)
+      if (patientIndex !== -1) {
+        state.patients[patientIndex] = updatedPatient
       }
-
-      state.patients[patientIndex] = updatedPatient
-      
-      // Save to storage for persistence
-      savePatientsToStorage(state.patients)
       
       return { success: true, patient: updatedPatient }
     } catch (error) {
@@ -244,15 +243,14 @@ export function usePatientViewModel() {
     state.error = null
 
     try {
-      const patientIndex = state.patients.findIndex(p => p.id === patientId)
-      if (patientIndex === -1) {
-        throw new Error('Patient not found')
-      }
+      // Delete patient via API
+      await apiClient.deletePatient(patientId)
 
-      state.patients.splice(patientIndex, 1)
-      
-      // Save to storage for persistence
-      savePatientsToStorage(state.patients)
+      // Remove from local state
+      const patientIndex = state.patients.findIndex(p => p.id === patientId)
+      if (patientIndex !== -1) {
+        state.patients.splice(patientIndex, 1)
+      }
       
       return { success: true }
     } catch (error) {

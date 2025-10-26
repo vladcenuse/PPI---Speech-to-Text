@@ -21,8 +21,7 @@
             type="button"
             class="record-button"
             :class="{ 'recording': isRecording && currentRecordingField === 'patientName' }"
-            @click="startRecording('patientName')"
-            :disabled="isRecording"
+            @click="toggleRecording('patientName')"
           >
             {{ isRecording && currentRecordingField === 'patientName' ? '⏹️' : '🎙️' }}
           </button>
@@ -47,8 +46,7 @@
             type="button"
             class="record-button"
             :class="{ 'recording': isRecording && currentRecordingField === 'dateOfBirth' }"
-            @click="startRecording('dateOfBirth')"
-            :disabled="isRecording"
+            @click="toggleRecording('dateOfBirth')"
           >
             {{ isRecording && currentRecordingField === 'dateOfBirth' ? '⏹️' : '🎙️' }}
           </button>
@@ -78,8 +76,7 @@
             type="button"
             class="record-button"
             :class="{ 'recording': isRecording && currentRecordingField === 'gender' }"
-            @click="startRecording('gender')"
-            :disabled="isRecording"
+            @click="toggleRecording('gender')"
           >
             {{ isRecording && currentRecordingField === 'gender' ? '⏹️' : '🎙️' }}
           </button>
@@ -101,8 +98,7 @@
             type="button"
             class="record-button"
             :class="{ 'recording': isRecording && currentRecordingField === 'contactInfo' }"
-            @click="startRecording('contactInfo')"
-            :disabled="isRecording"
+            @click="toggleRecording('contactInfo')"
           >
             {{ isRecording && currentRecordingField === 'contactInfo' ? '⏹️' : '🎙️' }}
           </button>
@@ -125,8 +121,7 @@
             type="button"
             class="record-button"
             :class="{ 'recording': isRecording && currentRecordingField === 'chiefComplaint' }"
-            @click="startRecording('chiefComplaint')"
-            :disabled="isRecording"
+            @click="toggleRecording('chiefComplaint')"
           >
             {{ isRecording && currentRecordingField === 'chiefComplaint' ? '⏹️' : '🎙️' }}
           </button>
@@ -148,8 +143,7 @@
             type="button"
             class="record-button"
             :class="{ 'recording': isRecording && currentRecordingField === 'presentIllness' }"
-            @click="startRecording('presentIllness')"
-            :disabled="isRecording"
+            @click="toggleRecording('presentIllness')"
           >
             {{ isRecording && currentRecordingField === 'presentIllness' ? '⏹️' : '🎙️' }}
           </button>
@@ -171,8 +165,7 @@
             type="button"
             class="record-button"
             :class="{ 'recording': isRecording && currentRecordingField === 'pastMedicalHistory' }"
-            @click="startRecording('pastMedicalHistory')"
-            :disabled="isRecording"
+            @click="toggleRecording('pastMedicalHistory')"
           >
             {{ isRecording && currentRecordingField === 'pastMedicalHistory' ? '⏹️' : '🎙️' }}
           </button>
@@ -194,8 +187,7 @@
             type="button"
             class="record-button"
             :class="{ 'recording': isRecording && currentRecordingField === 'medications' }"
-            @click="startRecording('medications')"
-            :disabled="isRecording"
+            @click="toggleRecording('medications')"
           >
             {{ isRecording && currentRecordingField === 'medications' ? '⏹️' : '🎙️' }}
           </button>
@@ -217,8 +209,7 @@
             type="button"
             class="record-button"
             :class="{ 'recording': isRecording && currentRecordingField === 'allergies' }"
-            @click="startRecording('allergies')"
-            :disabled="isRecording"
+            @click="toggleRecording('allergies')"
           >
             {{ isRecording && currentRecordingField === 'allergies' ? '⏹️' : '🎙️' }}
           </button>
@@ -240,8 +231,7 @@
             type="button"
             class="record-button"
             :class="{ 'recording': isRecording && currentRecordingField === 'familyHistory' }"
-            @click="startRecording('familyHistory')"
-            :disabled="isRecording"
+            @click="toggleRecording('familyHistory')"
           >
             {{ isRecording && currentRecordingField === 'familyHistory' ? '⏹️' : '🎙️' }}
           </button>
@@ -263,8 +253,7 @@
             type="button"
             class="record-button"
             :class="{ 'recording': isRecording && currentRecordingField === 'socialHistory' }"
-            @click="startRecording('socialHistory')"
-            :disabled="isRecording"
+            @click="toggleRecording('socialHistory')"
           >
             {{ isRecording && currentRecordingField === 'socialHistory' ? '⏹️' : '🎙️' }}
           </button>
@@ -287,8 +276,7 @@
             type="button"
             class="record-button"
             :class="{ 'recording': isRecording && currentRecordingField === 'vitalSigns' }"
-            @click="startRecording('vitalSigns')"
-            :disabled="isRecording"
+            @click="toggleRecording('vitalSigns')"
           >
             {{ isRecording && currentRecordingField === 'vitalSigns' ? '⏹️' : '🎙️' }}
           </button>
@@ -310,8 +298,7 @@
             type="button"
             class="record-button"
             :class="{ 'recording': isRecording && currentRecordingField === 'physicalExam' }"
-            @click="startRecording('physicalExam')"
-            :disabled="isRecording"
+            @click="toggleRecording('physicalExam')"
           >
             {{ isRecording && currentRecordingField === 'physicalExam' ? '⏹️' : '🎙️' }}
           </button>
@@ -334,8 +321,7 @@
             type="button"
             class="record-button"
             :class="{ 'recording': isRecording && currentRecordingField === 'assessment' }"
-            @click="startRecording('assessment')"
-            :disabled="isRecording"
+            @click="toggleRecording('assessment')"
           >
             {{ isRecording && currentRecordingField === 'assessment' ? '⏹️' : '🎙️' }}
           </button>
@@ -357,8 +343,7 @@
             type="button"
             class="record-button"
             :class="{ 'recording': isRecording && currentRecordingField === 'plan' }"
-            @click="startRecording('plan')"
-            :disabled="isRecording"
+            @click="toggleRecording('plan')"
           >
             {{ isRecording && currentRecordingField === 'plan' ? '⏹️' : '🎙️' }}
           </button>
@@ -380,8 +365,7 @@
             type="button"
             class="record-button"
             :class="{ 'recording': isRecording && currentRecordingField === 'followUp' }"
-            @click="startRecording('followUp')"
-            :disabled="isRecording"
+            @click="toggleRecording('followUp')"
           >
             {{ isRecording && currentRecordingField === 'followUp' ? '⏹️' : '🎙️' }}
           </button>
@@ -404,8 +388,12 @@ const props = defineProps({
 
 // Computed property to check if fields should be locked
 const isFieldLocked = computed(() => {
-  // Lock fields if patient is selected (hasPatientSelected is true)
-  return props.patientData?.hasPatientSelected === true
+  // Lock fields if:
+  // 1. A patient is selected (hasPatientSelected is true), OR
+  // 2. We're editing a saved document (check if we have an editingDocumentId flag)
+  const hasSelectedPatient = props.patientData?.hasPatientSelected === true
+  const isEditingSavedDocument = localStorage.getItem('editingDocumentId') !== null
+  return hasSelectedPatient || isEditingSavedDocument
 })
 
 const emit = defineEmits(['field-click', 'field-update'])
@@ -440,11 +428,20 @@ const emitFieldClick = (fieldName) => {
   emit('field-click', fieldName)
 }
 
-const updateField = (fieldName, value) => {
-  console.log(`FirstTimeNewPatient: Updating field ${fieldName} with value:`, value)
-  formData[fieldName] = value
-  emit('field-update', fieldName, value)
-  console.log(`FirstTimeNewPatient: Emitted field-update event for ${fieldName}`)
+// Add MediaRecorder state
+const mediaRecorder = ref(null)
+const audioChunks = ref([])
+const audioStream = ref(null)
+
+// Toggle recording function
+const toggleRecording = async (fieldName) => {
+  if (isRecording.value && currentRecordingField.value === fieldName) {
+    // Stop recording for this field
+    await stopRecording(fieldName)
+  } else if (!isRecording.value) {
+    // Start recording for this field
+    await startRecording(fieldName)
+  }
 }
 
 const startRecording = async (fieldName) => {
@@ -463,59 +460,132 @@ const startRecording = async (fieldName) => {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
     console.log('Microphone access granted')
     
-    // Simulate 5-second recording
-    setTimeout(() => {
-      stopRecording(fieldName)
-    }, 5000)
+    // Store the stream
+    audioStream.value = stream
+    
+    // Create MediaRecorder
+    mediaRecorder.value = new MediaRecorder(stream)
+    audioChunks.value = []
+    
+    mediaRecorder.value.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        audioChunks.value.push(event.data)
+      }
+    }
+    
+    mediaRecorder.value.onstop = async () => {
+      await sendAudioToTranscriptionAPI(fieldName, stream)
+    }
+    
+    // Start recording
+    mediaRecorder.value.start()
+    console.log('Recording started')
     
   } catch (error) {
     console.error('Failed to start recording:', error)
     isRecording.value = false
     currentRecordingField.value = null
     recordingStarted.value = false
+    audioStream.value = null
     alert('Microphone access denied. Please allow microphone access to use speech-to-text.')
   }
 }
 
-const stopRecording = (fieldName) => {
-  console.log(`Stopping recording for field: ${fieldName}`)
-  
-  // Only update the field if recording was actually started
-  const wasRecording = recordingStarted.value && currentRecordingField.value === fieldName
-  
-  isRecording.value = false
-  currentRecordingField.value = null
-  recordingStarted.value = false
-  
-  // Here you would implement the actual speech-to-text functionality
-  // For now, we'll just simulate it
-  console.log(`Speech-to-text processing for ${fieldName} would happen here`)
-  
-  // Only update the field if this was actually a recording session
-  // Don't overwrite user input with simulated text
-  if (wasRecording) {
-    // Simulate transcribed text (replace with actual speech-to-text result)
-    const simulatedText = `Transcribed text for ${fieldName} field`
-    updateField(fieldName, simulatedText)
+const stopRecording = async (fieldName) => {
+  if (!mediaRecorder.value || mediaRecorder.value.state === 'inactive') {
+    return
   }
+  
+  console.log(`Stopping recording for field: ${fieldName}`)
+  mediaRecorder.value.stop()
+  
+  // Stop all tracks if we have the stream
+  if (audioStream.value) {
+    audioStream.value.getTracks().forEach(track => track.stop())
+    audioStream.value = null
+  }
+}
+
+const sendAudioToTranscriptionAPI = async (fieldName, stream) => {
+  try {
+    // Stop all tracks to free microphone
+    stream.getTracks().forEach(track => track.stop())
+    
+    // Create audio blob
+    const audioBlob = new Blob(audioChunks.value, { type: 'audio/webm' })
+    
+    // Create form data
+    const formData = new FormData()
+    // Use a proper filename with extension
+    const timestamp = Date.now()
+    formData.append('audio_file', audioBlob, `recording_${timestamp}.webm`)
+    
+    console.log('Sending audio to transcription API...')
+    
+    // Send to backend
+    const response = await fetch('http://127.0.0.1:8000/api/transcribe', {
+      method: 'POST',
+      body: formData
+    })
+    
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('Transcription API error:', response.status, errorText)
+      throw new Error(`Transcription failed: ${response.statusText} - ${errorText}`)
+    }
+    
+    const data = await response.json()
+    console.log('Transcription result:', data.text)
+    
+    // Update the field with transcribed text
+    updateField(fieldName, data.text)
+    
+  } catch (error) {
+    console.error('Error during transcription:', error)
+    const errorMsg = error.message || 'Failed to transcribe audio'
+    alert(`Transcription error: ${errorMsg}`)
+  } finally {
+    isRecording.value = false
+    currentRecordingField.value = null
+    recordingStarted.value = false
+    audioChunks.value = []
+    audioStream.value = null
+  }
+}
+
+const updateField = (fieldName, value) => {
+  console.log(`FirstTimeNewPatient: Updating field ${fieldName} with value:`, value)
+  formData[fieldName] = value
+  emit('field-update', fieldName, value)
+  console.log(`FirstTimeNewPatient: Emitted field-update event for ${fieldName}`)
 }
 
 // Watch for changes in patientData to sync with form
 watch(() => props.patientData, (newData) => {
-  // Only update formData if the new data is different from current formData
-  // This prevents overwriting user input
-  const hasChanges = Object.keys(newData).some(key => {
-    const newValue = newData[key] || ''
-    const currentValue = formData[key] || ''
-    return newValue !== currentValue
-  })
+  console.log('FirstTimeNewPatient watch triggered with:', newData)
   
-  if (hasChanges) {
-    console.log('Updating formData from patientData:', newData)
+  // Always update these specific fields that come from patientData
+  if (newData) {
+    const newPatientName = newData.patientName || newData.name || ''
+    const newDateOfBirth = newData.dateOfBirth || ''
+    const newGender = newData.gender || ''
+    
+    // Only update if values have changed
+    if (newPatientName && newPatientName !== formData.patientName) {
+      formData.patientName = newPatientName
+      console.log('Updated patientName to:', newPatientName)
+    }
+    if (newDateOfBirth && newDateOfBirth !== formData.dateOfBirth) {
+      formData.dateOfBirth = newDateOfBirth
+      console.log('Updated dateOfBirth to:', newDateOfBirth)
+    }
+    if (newGender && newGender !== formData.gender) {
+      formData.gender = newGender
+      console.log('Updated gender to:', newGender)
+    }
+    
+    // Update other fields
     Object.assign(formData, {
-      patientName: newData.name || '',
-      dateOfBirth: newData.dateOfBirth || '',
-      gender: newData.gender || '',
       contactInfo: newData.contactInfo || '',
       chiefComplaint: newData.chiefComplaint || '',
       presentIllness: newData.presentIllness || '',
