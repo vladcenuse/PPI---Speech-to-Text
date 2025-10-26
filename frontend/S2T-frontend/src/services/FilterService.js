@@ -45,8 +45,8 @@ class FilterService {
         }
       }
 
-      // Gender filter
-      if (criteria.gender && patient.gender !== criteria.gender) {
+      // Gender filter - only apply if gender is specified (non-empty string)
+      if (criteria.gender && criteria.gender.trim() !== '' && patient.gender !== criteria.gender) {
         return false
       }
 

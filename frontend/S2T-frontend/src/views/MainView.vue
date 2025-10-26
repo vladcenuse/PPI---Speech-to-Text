@@ -19,10 +19,6 @@
               <span class="btn-icon">👥</span>
               Manage Patients
             </button>
-            <button @click="changeSection('recording')" class="btn btn-secondary recording-btn">
-              <span class="btn-icon">🎙️</span>
-              Start Recording
-            </button>
             <button @click="changeSection('documents')" class="btn btn-secondary document-btn">
               <span class="btn-icon">📄</span>
               Document Templates
@@ -31,16 +27,6 @@
         </div>
         
         <div class="features-grid">
-          <div class="feature-card recording-card">
-            <div class="feature-icon recording-icon">
-              <svg viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
-                <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
-              </svg>
-            </div>
-            <h3>Voice Recording</h3>
-            <p>Record medical observations with high-quality audio capture and advanced noise reduction technology</p>
-          </div>
           <div class="feature-card document-card">
             <div class="feature-icon document-icon">
               <svg viewBox="0 0 24 24" fill="currentColor">
@@ -67,11 +53,6 @@
         <PatientManagement />
       </div>
 
-      <!-- Recording Section -->
-      <div v-if="currentSection === 'recording'" class="section-content">
-        <RecordingManagement />
-      </div>
-
       <!-- Documents Section -->
       <div v-if="currentSection === 'documents'" class="section-content">
         <DocumentManagement />
@@ -88,7 +69,6 @@ import { ref, onMounted } from 'vue'
 import HeaderBar from '@/components/layout/HeaderBar.vue'
 import GlobalToast from '@/components/common/GlobalToast.vue'
 import PatientManagement from '@/components/sections/PatientManagement.vue'
-import RecordingManagement from '@/components/sections/RecordingManagement.vue'
 import DocumentManagement from '@/components/sections/DocumentManagement.vue'
 import { cookieService } from '@/services/CookieService.js'
 import { errorService } from '@/services/ErrorService.js'
@@ -101,6 +81,12 @@ const changeSection = (section) => {
   currentSection.value = section
   // Save current section to localStorage for persistence
   localStorage.setItem('s2t-current-section', section)
+}
+
+// Listen for navigation events
+const handleNavigateToDocuments = (event) => {
+  // Switch to documents section
+  changeSection('documents')
 }
 
 // Lifecycle
@@ -118,9 +104,12 @@ onMounted(() => {
     errorService.handleError(event.error, 'globalError')
   })
   
+  // Set up navigation to documents event listener
+  window.addEventListener('navigate-to-documents', handleNavigateToDocuments)
+  
   // Restore last section from localStorage
   const savedSection = localStorage.getItem('s2t-current-section')
-  if (savedSection && ['home', 'patients', 'recording', 'documents'].includes(savedSection)) {
+  if (savedSection && ['home', 'patients', 'documents'].includes(savedSection)) {
     currentSection.value = savedSection
   }
 })
@@ -272,17 +261,6 @@ onMounted(() => {
 }
 
 /* Specific button colors */
-.recording-btn {
-  background: rgba(255, 107, 107, 0.2);
-  border: 2px solid rgba(255, 107, 107, 0.4);
-}
-
-.recording-btn:hover {
-  background: rgba(255, 107, 107, 0.3);
-  border-color: rgba(255, 107, 107, 0.6);
-  box-shadow: 0 8px 25px rgba(255, 107, 107, 0.3);
-}
-
 .document-btn {
   background: rgba(78, 205, 196, 0.2);
   border: 2px solid rgba(78, 205, 196, 0.4);
@@ -329,17 +307,6 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   transition: all 0.3s ease;
-}
-
-/* Recording Icon - Orange/Red gradient */
-.recording-icon {
-  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
-  box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
-}
-
-.recording-card:hover .recording-icon {
-  transform: scale(1.1);
-  box-shadow: 0 6px 20px rgba(255, 107, 107, 0.6);
 }
 
 /* Document Icon - Blue gradient */

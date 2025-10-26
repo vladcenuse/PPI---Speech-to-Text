@@ -58,7 +58,7 @@
           </div>
           
           <div class="form-group">
-            <label for="dateOfBirth" class="form-label">Date of Birth</label>
+            <label for="dateOfBirth" class="form-label">Date of Birth *</label>
             <input
               id="dateOfBirth"
               v-model="formData.dateOfBirth"
@@ -66,6 +66,7 @@
               class="form-input"
               :class="{ 'form-input--error': errors.dateOfBirth, 'form-input--disabled': isViewMode }"
               :disabled="isViewMode"
+              required
             />
             <span v-if="errors.dateOfBirth" class="form-error">{{ errors.dateOfBirth }}</span>
           </div>
@@ -352,14 +353,14 @@ watch(() => props.patient, (newPatient) => {
   console.log('Patient prop type:', typeof newPatient)
   console.log('Patient prop value:', newPatient?.value || newPatient)
   initializeFormData()
-}, { immediate: true })
+}, { immediate: true, deep: false })
 
 // Watch for changes in view mode
 watch(() => props.isViewMode, (newViewMode) => {
   console.log('View mode changed:', newViewMode)
   // Reinitialize form data when view mode changes
   initializeFormData()
-})
+}, { immediate: false })
 
 // Methods
 const validateForm = () => {
@@ -412,8 +413,11 @@ const validateForm = () => {
       }
     }
 
-    // Validate date of birth if provided
-    if (formData.dateOfBirth && formData.dateOfBirth.trim()) {
+    // Validate date of birth - now required
+    if (!formData.dateOfBirth || !formData.dateOfBirth.trim()) {
+      errors.dateOfBirth = 'Date of birth is required'
+      isValid = false
+    } else {
       const birthDate = new Date(formData.dateOfBirth)
       const today = new Date()
       if (isNaN(birthDate.getTime())) {
@@ -527,20 +531,8 @@ const handleCancel = () => {
   emit('cancel')
 }
 
-// Watch for form changes to clear errors
-watch(formData, () => {
-  // Clear field errors when user starts typing
-  Object.keys(errors).forEach(key => {
-    if (key !== 'general' && formData[key]) {
-      delete errors[key]
-    }
-  })
-  
-  // Clear general error when user makes any change
-  if (errors.general) {
-    delete errors.general
-  }
-}, { deep: true })
+// Watch for form changes to clear errors - removed to prevent crashes
+// The form data updates are already reactive and don't need excessive watching
 </script>
 
 <style scoped>
