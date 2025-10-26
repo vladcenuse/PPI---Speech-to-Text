@@ -534,10 +534,7 @@ const saveDocument = () => {
       `"${currentFormName.value || selectedDocument.value.name}" has been saved for ${selectedPatient.value.name}.`
     )
     
-    // Show confirmation alert
-    setTimeout(() => {
-      alert('✓ Document has been successfully saved!')
-    }, 100)
+    // Confirmation handled by toastService.success above; removed alert for consistency
   }
   
   // Save to localStorage
