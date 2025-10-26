@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import patients, documents, transcription
+from app.routers import patients, documents, transcription, new_patient_forms, medical_reports, consultation_forms, prescription_forms
 from app.database import check_and_init_db
 
 # Initialize database
@@ -23,7 +23,10 @@ app.add_middleware(
 
 # Include routers
 app.include_router(patients.router, prefix="/api/patients", tags=["patients"])
-app.include_router(documents.router, prefix="/api/documents", tags=["documents"])
+app.include_router(new_patient_forms.router, prefix="/api/new-patient-forms", tags=["new-patient-forms"])
+app.include_router(medical_reports.router, prefix="/api/medical-reports", tags=["medical-reports"])
+app.include_router(consultation_forms.router, prefix="/api/consultation-forms", tags=["consultation-forms"])
+app.include_router(prescription_forms.router, prefix="/api/prescription-forms", tags=["prescription-forms"])
 app.include_router(transcription.router, prefix="/api", tags=["transcription"])
 
 
