@@ -33,33 +33,44 @@ async def transcribe_audio(audio_file: UploadFile = File(...)):
             detail="OpenAI API key not configured. Please set OPENAI_API_KEY environment variable."
         )
     
+    import tempfile
+    temp_file_path = None
+    
     try:
         # Read audio file
         audio_content = await audio_file.read()
         
         # Save to temporary file
-        temp_file = f"temp_{audio_file.filename}"
-        with open(temp_file, "wb") as f:
-            f.write(audio_content)
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".webm") as temp_file_obj:
+            temp_file_obj.write(audio_content)
+            temp_file_path = temp_file_obj.name
         
-        # Transcribe using OpenAI
-        with open(temp_file, "rb") as f:
+        # Get the filename
+        filename = audio_file.filename or "recording.webm"
+        
+        # Transcribe using OpenAI - pass the file directly
+        with open(temp_file_path, "rb") as audio_f:
             transcript = openai_client.audio.transcriptions.create(
                 model="whisper-1",
-                file=f
+                file=audio_f,
+                response_format="json"
             )
         
         # Clean up temporary file
-        if os.path.exists(temp_file):
-            os.remove(temp_file)
+        if os.path.exists(temp_file_path):
+            os.remove(temp_file_path)
         
         return TranscriptionResponse(text=transcript.text)
     
     except Exception as e:
         # Clean up temporary file on error
-        temp_file = f"temp_{audio_file.filename}"
-        if os.path.exists(temp_file):
-            os.remove(temp_file)
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"Transcription error: {str(e)}")
+        print(f"Traceback: {error_trace}")
+        
+        if temp_file_path and os.path.exists(temp_file_path):
+            os.remove(temp_file_path)
         
         raise HTTPException(
             status_code=500,

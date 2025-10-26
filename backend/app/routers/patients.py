@@ -163,19 +163,51 @@ async def update_patient(patient_id: int, patient: PatientUpdate):
 
 @router.delete("/{patient_id}")
 async def delete_patient(patient_id: int):
-    """Delete a patient"""
+    """Delete a patient and all associated documents"""
     conn = get_db_connection()
     cursor = conn.cursor()
     
     # Check if patient exists
     cursor.execute('SELECT * FROM patients WHERE id = ?', (patient_id,))
-    if not cursor.fetchone():
+    patient = cursor.fetchone()
+    if not patient:
         conn.close()
         raise HTTPException(status_code=404, detail="Patient not found")
     
+    print(f"Deleting patient with ID: {patient_id}")
+    
+    # Delete all documents associated with this patient
+    # Delete in order to respect foreign key constraints if they exist
+    cursor.execute('DELETE FROM prescription_forms WHERE patient_id = ?', (patient_id,))
+    deleted_prescriptions = cursor.rowcount
+    print(f"Deleted {deleted_prescriptions} prescription forms")
+    
+    cursor.execute('DELETE FROM consultation_forms WHERE patient_id = ?', (patient_id,))
+    deleted_consultations = cursor.rowcount
+    print(f"Deleted {deleted_consultations} consultation forms")
+    
+    cursor.execute('DELETE FROM medical_reports WHERE patient_id = ?', (patient_id,))
+    deleted_reports = cursor.rowcount
+    print(f"Deleted {deleted_reports} medical reports")
+    
+    cursor.execute('DELETE FROM new_patient_forms WHERE patient_id = ?', (patient_id,))
+    deleted_new_patient_forms = cursor.rowcount
+    print(f"Deleted {deleted_new_patient_forms} new patient forms")
+    
+    # Finally delete the patient
     cursor.execute('DELETE FROM patients WHERE id = ?', (patient_id,))
+    print(f"Deleted patient {patient_id}")
+    
     conn.commit()
     conn.close()
     
-    return {"message": "Patient deleted successfully"}
+    return {
+        "message": "Patient and all associated documents deleted successfully",
+        "deleted_documents": {
+            "prescription_forms": deleted_prescriptions,
+            "consultation_forms": deleted_consultations,
+            "medical_reports": deleted_reports,
+            "new_patient_forms": deleted_new_patient_forms
+        }
+    }
 

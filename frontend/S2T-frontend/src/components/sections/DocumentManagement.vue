@@ -122,7 +122,21 @@
 
       <!-- Dynamic Document Component -->
       <div class="document-form">
+        <!-- For New Patient Form, require patient selection first -->
+        <template v-if="selectedDocument.id === 'new-patient-form' && !selectedPatient">
+          <div class="patient-selection-required">
+            <div class="patient-selection-message">
+              <svg viewBox="0 0 24 24" fill="currentColor" width="48" height="48">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15l-5-5 1.41-1.41L11 14.17l7.59-7.59L20 8l-9 9z"/>
+              </svg>
+              <h3>Patient Selection Required</h3>
+              <p>Please select a patient from the "Select Patient for Document" section above to create a New Patient Form.</p>
+            </div>
+          </div>
+        </template>
+        <!-- Show form for other documents or when patient is selected -->
         <component 
+          v-else
           :is="selectedDocument.component"
           :patient-data="patientData"
           @field-update="handleFieldUpdate"
@@ -151,6 +165,7 @@ import PrescriptionForm from '@/components/documents/PrescriptionForm.vue'
 import FirstTimeNewPatient from '@/components/documents/FirstTimeNewPatient.vue'
 import { usePatientViewModel } from '@/viewmodels/PatientViewModel.js'
 import { toastService } from '@/services/ToastService.js'
+import { apiClient } from '@/services/ApiClient.js'
 
 // ViewModels
 const patientVM = usePatientViewModel()
@@ -286,9 +301,16 @@ const selectDocument = (template) => {
     }
   }
   
-  selectedDocument.value = template
-  // Always set default form name to template name when selecting a new document
+  // Clear form-specific fields when switching to a new document
+  const editingDocumentId = localStorage.getItem('editingDocumentId')
+  if (!editingDocumentId) {
+    clearFormSpecificFields()
+  }
+  
+  // Always reset form name to the new template's default name when switching documents
   currentFormName.value = template.name
+  
+  selectedDocument.value = template
   // Update date to today's date when selecting a new document
   patientData.date = new Date().toISOString().split('T')[0]
   console.log('Selected document:', template.name)
@@ -333,10 +355,15 @@ const clearPatientSelection = () => {
 }
 
 const updatePatientDataFromSelection = (patient) => {
+  // Clear form-specific fields when selecting a new patient (to avoid showing previous patient's form data)
+  clearFormSpecificFields()
+  
   // Only update basic patient info, don't overwrite document-specific data
   patientData.date = new Date().toISOString().split('T')[0]
   patientData.patientId = patient.id
   patientData.hasPatientSelected = true
+  
+  console.log('updatePatientDataFromSelection - patient:', patient)
   
   // Only update fields that don't already have values (to preserve user input)
   if (!patientData.name || patientData.name === '') patientData.name = patient.name || ''
@@ -348,13 +375,22 @@ const updatePatientDataFromSelection = (patient) => {
   if (!patientData.bloodType || patientData.bloodType === '') patientData.bloodType = patient.bloodType || ''
   if (!patientData.insuranceNumber || patientData.insuranceNumber === '') patientData.insuranceNumber = patient.insuranceNumber || ''
   if (!patientData.medicalHistory || patientData.medicalHistory === '') patientData.medicalHistory = patient.medicalHistory || ''
-  if (!patientData.allergies || patientData.allergies === '') patientData.allergies = patient.allergies || ''
+  
+  // Don't populate allergies from patient record - it should be entered fresh for each form
+  // patientData.allergies is now handled by clearFormSpecificFields()
+  
   if (!patientData.currentMedications || patientData.currentMedications === '') patientData.currentMedications = patient.currentMedications || ''
   if (!patientData.emergencyContact || patientData.emergencyContact === '') patientData.emergencyContact = patient.emergencyContact || ''
   
   // For New Patient Form - always update these fields (they get locked)
   patientData.patientName = patient.name || ''
   patientData.dateOfBirth = patient.dateOfBirth || ''
+  
+  console.log('updatePatientDataFromSelection - patientData after update:', {
+    patientName: patientData.patientName,
+    dateOfBirth: patientData.dateOfBirth,
+    gender: patientData.gender
+  })
 }
 
 const clearPatientData = () => {
@@ -375,6 +411,40 @@ const clearPatientData = () => {
     emergencyContact: '',
     patientId: null
   })
+}
+
+const clearFormSpecificFields = () => {
+  // Clear form-specific fields (document content) but keep basic patient info
+  Object.assign(patientData, {
+    // Clear document-specific form fields
+    contactInfo: '',
+    chiefComplaint: '',
+    presentIllness: '',
+    pastMedicalHistory: '',
+    medications: '',
+    allergies: '', // Clear allergies when switching patients/documents
+    familyHistory: '',
+    socialHistory: '',
+    vitalSigns: '',
+    physicalExam: '',
+    assessment: '',
+    plan: '',
+    followUp: '',
+    symptoms: '',
+    diagnosis: '',
+    treatment: '',
+    medicationName: '',
+    dosage: '',
+    frequency: '',
+    duration: '',
+    instructions: '',
+    occupation: '',
+    maritalStatus: '',
+    preferredLanguage: '',
+    referralSource: '',
+    recommendations: ''
+  })
+  console.log('Cleared form-specific fields')
 }
 
 const getPatientInitials = (name) => {
@@ -422,7 +492,7 @@ const handleFieldUpdate = (fieldName, value) => {
   }
 }
 
-const saveDocument = () => {
+const saveDocument = async () => {
   if (!hasFormData.value) {
     toastService.warning(
       'No Data to Save',
@@ -439,112 +509,161 @@ const saveDocument = () => {
     return
   }
   
-  // Check if we're editing an existing document
-  let editingDocumentId = localStorage.getItem('editingDocumentId')
-  
-  // Only check for duplicates for New Patient Form (it should be unique per patient)
-  if (selectedDocument.value.id === 'new-patient-form' && !editingDocumentId) {
-    const allDocuments = JSON.parse(localStorage.getItem('medicalDocuments') || '[]')
-    const existingForm = allDocuments.find(doc => 
-      doc.documentId === 'new-patient-form' && 
-      doc.patientId === selectedPatient.value.id
-    )
+  try {
+    // Check if we're editing an existing document
+    const editingDocumentId = localStorage.getItem('editingDocumentId')
     
-    if (existingForm) {
-      const confirmed = confirm(
-        'Warning: This patient already has a New Patient Form. Saving will replace the existing form. Do you want to continue?'
-      )
-      if (!confirmed) {
-        return
+    // Only check for duplicates for New Patient Form (it should be unique per patient)
+    if (selectedDocument.value.id === 'new-patient-form' && !editingDocumentId) {
+      try {
+        const forms = await apiClient.get(`/new-patient-forms/patient/${selectedPatient.value.id}`)
+        if (forms && forms.length > 0) {
+          const existingForm = forms[0]
+          const confirmed = confirm(
+            'Warning: This patient already has a New Patient Form. Saving will replace the existing form. Do you want to continue?'
+          )
+          if (!confirmed) {
+            return
+          }
+          // If user confirms, we'll update the existing form
+          localStorage.setItem('editingDocumentId', existingForm.id.toString())
+        }
+      } catch (error) {
+        // No existing form found, continue with creation
+        console.log('No existing form found, creating new one')
       }
-      // If user confirms, we'll update the existing form
-      localStorage.setItem('editingDocumentId', existingForm.id.toString())
-      editingDocumentId = existingForm.id.toString()
     }
+    
+    // Map form data to backend API format based on document type
+    let apiData
+    const patientId = selectedPatient.value.id
+    const customName = currentFormName.value || selectedDocument.value.name
+    
+    switch (selectedDocument.value.id) {
+      case 'new-patient-form': {
+        apiData = {
+          patient_id: patientId,
+          custom_name: customName,
+          date: patientData.date,
+          patient_name: patientData.patientName,
+          date_of_birth: patientData.dateOfBirth,
+          gender: patientData.gender,
+          contact_info: patientData.contactInfo,
+          chief_complaint: patientData.chiefComplaint,
+          present_illness: patientData.presentIllness,
+          past_medical_history: patientData.pastMedicalHistory,
+          medications: patientData.medications,
+          allergies: patientData.allergies,
+          family_history: patientData.familyHistory,
+          social_history: patientData.socialHistory,
+          vital_signs: patientData.vitalSigns,
+          physical_exam: patientData.physicalExam,
+          assessment: patientData.assessment,
+          plan: patientData.plan,
+          follow_up: patientData.followUp
+        }
+        break
+      }
+      case 'medical-report': {
+        apiData = {
+          patient_id: patientId,
+          custom_name: customName,
+          date: patientData.date,
+          chief_complaint: patientData.chiefComplaint,
+          history_of_present_illness: patientData.historyOfPresentIllness,
+          physical_examination: patientData.physicalExamination,
+          diagnosis: patientData.diagnosis,
+          treatment: patientData.treatment,
+          recommendations: patientData.recommendations
+        }
+        break
+      }
+      case 'consultation-form': {
+        apiData = {
+          patient_id: patientId,
+          custom_name: customName,
+          date: patientData.date,
+          symptoms: patientData.symptoms,
+          vital_signs: patientData.vitalSigns,
+          assessment: patientData.assessment,
+          plan: patientData.plan
+        }
+        break
+      }
+      case 'prescription-form': {
+        apiData = {
+          patient_id: patientId,
+          custom_name: customName,
+          date: patientData.date,
+          medications: patientData.medications,
+          dosage: patientData.dosage,
+          instructions: patientData.instructions,
+          follow_up: patientData.followUp
+        }
+        break
+      }
+      default:
+        toastService.error('Unknown document type')
+        return
+    }
+    
+    // Determine the API endpoint based on document type
+    const formTypeEndpoints = {
+      'new-patient-form': 'new-patient-forms',
+      'medical-report': 'medical-reports',
+      'consultation-form': 'consultation-forms',
+      'prescription-form': 'prescription-forms'
+    }
+    
+    const endpoint = formTypeEndpoints[selectedDocument.value.id]
+    if (!endpoint) {
+      toastService.error('Unknown document type')
+    return
   }
   
-  // Get saved documents
-  const savedDocuments = JSON.parse(localStorage.getItem('medicalDocuments') || '[]')
-  console.log('Current saved documents before save:', savedDocuments)
-  
-  let documentRecord
-  if (editingDocumentId) {
-    console.log('Updating existing document with ID:', editingDocumentId)
-    // Update existing document - preserve original ID format
-    const originalDoc = savedDocuments.find(doc => doc.id == editingDocumentId || doc.id === editingDocumentId)
-    
-    documentRecord = {
-      id: originalDoc?.id || editingDocumentId,
-      patientId: selectedPatient.value.id,
-      patientName: selectedPatient.value.name,
-      documentType: selectedDocument.value.name,
-      documentId: selectedDocument.value.id,
-      customName: currentFormName.value || selectedDocument.value.name, // Store custom name
-      date: patientData.date,
-      data: { ...patientData },
-      createdAt: originalDoc?.createdAt || new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    }
-    
-    // Find and update the document - handle both string and number IDs
-    const documentIndex = savedDocuments.findIndex(doc => doc.id == editingDocumentId || doc.id === editingDocumentId)
-    if (documentIndex !== -1) {
-      savedDocuments[documentIndex] = documentRecord
-      console.log('Document updated at index:', documentIndex)
+    // Save to backend API
+    if (editingDocumentId) {
+      console.log('Updating existing document with ID:', editingDocumentId)
+      await apiClient.put(`/${endpoint}/${editingDocumentId}`, apiData)
+      
+      // Clear editing flags
+      localStorage.removeItem('editingDocumentId')
+      localStorage.removeItem('editingDocumentData')
+      localStorage.removeItem('editingDocumentType')
+      localStorage.removeItem('editingDocumentCustomName')
+      
+      toastService.success(
+        'Document Updated Successfully!',
+        `"${customName}" has been updated for ${selectedPatient.value.name}.`
+      )
+      
+      // Show confirmation alert
+  setTimeout(() => {
+        alert('✓ Document has been successfully updated!')
+      }, 100)
     } else {
-      console.warn('Document not found for update, adding as new')
-      savedDocuments.push(documentRecord)
+      console.log('Creating new document')
+      await apiClient.post(`/${endpoint}/`, apiData)
+      
+      toastService.success(
+        'Document Saved Successfully!',
+        `"${customName}" has been saved for ${selectedPatient.value.name}.`
+      )
+      
+      // Show confirmation alert
+      setTimeout(() => {
+        alert('✓ Document has been successfully saved!')
+      }, 100)
     }
     
-    // Clear editing flags
-    localStorage.removeItem('editingDocumentId')
-    localStorage.removeItem('editingDocumentData')
-    localStorage.removeItem('editingDocumentType')
-    
-    toastService.success(
-      'Document Updated Successfully!',
-      `"${currentFormName.value || selectedDocument.value.name}" has been updated for ${selectedPatient.value.name}.`
+    console.log('Document saved successfully to backend')
+  } catch (error) {
+    console.error('Error saving document:', error)
+    toastService.error(
+      'Failed to save document',
+      error.message || 'An error occurred while saving the document.'
     )
-    
-    // Show confirmation alert
-    setTimeout(() => {
-      alert('✓ Document has been successfully updated!')
-    }, 100)
-  } else {
-    console.log('Creating new document')
-    // Create new document record - use a more unique ID
-    documentRecord = {
-      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      patientId: selectedPatient.value.id,
-      patientName: selectedPatient.value.name,
-      documentType: selectedDocument.value.name,
-      documentId: selectedDocument.value.id,
-      customName: currentFormName.value || selectedDocument.value.name, // Store custom name
-      date: patientData.date,
-      data: { ...patientData },
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    }
-    
-    savedDocuments.push(documentRecord)
-    console.log('Added new document to array')
-    
-    toastService.success(
-      'Document Saved Successfully!',
-      `"${currentFormName.value || selectedDocument.value.name}" has been saved for ${selectedPatient.value.name}.`
-    )
-    
-    // Confirmation handled by toastService.success above; removed alert for consistency
   }
-  
-  // Save to localStorage
-  localStorage.setItem('medicalDocuments', JSON.stringify(savedDocuments))
-  console.log('Total documents saved:', savedDocuments.length)
-  console.log('Document saved:', documentRecord)
-  
-  // Verify what's in localStorage
-  const verifyDocuments = JSON.parse(localStorage.getItem('medicalDocuments') || '[]')
-  console.log('Verification - Documents in localStorage:', verifyDocuments)
 }
 
 // Lifecycle
@@ -593,7 +712,7 @@ onMounted(async () => {
         console.log('Selected template:', template.name)
         
         // Small delay to ensure the template is selected
-        setTimeout(() => {
+  setTimeout(() => {
           // Load the patient for this document
           if (editingDocumentData.patientId) {
             const patient = patientVM.patients.value.find(p => p.id === editingDocumentData.patientId)
@@ -615,11 +734,10 @@ onMounted(async () => {
             }
           })
           
-          // Load custom form name if it exists, otherwise use template name
-          const savedDocumentsList = JSON.parse(localStorage.getItem('medicalDocuments') || '[]')
-          const editingDoc = savedDocumentsList.find(doc => doc.id == editingDocumentId || doc.id === editingDocumentId)
-          if (editingDoc && editingDoc.customName) {
-            currentFormName.value = editingDoc.customName
+          // Load custom form name from localStorage (set when clicking Edit)
+          const editingDocumentCustomName = localStorage.getItem('editingDocumentCustomName')
+          if (editingDocumentCustomName) {
+            currentFormName.value = editingDocumentCustomName
           } else {
             currentFormName.value = template.name
           }
@@ -1231,6 +1349,58 @@ onMounted(async () => {
 
 .no-patients a:hover {
   text-decoration: underline;
+}
+
+/* Patient selection required message */
+.patient-selection-required {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  padding: 3rem 2rem;
+}
+
+.patient-selection-message {
+  text-align: center;
+  max-width: 500px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 3rem;
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  border: 2px dashed #667eea;
+  animation: fadeIn 0.5s ease-in;
+}
+
+.patient-selection-message svg {
+  margin-bottom: 1.5rem;
+  color: #667eea;
+  opacity: 0.7;
+}
+
+.patient-selection-message h3 {
+  color: #34495e;
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.patient-selection-message p {
+  color: #7f8c8d;
+  font-size: 1rem;
+  line-height: 1.6;
+  margin: 0;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Responsive design */

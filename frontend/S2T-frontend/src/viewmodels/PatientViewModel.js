@@ -57,8 +57,11 @@ export function usePatientViewModel() {
     state.error = null
 
     try {
+      console.log('🔵 Loading patients from backend API...')
       // Load patients from backend API
       const patientsData = await apiClient.getPatients()
+      console.log('✅ Backend API response:', patientsData)
+      
       state.patients = patientsData.map(patientData => new PatientForm({
         id: patientData.id,
         name: patientData.name,
@@ -78,9 +81,12 @@ export function usePatientViewModel() {
         updatedAt: patientData.updated_at
       }))
       
+      console.log(`✅ Loaded ${state.patients.length} patients from database`)
       toastService.info(`Loaded ${state.patients.length} patients`)
     } catch (error) {
+      console.error('❌ Error loading patients:', error)
       state.error = error.message
+      toastService.error('Failed to load patients', error.message)
       errorService.handleError(error, 'loadPatients', {
         userMessage: 'Error loading patients'
       })
@@ -177,28 +183,51 @@ export function usePatientViewModel() {
     state.error = null
 
     try {
-      const patientIndex = state.patients.findIndex(p => p.id === patientId)
-      if (patientIndex === -1) {
-        throw new Error('Patient not found')
+      // Prepare data for backend API (convert camelCase to snake_case)
+      const apiData = {
+        name: patientData.name,
+        age: patientData.age,
+        gender: patientData.gender,
+        date_of_birth: patientData.dateOfBirth,
+        phone: patientData.phone,
+        email: patientData.email,
+        address: patientData.address,
+        medical_history: patientData.medicalHistory,
+        allergies: patientData.allergies,
+        current_medications: patientData.currentMedications,
+        blood_type: patientData.bloodType,
+        insurance_number: patientData.insuranceNumber,
+        emergency_contact: patientData.emergencyContact
       }
 
+      // Update patient via API
+      const updatedPatientData = await apiClient.updatePatient(patientId, apiData)
+      
+      // Convert snake_case response to camelCase for frontend
       const updatedPatient = new PatientForm({
-        ...state.patients[patientIndex],
-        ...patientData,
-        id: patientId,
-        updatedAt: new Date().toISOString()
+        id: updatedPatientData.id,
+        name: updatedPatientData.name,
+        age: updatedPatientData.age,
+        gender: updatedPatientData.gender,
+        dateOfBirth: updatedPatientData.date_of_birth,
+        phone: updatedPatientData.phone,
+        email: updatedPatientData.email,
+        address: updatedPatientData.address,
+        medicalHistory: updatedPatientData.medical_history,
+        allergies: updatedPatientData.allergies,
+        currentMedications: updatedPatientData.current_medications,
+        bloodType: updatedPatientData.blood_type,
+        insuranceNumber: updatedPatientData.insurance_number,
+        emergencyContact: updatedPatientData.emergency_contact,
+        createdAt: updatedPatientData.created_at,
+        updatedAt: updatedPatientData.updated_at
       })
 
-      // Validate patient data
-      const validation = updatedPatient.validate()
-      if (!validation.isValid) {
-        throw new Error(validation.errors.join(', '))
+      // Update local state
+      const patientIndex = state.patients.findIndex(p => p.id === patientId)
+      if (patientIndex !== -1) {
+        state.patients[patientIndex] = updatedPatient
       }
-
-      state.patients[patientIndex] = updatedPatient
-      
-      // Save to storage for persistence
-      savePatientsToStorage(state.patients)
       
       return { success: true, patient: updatedPatient }
     } catch (error) {
@@ -214,15 +243,14 @@ export function usePatientViewModel() {
     state.error = null
 
     try {
-      const patientIndex = state.patients.findIndex(p => p.id === patientId)
-      if (patientIndex === -1) {
-        throw new Error('Patient not found')
-      }
+      // Delete patient via API
+      await apiClient.deletePatient(patientId)
 
-      state.patients.splice(patientIndex, 1)
-      
-      // Save to storage for persistence
-      savePatientsToStorage(state.patients)
+      // Remove from local state
+      const patientIndex = state.patients.findIndex(p => p.id === patientId)
+      if (patientIndex !== -1) {
+        state.patients.splice(patientIndex, 1)
+      }
       
       return { success: true }
     } catch (error) {

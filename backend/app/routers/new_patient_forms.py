@@ -41,7 +41,7 @@ class NewPatientFormResponse(NewPatientFormBase):
         from_attributes = True
 
 
-@router.get("/patient/{patient_id}", response_model=NewPatientFormResponse)
+@router.get("/patient/{patient_id}", response_model=List[NewPatientFormResponse])
 async def get_new_patient_form(patient_id: int):
     """Get new patient form for a specific patient (unique per patient)"""
     conn = get_db_connection()
@@ -51,6 +51,22 @@ async def get_new_patient_form(patient_id: int):
         SELECT * FROM new_patient_forms WHERE patient_id = ?
     ''', (patient_id,))
     
+    rows = cursor.fetchall()
+    conn.close()
+    
+    if not rows:
+        return []
+    
+    return [dict(row) for row in rows]
+
+
+@router.get("/{form_id}", response_model=NewPatientFormResponse)
+async def get_new_patient_form_by_id(form_id: int):
+    """Get a single new patient form by ID"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute('SELECT * FROM new_patient_forms WHERE id = ?', (form_id,))
     row = cursor.fetchone()
     conn.close()
     
@@ -123,6 +139,68 @@ async def create_new_patient_form(form_data: NewPatientFormBase):
     conn.close()
     
     return {**form_data.model_dump(), 'id': form_id, 'created_at': current_time, 'updated_at': current_time}
+
+
+@router.put("/{form_id}", response_model=NewPatientFormResponse)
+async def update_new_patient_form(form_id: int, form_data: NewPatientFormBase):
+    """Update an existing new patient form"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Check if form exists
+    cursor.execute('SELECT * FROM new_patient_forms WHERE id = ?', (form_id,))
+    existing = cursor.fetchone()
+    if not existing:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Form not found")
+    
+    # Verify patient exists
+    cursor.execute('SELECT * FROM patients WHERE id = ?', (form_data.patient_id,))
+    if not cursor.fetchone():
+        conn.close()
+        raise HTTPException(status_code=404, detail="Patient not found")
+    
+    current_time = datetime.now().isoformat()
+    
+    cursor.execute('''
+        UPDATE new_patient_forms SET
+            patient_id = ?, custom_name = ?, date = ?, patient_name = ?,
+            date_of_birth = ?, gender = ?, contact_info = ?, chief_complaint = ?,
+            present_illness = ?, past_medical_history = ?, medications = ?,
+            allergies = ?, family_history = ?, social_history = ?,
+            vital_signs = ?, physical_exam = ?, assessment = ?, plan = ?,
+            follow_up = ?, updated_at = ?
+        WHERE id = ?
+    ''', (
+        form_data.patient_id, form_data.custom_name, form_data.date,
+        form_data.patient_name, form_data.date_of_birth, form_data.gender,
+        form_data.contact_info, form_data.chief_complaint, form_data.present_illness,
+        form_data.past_medical_history, form_data.medications, form_data.allergies,
+        form_data.family_history, form_data.social_history, form_data.vital_signs,
+        form_data.physical_exam, form_data.assessment, form_data.plan,
+        form_data.follow_up, current_time, form_id
+    ))
+    
+    conn.commit()
+    conn.close()
+    
+    # Get the original created_at from the existing form
+    created_at = dict(existing)['created_at'] if existing else current_time
+    
+    return {**form_data.model_dump(), 'id': form_id, 'created_at': created_at, 'updated_at': current_time}
+
+
+@router.delete("/{form_id}")
+async def delete_new_patient_form_by_id(form_id: int):
+    """Delete new patient form by ID"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute('DELETE FROM new_patient_forms WHERE id = ?', (form_id,))
+    conn.commit()
+    conn.close()
+    
+    return {"message": "Form deleted successfully"}
 
 
 @router.delete("/patient/{patient_id}")

@@ -78,8 +78,11 @@ async def update_consultation_form(form_id: int, form_data: ConsultationFormBase
     """Update an existing consultation form"""
     conn = get_db_connection()
     cursor = conn.cursor()
+    
+    # Fetch existing record to get created_at
     cursor.execute('SELECT * FROM consultation_forms WHERE id = ?', (form_id,))
-    if not cursor.fetchone():
+    existing = cursor.fetchone()
+    if not existing:
         conn.close()
         raise HTTPException(status_code=404, detail="Form not found")
     
@@ -91,7 +94,11 @@ async def update_consultation_form(form_id: int, form_data: ConsultationFormBase
     
     conn.commit()
     conn.close()
-    return {**form_data.model_dump(), 'id': form_id, 'updated_at': current_time}
+    
+    # Get created_at from existing record
+    created_at = dict(existing)['created_at']
+    
+    return {**form_data.model_dump(), 'id': form_id, 'created_at': created_at, 'updated_at': current_time}
 
 
 @router.delete("/{form_id}")

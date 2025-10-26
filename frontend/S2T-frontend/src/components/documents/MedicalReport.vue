@@ -33,8 +33,7 @@
               type="button"
               class="record-button"
               :class="{ 'recording': isRecording && currentField === 'chiefComplaint' }"
-              @click="startRecording('chiefComplaint')"
-              :disabled="isRecording"
+              @click="toggleRecording('chiefComplaint')"
             >
               <svg v-if="isRecording && currentField === 'chiefComplaint'" viewBox="0 0 24 24" fill="currentColor" class="stop-icon">
                 <rect x="6" y="6" width="12" height="12" rx="2"/>
@@ -66,8 +65,7 @@
               type="button"
               class="record-button"
               :class="{ 'recording': isRecording && currentField === 'historyOfPresentIllness' }"
-              @click="startRecording('historyOfPresentIllness')"
-              :disabled="isRecording"
+              @click="toggleRecording('historyOfPresentIllness')"
             >
               <svg v-if="isRecording && currentField === 'historyOfPresentIllness'" viewBox="0 0 24 24" fill="currentColor" class="stop-icon">
                 <rect x="6" y="6" width="12" height="12" rx="2"/>
@@ -99,8 +97,7 @@
               type="button"
               class="record-button"
               :class="{ 'recording': isRecording && currentField === 'physicalExamination' }"
-              @click="startRecording('physicalExamination')"
-              :disabled="isRecording"
+              @click="toggleRecording('physicalExamination')"
             >
               <svg v-if="isRecording && currentField === 'physicalExamination'" viewBox="0 0 24 24" fill="currentColor" class="stop-icon">
                 <rect x="6" y="6" width="12" height="12" rx="2"/>
@@ -132,8 +129,7 @@
               type="button"
               class="record-button"
               :class="{ 'recording': isRecording && currentField === 'diagnosis' }"
-              @click="startRecording('diagnosis')"
-              :disabled="isRecording"
+              @click="toggleRecording('diagnosis')"
             >
               <svg v-if="isRecording && currentField === 'diagnosis'" viewBox="0 0 24 24" fill="currentColor" class="stop-icon">
                 <rect x="6" y="6" width="12" height="12" rx="2"/>
@@ -165,8 +161,7 @@
               type="button"
               class="record-button"
               :class="{ 'recording': isRecording && currentField === 'treatment' }"
-              @click="startRecording('treatment')"
-              :disabled="isRecording"
+              @click="toggleRecording('treatment')"
             >
               <svg v-if="isRecording && currentField === 'treatment'" viewBox="0 0 24 24" fill="currentColor" class="stop-icon">
                 <rect x="6" y="6" width="12" height="12" rx="2"/>
@@ -198,8 +193,7 @@
               type="button"
               class="record-button"
               :class="{ 'recording': isRecording && currentField === 'recommendations' }"
-              @click="startRecording('recommendations')"
-              :disabled="isRecording"
+              @click="toggleRecording('recommendations')"
             >
               <svg v-if="isRecording && currentField === 'recommendations'" viewBox="0 0 24 24" fill="currentColor" class="stop-icon">
                 <rect x="6" y="6" width="12" height="12" rx="2"/>
@@ -239,6 +233,22 @@ const emit = defineEmits(['field-click', 'field-update'])
 // Recording state
 const isRecording = ref(false)
 const currentField = ref('')
+
+// Add MediaRecorder state
+const mediaRecorder = ref(null)
+const audioChunks = ref([])
+const audioStream = ref(null)
+
+// Toggle recording function
+const toggleRecording = async (fieldName) => {
+  if (isRecording.value && currentField.value === fieldName) {
+    // Stop recording for this field
+    await stopRecording(fieldName)
+  } else if (!isRecording.value) {
+    // Start recording for this field
+    await startRecording(fieldName)
+  }
+}
 
 // Local reactive data
 const localData = reactive({
@@ -281,27 +291,95 @@ const startRecording = async (fieldName) => {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
     console.log('Microphone access granted')
     
-    // Simulate 5-second recording
-    setTimeout(() => {
-      stopRecording(fieldName)
-    }, 5000)
+    // Store the stream
+    audioStream.value = stream
+    
+    // Create MediaRecorder
+    mediaRecorder.value = new MediaRecorder(stream)
+    audioChunks.value = []
+    
+    mediaRecorder.value.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        audioChunks.value.push(event.data)
+      }
+    }
+    
+    mediaRecorder.value.onstop = async () => {
+      await sendAudioToTranscriptionAPI(fieldName, stream)
+    }
+    
+    // Start recording
+    mediaRecorder.value.start()
+    console.log('Recording started')
     
   } catch (error) {
     console.error('Failed to start recording:', error)
     isRecording.value = false
     currentField.value = ''
+    audioStream.value = null
     alert('Microphone access denied. Please allow microphone access to use speech-to-text.')
   }
 }
 
-const stopRecording = (fieldName) => {
-  console.log(`Stopping recording for field: ${fieldName}`)
-  isRecording.value = false
-  currentField.value = ''
+const stopRecording = async (fieldName) => {
+  if (!mediaRecorder.value || mediaRecorder.value.state === 'inactive') {
+    return
+  }
   
-  // Simulate transcription result
-  const mockTranscription = `Transcribed text for ${fieldName} field. This is a placeholder transcription.`
-  updateField(fieldName, mockTranscription)
+  console.log(`Stopping recording for field: ${fieldName}`)
+  mediaRecorder.value.stop()
+  
+  // Stop all tracks if we have the stream
+  if (audioStream.value) {
+    audioStream.value.getTracks().forEach(track => track.stop())
+    audioStream.value = null
+  }
+}
+
+const sendAudioToTranscriptionAPI = async (fieldName, stream) => {
+  try {
+    // Stop all tracks to free microphone
+    stream.getTracks().forEach(track => track.stop())
+    
+    // Create audio blob
+    const audioBlob = new Blob(audioChunks.value, { type: 'audio/webm' })
+    
+    // Create form data
+    const formData = new FormData()
+    // Use a proper filename with extension
+    const timestamp = Date.now()
+    formData.append('audio_file', audioBlob, `recording_${timestamp}.webm`)
+    
+    console.log('Sending audio to transcription API...')
+    
+    // Send to backend
+    const response = await fetch('http://127.0.0.1:8000/api/transcribe', {
+      method: 'POST',
+      body: formData
+    })
+    
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('Transcription API error:', response.status, errorText)
+      throw new Error(`Transcription failed: ${response.statusText} - ${errorText}`)
+    }
+    
+    const data = await response.json()
+    console.log('Transcription result:', data.text)
+    
+    // Update the field with transcribed text
+    updateField(fieldName, data.text)
+    
+  } catch (error) {
+    console.error('Error during transcription:', error)
+    const errorMsg = error.message || 'Failed to transcribe audio'
+    alert(`Transcription error: ${errorMsg}`)
+  } finally {
+    isRecording.value = false
+    currentField.value = ''
+    audioChunks.value = []
+    audioStream.value = null
+  }
 }
 
 const updateField = (fieldName, value) => {

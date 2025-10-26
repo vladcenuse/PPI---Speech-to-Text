@@ -17,6 +17,7 @@ class MedicalReportBase(BaseModel):
     physical_examination: Optional[str] = None
     diagnosis: Optional[str] = None
     treatment: Optional[str] = None
+    recommendations: Optional[str] = None
 
 
 class MedicalReportResponse(MedicalReportBase):
@@ -74,13 +75,13 @@ async def create_medical_report(form_data: MedicalReportBase):
         INSERT INTO medical_reports (
             patient_id, custom_name, date, chief_complaint,
             history_of_present_illness, physical_examination, diagnosis, treatment,
-            created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            recommendations, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
         form_data.patient_id, form_data.custom_name, form_data.date,
         form_data.chief_complaint, form_data.history_of_present_illness,
         form_data.physical_examination, form_data.diagnosis, form_data.treatment,
-        current_time, current_time
+        form_data.recommendations, current_time, current_time
     ))
     
     conn.commit()
@@ -96,8 +97,10 @@ async def update_medical_report(form_id: int, form_data: MedicalReportBase):
     conn = get_db_connection()
     cursor = conn.cursor()
     
+    # Fetch existing record to get created_at
     cursor.execute('SELECT * FROM medical_reports WHERE id = ?', (form_id,))
-    if not cursor.fetchone():
+    existing = cursor.fetchone()
+    if not existing:
         conn.close()
         raise HTTPException(status_code=404, detail="Report not found")
     
@@ -107,18 +110,22 @@ async def update_medical_report(form_id: int, form_data: MedicalReportBase):
         UPDATE medical_reports SET
             custom_name = ?, date = ?, chief_complaint = ?,
             history_of_present_illness = ?, physical_examination = ?,
-            diagnosis = ?, treatment = ?, updated_at = ?
+            diagnosis = ?, treatment = ?, recommendations = ?, updated_at = ?
         WHERE id = ?
     ''', (
         form_data.custom_name, form_data.date, form_data.chief_complaint,
         form_data.history_of_present_illness, form_data.physical_examination,
-        form_data.diagnosis, form_data.treatment, current_time, form_id
+        form_data.diagnosis, form_data.treatment, form_data.recommendations,
+        current_time, form_id
     ))
     
     conn.commit()
     conn.close()
     
-    return {**form_data.model_dump(), 'id': form_id, 'updated_at': current_time}
+    # Get created_at from existing record
+    created_at = dict(existing)['created_at']
+    
+    return {**form_data.model_dump(), 'id': form_id, 'created_at': created_at, 'updated_at': current_time}
 
 
 @router.delete("/{form_id}")

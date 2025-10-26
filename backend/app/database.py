@@ -83,6 +83,7 @@ def init_db():
             physical_examination TEXT,
             diagnosis TEXT,
             treatment TEXT,
+            recommendations TEXT,
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL,
             FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE
@@ -129,11 +130,10 @@ def init_db():
 
 
 def check_and_init_db():
-    """Check if database exists, if not create and populate with mock data"""
+    """Check if database exists, if not create it"""
     if not os.path.exists(DB_PATH):
         print("Database not found. Creating new database...")
         init_db()
-        populate_mock_data()
     else:
         print("Database exists. Checking tables...")
         conn = get_db_connection()
@@ -144,76 +144,14 @@ def check_and_init_db():
         if not cursor.fetchone():
             print("Tables not found. Initializing database...")
             init_db()
-            populate_mock_data()
         else:
-            print("Database and tables exist.")
+            cursor.execute("SELECT COUNT(*) FROM patients")
+            patient_count = cursor.fetchone()[0]
+            print(f"Database and tables exist. Found {patient_count} patients.")
         
         conn.close()
 
 
-def populate_mock_data():
-    """Populate database with mock data"""
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    current_time = datetime.now().isoformat()
-    
-    # Insert mock patients
-    mock_patients = [
-        {
-            'name': 'Ion Popescu',
-            'age': 45,
-            'gender': 'Male',
-            'phone': '0712345678',
-            'email': 'ion.popescu@email.com',
-            'medical_history': 'Arterial hypertension, type 2 diabetes',
-            'allergies': 'Penicillin',
-            'current_medications': 'Metformin 500mg, Lisinopril 10mg',
-            'blood_type': 'A+',
-            'address': 'Bucharest, Romania'
-        },
-        {
-            'name': 'Maria Ionescu',
-            'age': 32,
-            'gender': 'Female',
-            'phone': '0798765432',
-            'email': 'maria.ionescu@email.com',
-            'medical_history': 'Iron deficiency anemia',
-            'allergies': 'No known allergies',
-            'current_medications': 'Iron supplements',
-            'blood_type': 'O+',
-            'address': 'Cluj-Napoca, Romania'
-        },
-        {
-            'name': 'Gheorghe Dumitrescu',
-            'age': 67,
-            'gender': 'Male',
-            'phone': '0711111111',
-            'medical_history': 'Ischemic heart disease, arthritis',
-            'allergies': 'Aspirin',
-            'current_medications': 'Aspirin 100mg, Atorvastatin 20mg',
-            'blood_type': 'B+',
-            'address': 'Timisoara, Romania'
-        }
-    ]
-    
-    for patient in mock_patients:
-        cursor.execute('''
-            INSERT INTO patients (
-                name, age, gender, phone, email, address, 
-                medical_history, allergies, current_medications, blood_type,
-                created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (
-            patient['name'], patient['age'], patient['gender'],
-            patient['phone'], patient.get('email', ''), patient.get('address', ''),
-            patient['medical_history'], patient['allergies'], patient['current_medications'],
-            patient['blood_type'], current_time, current_time
-        ))
-    
-    conn.commit()
-    conn.close()
-    print("Mock data populated successfully")
 
 
 if __name__ == '__main__':

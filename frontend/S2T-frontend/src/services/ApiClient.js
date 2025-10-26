@@ -119,6 +119,25 @@ class ApiClient {
 
     return await response.json()
   }
+
+  /**
+   * Test API connection
+   */
+  async testConnection() {
+    try {
+      console.log('🔍 Testing connection to:', this.baseURL)
+      const response = await fetch('http://127.0.0.1:8000/health')
+      const data = await response.json()
+      console.log('✅ Backend is reachable:', data)
+      return { success: true, data }
+    } catch (error) {
+      console.error('❌ Backend connection failed:', error)
+      return { success: false, error: error.message }
+    }
+  }
 }
 
 export const apiClient = new ApiClient()
+
+// Test connection on module load
+apiClient.testConnection()
