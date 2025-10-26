@@ -12,13 +12,13 @@ load_dotenv()
 
 router = APIRouter()
 
-# Initialize OpenAI client
-openai_client = None
-
-# Try to get API key from environment
-api_key = os.getenv('OPENAI_API_KEY')
-if api_key:
-    openai_client = OpenAI(api_key=api_key)
+# Lazy initialization function for OpenAI client
+def get_openai_client():
+    """Get OpenAI client, initializing it only when needed"""
+    api_key = os.getenv('OPENAI_API_KEY')
+    if not api_key:
+        return None
+    return OpenAI(api_key=api_key)
 
 
 @router.post("/transcribe", response_model=TranscriptionResponse)
@@ -26,6 +26,7 @@ async def transcribe_audio(audio_file: UploadFile = File(...)):
     """
     Transcribe audio file using OpenAI Whisper
     """
+    openai_client = get_openai_client()
     if not openai_client:
         raise HTTPException(
             status_code=503,
@@ -69,6 +70,7 @@ async def transcribe_audio(audio_file: UploadFile = File(...)):
 @router.get("/health")
 async def transcription_health():
     """Check if transcription service is available"""
+    openai_client = get_openai_client()
     if not openai_client:
         return {
             "status": "unavailable",
