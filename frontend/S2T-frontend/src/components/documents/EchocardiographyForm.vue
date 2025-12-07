@@ -242,7 +242,7 @@ watch([audioBlob, isRecording], async ([newBlob, recording]) => {
     shouldAutoProcess.value = false
     const fieldList = getRomanianFieldNames()
     try {
-      await processAudio(fieldList)
+      await processAudio(fieldList, 'echocardiography')
     } catch (err) {
       console.error('Error auto-processing audio:', err)
     }
@@ -277,7 +277,7 @@ const formatFileSize = (bytes) => {
 const handleProcessAudio = async () => {
   const fieldList = getRomanianFieldNames()
   try {
-    await processAudio(fieldList)
+    await processAudio(fieldList, 'echocardiography')
   } catch (err) {
     console.error('Error processing audio:', err)
   }

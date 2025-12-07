@@ -60,8 +60,8 @@ export function useAudioProcessor() {
         }
     };
 
-    // API Submission Handler (receives fields array)
-    const processAudio = async (fieldList) => {
+    // API Submission Handler (receives fields array and form type)
+    const processAudio = async (fieldList, formType = null) => {
         if (!audioBlob.value) {
             error.value = "Please record audio before processing.";
             return;
@@ -82,6 +82,10 @@ export function useAudioProcessor() {
             
             const fieldsDataObject = { fields: fieldList };
             formData.append('fields_json', JSON.stringify(fieldsDataObject));
+            
+            if (formType) {
+                formData.append('form_type', formType);
+            }
 
             const response = await fetch(API_ENDPOINT, {
                 method: 'POST',

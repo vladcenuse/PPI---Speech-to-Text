@@ -1,374 +1,342 @@
 <template>
   <div class="document-template first-time-patient">
-    <h3>First Time New Patient Assessment</h3>
+    <div class="document-header">
+      <h3>Evaluare Pacient Nou</h3>
+      <div class="report-info">
+        <div class="info-item">
+          <label>Data:</label>
+          <span>{{ patientData.date || new Date().toISOString().split('T')[0] }}</span>
+        </div>
+        <div class="info-item">
+          <label>Pacient:</label>
+          <span>{{ patientData.name || 'Selectați Pacient' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Audio Recording Controls -->
+    <div class="recording-section">
+      <div class="recording-controls">
+        <button
+          @click="handleToggleRecording"
+          class="record-btn"
+          :class="isRecording ? 'stop-btn' : 'start-btn'"
+          :disabled="isProcessing"
+        >
+          <svg v-if="!isRecording" viewBox="0 0 24 24" fill="currentColor" class="mic-icon">
+            <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+            <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+          </svg>
+          <svg v-else viewBox="0 0 24 24" fill="currentColor" class="stop-icon">
+            <rect x="6" y="6" width="12" height="12" rx="2"/>
+          </svg>
+          {{ isRecording ? 'Oprește Înregistrarea' : 'Începe Înregistrarea' }}
+        </button>
+      </div>
+
+      <!-- Recording Status -->
+      <div v-if="isRecording" class="recording-status">
+        <div class="recording-indicator">
+          <span class="recording-dot"></span>
+          <span>Înregistrare în curs...</span>
+        </div>
+        <div v-if="recordingDuration > 0" class="recording-duration">
+          Durată: {{ formatDuration(recordingDuration) }}
+        </div>
+      </div>
+
+      <!-- Audio Status -->
+      <div v-if="audioBlob && !isRecording" class="audio-status">
+        <div class="audio-info">
+          <span class="audio-icon">🎵</span>
+          <span>Audio înregistrat: {{ formatFileSize(audioBlob.size) }}</span>
+        </div>
+        <button @click="clearRecording" class="clear-btn" title="Șterge înregistrarea">
+          ✕
+        </button>
+      </div>
+
+      <!-- Recording Tips -->
+      <div v-if="!isRecording && !audioBlob" class="recording-tips">
+        <strong>💡 Sfat:</strong> Spuneți câmpurile și valorile în română, de exemplu: "informatii contact telefon 0712345678, plangere principala durere de cap, semne vitale tensiune 120 pe 80"
+      </div>
+
+      <!-- Status Messages -->
+      <div v-if="error" class="error-message">
+        <strong>Eroare:</strong> {{ error }}
+        <div v-if="error.includes('microphone')" class="error-help">
+          Asigurați-vă că ați acordat permisiuni pentru microfon în browser.
+        </div>
+        <div v-if="error.includes('Processing failed')" class="error-help">
+          Verificați că serverul backend rulează și că Deepgram API key este configurat corect.
+        </div>
+      </div>
+      <div v-if="isProcessing" class="processing-message">
+        <div class="spinner"></div>
+        <span>Se procesează audio-ul... Vă rugăm așteptați.</span>
+      </div>
+      <div v-if="rawTranscript" class="transcript-preview">
+        <strong>Transcriere:</strong>
+        <p>{{ rawTranscript }}</p>
+      </div>
+    </div>
+
     <div class="form-section">
       <!-- Patient Information -->
       <div class="form-group">
-        <label for="patientName">Patient Full Name</label>
-        <div class="input-with-button">
+        <label for="patientName">Numele Complet al Pacientului</label>
+        <div class="input-group">
           <input 
             type="text" 
             id="patientName" 
             :value="formData.patientName"
             @input="updateField('patientName', $event.target.value)"
-            @click="emitFieldClick('patientName')"
-            :class="{ 'recording-active': isMicrophoneActive && activeRecordingField === 'patientName', 'field-locked': isFieldLocked }"
+            :class="{ 'field-locked': isFieldLocked }"
             :disabled="isFieldLocked"
-            placeholder="Enter patient's full name"
+            placeholder="Introduceți numele complet al pacientului"
           />
-          <button 
-            v-if="!isFieldLocked"
-            type="button"
-            class="record-button"
-            :class="{ 'recording': isRecording && currentRecordingField === 'patientName' }"
-            @click="toggleRecording('patientName')"
-          >
-            {{ isRecording && currentRecordingField === 'patientName' ? '⏹️' : '🎙️' }}
-          </button>
+          <span v-if="parsedData && parsedData['nume pacient'] && parsedData['nume pacient'] !== '' && !isFieldLocked" class="parsed-indicator" title="Valoare extrasă din audio">
+            ✓
+          </span>
         </div>
       </div>
 
       <div class="form-group">
-        <label for="dateOfBirth">Date of Birth *</label>
-        <div class="input-with-button">
+        <label for="dateOfBirth">Data Nașterii *</label>
+        <div class="input-group">
           <input 
             type="date" 
             id="dateOfBirth" 
             :value="formData.dateOfBirth"
             @input="updateField('dateOfBirth', $event.target.value)"
-            @click="emitFieldClick('dateOfBirth')"
-            :class="{ 'recording-active': isMicrophoneActive && activeRecordingField === 'dateOfBirth', 'field-locked': isFieldLocked }"
+            :class="{ 'field-locked': isFieldLocked }"
             :disabled="isFieldLocked"
             required
           />
-          <button 
-            v-if="!isFieldLocked"
-            type="button"
-            class="record-button"
-            :class="{ 'recording': isRecording && currentRecordingField === 'dateOfBirth' }"
-            @click="toggleRecording('dateOfBirth')"
-          >
-            {{ isRecording && currentRecordingField === 'dateOfBirth' ? '⏹️' : '🎙️' }}
-          </button>
+          <span v-if="parsedData && parsedData['data nasterii'] && parsedData['data nasterii'] !== '' && !isFieldLocked" class="parsed-indicator" title="Valoare extrasă din audio">
+            ✓
+          </span>
         </div>
       </div>
 
       <div class="form-group">
-        <label for="gender">Gender *</label>
-        <div class="input-with-button">
+        <label for="gender">Gen *</label>
+        <div class="input-group">
           <select 
             id="gender" 
             :value="formData.gender"
             @change="updateField('gender', $event.target.value)"
-            @click="emitFieldClick('gender')"
-            :class="{ 'recording-active': isMicrophoneActive && activeRecordingField === 'gender', 'field-locked': isFieldLocked }"
+            :class="{ 'field-locked': isFieldLocked }"
             :disabled="isFieldLocked"
             required
           >
-            <option value="">Select Gender</option>
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
-            <option value="Other">Other</option>
-            <option value="Prefer not to say">Prefer not to say</option>
+            <option value="">Selectați Genul</option>
+            <option value="Masculin">Masculin</option>
+            <option value="Feminin">Feminin</option>
+            <option value="Altul">Altul</option>
+            <option value="Prefer să nu răspund">Prefer să nu răspund</option>
           </select>
-          <button 
-            v-if="!isFieldLocked"
-            type="button"
-            class="record-button"
-            :class="{ 'recording': isRecording && currentRecordingField === 'gender' }"
-            @click="toggleRecording('gender')"
-          >
-            {{ isRecording && currentRecordingField === 'gender' ? '⏹️' : '🎙️' }}
-          </button>
+          <span v-if="parsedData && parsedData['gen'] && parsedData['gen'] !== '' && !isFieldLocked" class="parsed-indicator" title="Valoare extrasă din audio">
+            ✓
+          </span>
         </div>
       </div>
 
       <div class="form-group">
-        <label for="contactInfo">Contact Information</label>
-        <div class="input-with-button">
+        <label for="contactInfo">Informații de Contact</label>
+        <div class="input-group">
           <textarea 
             id="contactInfo" 
             :value="formData.contactInfo"
             @input="updateField('contactInfo', $event.target.value)"
-            @click="emitFieldClick('contactInfo')"
-            :class="{ 'recording-active': isMicrophoneActive && activeRecordingField === 'contactInfo' }"
-            placeholder="Phone number, email address, emergency contact"
+            placeholder="Număr de telefon, adresă email, contact de urgență"
           ></textarea>
-          <button 
-            type="button"
-            class="record-button"
-            :class="{ 'recording': isRecording && currentRecordingField === 'contactInfo' }"
-            @click="toggleRecording('contactInfo')"
-          >
-            {{ isRecording && currentRecordingField === 'contactInfo' ? '⏹️' : '🎙️' }}
-          </button>
+          <span v-if="parsedData && parsedData['informatii contact'] && parsedData['informatii contact'] !== ''" class="parsed-indicator" title="Valoare extrasă din audio">
+            ✓
+          </span>
         </div>
       </div>
 
       <!-- Medical History -->
       <div class="form-group">
-        <label for="chiefComplaint">Chief Complaint</label>
-        <div class="input-with-button">
+        <label for="chiefComplaint">Plângere Principală</label>
+        <div class="input-group">
           <textarea 
             id="chiefComplaint" 
             :value="formData.chiefComplaint"
             @input="updateField('chiefComplaint', $event.target.value)"
-            @click="emitFieldClick('chiefComplaint')"
-            :class="{ 'recording-active': isMicrophoneActive && activeRecordingField === 'chiefComplaint' }"
-            placeholder="Primary reason for visit"
+            placeholder="Motivul principal al vizitei"
           ></textarea>
-          <button 
-            type="button"
-            class="record-button"
-            :class="{ 'recording': isRecording && currentRecordingField === 'chiefComplaint' }"
-            @click="toggleRecording('chiefComplaint')"
-          >
-            {{ isRecording && currentRecordingField === 'chiefComplaint' ? '⏹️' : '🎙️' }}
-          </button>
+          <span v-if="parsedData && parsedData['plangere principala'] && parsedData['plangere principala'] !== ''" class="parsed-indicator" title="Valoare extrasă din audio">
+            ✓
+          </span>
         </div>
       </div>
 
       <div class="form-group">
-        <label for="presentIllness">History of Present Illness</label>
-        <div class="input-with-button">
+        <label for="presentIllness">Istoricul Bolii Prezente</label>
+        <div class="input-group">
           <textarea 
             id="presentIllness" 
             :value="formData.presentIllness"
             @input="updateField('presentIllness', $event.target.value)"
-            @click="emitFieldClick('presentIllness')"
-            :class="{ 'recording-active': isMicrophoneActive && activeRecordingField === 'presentIllness' }"
-            placeholder="Detailed description of current symptoms and their progression"
+            placeholder="Descriere detaliată a simptomelor actuale și evoluția lor"
           ></textarea>
-          <button 
-            type="button"
-            class="record-button"
-            :class="{ 'recording': isRecording && currentRecordingField === 'presentIllness' }"
-            @click="toggleRecording('presentIllness')"
-          >
-            {{ isRecording && currentRecordingField === 'presentIllness' ? '⏹️' : '🎙️' }}
-          </button>
+          <span v-if="parsedData && parsedData['istoricul prezent'] && parsedData['istoricul prezent'] !== ''" class="parsed-indicator" title="Valoare extrasă din audio">
+            ✓
+          </span>
         </div>
       </div>
 
       <div class="form-group">
-        <label for="pastMedicalHistory">Past Medical History</label>
-        <div class="input-with-button">
+        <label for="pastMedicalHistory">Istoric Medical Trecut</label>
+        <div class="input-group">
           <textarea 
             id="pastMedicalHistory" 
             :value="formData.pastMedicalHistory"
             @input="updateField('pastMedicalHistory', $event.target.value)"
-            @click="emitFieldClick('pastMedicalHistory')"
-            :class="{ 'recording-active': isMicrophoneActive && activeRecordingField === 'pastMedicalHistory' }"
-            placeholder="Previous medical conditions, surgeries, hospitalizations"
+            placeholder="Boli anterioare, intervenții chirurgicale, spitalizări"
           ></textarea>
-          <button 
-            type="button"
-            class="record-button"
-            :class="{ 'recording': isRecording && currentRecordingField === 'pastMedicalHistory' }"
-            @click="toggleRecording('pastMedicalHistory')"
-          >
-            {{ isRecording && currentRecordingField === 'pastMedicalHistory' ? '⏹️' : '🎙️' }}
-          </button>
+          <span v-if="parsedData && parsedData['istoric medical trecut'] && parsedData['istoric medical trecut'] !== ''" class="parsed-indicator" title="Valoare extrasă din audio">
+            ✓
+          </span>
         </div>
       </div>
 
       <div class="form-group">
-        <label for="medications">Current Medications</label>
-        <div class="input-with-button">
+        <label for="medications">Medicație Curentă</label>
+        <div class="input-group">
           <textarea 
             id="medications" 
             :value="formData.medications"
             @input="updateField('medications', $event.target.value)"
-            @click="emitFieldClick('medications')"
-            :class="{ 'recording-active': isMicrophoneActive && activeRecordingField === 'medications' }"
-            placeholder="List all current medications, dosages, and frequency"
+            placeholder="Listați toate medicamentele curente, dozajele și frecvența"
           ></textarea>
-          <button 
-            type="button"
-            class="record-button"
-            :class="{ 'recording': isRecording && currentRecordingField === 'medications' }"
-            @click="toggleRecording('medications')"
-          >
-            {{ isRecording && currentRecordingField === 'medications' ? '⏹️' : '🎙️' }}
-          </button>
+          <span v-if="parsedData && parsedData['medicamente'] && parsedData['medicamente'] !== ''" class="parsed-indicator" title="Valoare extrasă din audio">
+            ✓
+          </span>
         </div>
       </div>
 
       <div class="form-group">
-        <label for="allergies">Allergies</label>
-        <div class="input-with-button">
+        <label for="allergies">Alergii</label>
+        <div class="input-group">
           <textarea 
             id="allergies" 
             :value="formData.allergies"
             @input="updateField('allergies', $event.target.value)"
-            @click="emitFieldClick('allergies')"
-            :class="{ 'recording-active': isMicrophoneActive && activeRecordingField === 'allergies' }"
-            placeholder="Drug allergies, food allergies, environmental allergies"
+            placeholder="Alergii la medicamente, alergii alimentare, alergii de mediu"
           ></textarea>
-          <button 
-            type="button"
-            class="record-button"
-            :class="{ 'recording': isRecording && currentRecordingField === 'allergies' }"
-            @click="toggleRecording('allergies')"
-          >
-            {{ isRecording && currentRecordingField === 'allergies' ? '⏹️' : '🎙️' }}
-          </button>
+          <span v-if="parsedData && parsedData['alergii'] && parsedData['alergii'] !== ''" class="parsed-indicator" title="Valoare extrasă din audio">
+            ✓
+          </span>
         </div>
       </div>
 
       <div class="form-group">
-        <label for="familyHistory">Family History</label>
-        <div class="input-with-button">
+        <label for="familyHistory">Istoric Familial</label>
+        <div class="input-group">
           <textarea 
             id="familyHistory" 
             :value="formData.familyHistory"
             @input="updateField('familyHistory', $event.target.value)"
-            @click="emitFieldClick('familyHistory')"
-            :class="{ 'recording-active': isMicrophoneActive && activeRecordingField === 'familyHistory' }"
-            placeholder="Relevant family medical history"
+            placeholder="Istoric medical familial relevant"
           ></textarea>
-          <button 
-            type="button"
-            class="record-button"
-            :class="{ 'recording': isRecording && currentRecordingField === 'familyHistory' }"
-            @click="toggleRecording('familyHistory')"
-          >
-            {{ isRecording && currentRecordingField === 'familyHistory' ? '⏹️' : '🎙️' }}
-          </button>
+          <span v-if="parsedData && parsedData['istoric familial'] && parsedData['istoric familial'] !== ''" class="parsed-indicator" title="Valoare extrasă din audio">
+            ✓
+          </span>
         </div>
       </div>
 
       <div class="form-group">
-        <label for="socialHistory">Social History</label>
-        <div class="input-with-button">
+        <label for="socialHistory">Istoric Social</label>
+        <div class="input-group">
           <textarea 
             id="socialHistory" 
             :value="formData.socialHistory"
             @input="updateField('socialHistory', $event.target.value)"
-            @click="emitFieldClick('socialHistory')"
-            :class="{ 'recording-active': isMicrophoneActive && activeRecordingField === 'socialHistory' }"
-            placeholder="Smoking, alcohol, occupation, lifestyle factors"
+            placeholder="Fumat, alcool, ocupație, factori de stil de viață"
           ></textarea>
-          <button 
-            type="button"
-            class="record-button"
-            :class="{ 'recording': isRecording && currentRecordingField === 'socialHistory' }"
-            @click="toggleRecording('socialHistory')"
-          >
-            {{ isRecording && currentRecordingField === 'socialHistory' ? '⏹️' : '🎙️' }}
-          </button>
+          <span v-if="parsedData && parsedData['istoric social'] && parsedData['istoric social'] !== ''" class="parsed-indicator" title="Valoare extrasă din audio">
+            ✓
+          </span>
         </div>
       </div>
 
       <!-- Physical Examination -->
       <div class="form-group">
-        <label for="vitalSigns">Vital Signs</label>
-        <div class="input-with-button">
+        <label for="vitalSigns">Semne Vitale</label>
+        <div class="input-group">
           <textarea 
             id="vitalSigns" 
             :value="formData.vitalSigns"
             @input="updateField('vitalSigns', $event.target.value)"
-            @click="emitFieldClick('vitalSigns')"
-            :class="{ 'recording-active': isMicrophoneActive && activeRecordingField === 'vitalSigns' }"
-            placeholder="Blood pressure, heart rate, temperature, respiratory rate, oxygen saturation"
+            placeholder="Tensiune arterială, frecvență cardiacă, temperatură, frecvență respiratorie, saturație oxigen"
           ></textarea>
-          <button 
-            type="button"
-            class="record-button"
-            :class="{ 'recording': isRecording && currentRecordingField === 'vitalSigns' }"
-            @click="toggleRecording('vitalSigns')"
-          >
-            {{ isRecording && currentRecordingField === 'vitalSigns' ? '⏹️' : '🎙️' }}
-          </button>
+          <span v-if="parsedData && parsedData['semne vitale'] && parsedData['semne vitale'] !== ''" class="parsed-indicator" title="Valoare extrasă din audio">
+            ✓
+          </span>
         </div>
       </div>
 
       <div class="form-group">
-        <label for="physicalExam">Physical Examination Findings</label>
-        <div class="input-with-button">
+        <label for="physicalExam">Găsiri la Examinare Fizică</label>
+        <div class="input-group">
           <textarea 
             id="physicalExam" 
             :value="formData.physicalExam"
             @input="updateField('physicalExam', $event.target.value)"
-            @click="emitFieldClick('physicalExam')"
-            :class="{ 'recording-active': isMicrophoneActive && activeRecordingField === 'physicalExam' }"
-            placeholder="General appearance, head/neck, cardiovascular, respiratory, abdominal, neurological findings"
+            placeholder="Aspect general, cap/gât, cardiovascular, respirator, abdominal, găsiri neurologice"
           ></textarea>
-          <button 
-            type="button"
-            class="record-button"
-            :class="{ 'recording': isRecording && currentRecordingField === 'physicalExam' }"
-            @click="toggleRecording('physicalExam')"
-          >
-            {{ isRecording && currentRecordingField === 'physicalExam' ? '⏹️' : '🎙️' }}
-          </button>
+          <span v-if="parsedData && parsedData['examinare fizica'] && parsedData['examinare fizica'] !== ''" class="parsed-indicator" title="Valoare extrasă din audio">
+            ✓
+          </span>
         </div>
       </div>
 
       <!-- Assessment and Plan -->
       <div class="form-group">
-        <label for="assessment">Assessment</label>
-        <div class="input-with-button">
+        <label for="assessment">Evaluare</label>
+        <div class="input-group">
           <textarea 
             id="assessment" 
             :value="formData.assessment"
             @input="updateField('assessment', $event.target.value)"
-            @click="emitFieldClick('assessment')"
-            :class="{ 'recording-active': isMicrophoneActive && activeRecordingField === 'assessment' }"
-            placeholder="Clinical impression and working diagnosis"
+            placeholder="Impresie clinică și diagnostic de lucru"
           ></textarea>
-          <button 
-            type="button"
-            class="record-button"
-            :class="{ 'recording': isRecording && currentRecordingField === 'assessment' }"
-            @click="toggleRecording('assessment')"
-          >
-            {{ isRecording && currentRecordingField === 'assessment' ? '⏹️' : '🎙️' }}
-          </button>
+          <span v-if="parsedData && parsedData['evaluare'] && parsedData['evaluare'] !== ''" class="parsed-indicator" title="Valoare extrasă din audio">
+            ✓
+          </span>
         </div>
       </div>
 
       <div class="form-group">
-        <label for="plan">Treatment Plan</label>
-        <div class="input-with-button">
+        <label for="plan">Plan de Tratament</label>
+        <div class="input-group">
           <textarea 
             id="plan" 
             :value="formData.plan"
             @input="updateField('plan', $event.target.value)"
-            @click="emitFieldClick('plan')"
-            :class="{ 'recording-active': isMicrophoneActive && activeRecordingField === 'plan' }"
-            placeholder="Diagnostic tests, medications, follow-up instructions"
+            placeholder="Teste diagnostice, medicamente, instrucțiuni de urmărire"
           ></textarea>
-          <button 
-            type="button"
-            class="record-button"
-            :class="{ 'recording': isRecording && currentRecordingField === 'plan' }"
-            @click="toggleRecording('plan')"
-          >
-            {{ isRecording && currentRecordingField === 'plan' ? '⏹️' : '🎙️' }}
-          </button>
+          <span v-if="parsedData && parsedData['plan'] && parsedData['plan'] !== ''" class="parsed-indicator" title="Valoare extrasă din audio">
+            ✓
+          </span>
         </div>
       </div>
 
       <div class="form-group">
-        <label for="followUp">Follow-up Instructions</label>
-        <div class="input-with-button">
+        <label for="followUp">Instrucțiuni de Urmărire</label>
+        <div class="input-group">
           <textarea 
             id="followUp" 
             :value="formData.followUp"
             @input="updateField('followUp', $event.target.value)"
-            @click="emitFieldClick('followUp')"
-            :class="{ 'recording-active': isMicrophoneActive && activeRecordingField === 'followUp' }"
-            placeholder="When to return, warning signs to watch for, lifestyle modifications"
+            placeholder="Când să revină, semne de alarmă de urmărit, modificări de stil de viață"
           ></textarea>
-          <button 
-            type="button"
-            class="record-button"
-            :class="{ 'recording': isRecording && currentRecordingField === 'followUp' }"
-            @click="toggleRecording('followUp')"
-          >
-            {{ isRecording && currentRecordingField === 'followUp' ? '⏹️' : '🎙️' }}
-          </button>
+          <span v-if="parsedData && parsedData['urmarire'] && parsedData['urmarire'] !== ''" class="parsed-indicator" title="Valoare extrasă din audio">
+            ✓
+          </span>
         </div>
       </div>
     </div>
@@ -376,32 +344,120 @@
 </template>
 
 <script setup>
-import { reactive, inject, watch, ref, computed } from 'vue'
+import { reactive, watch, ref, computed, onUnmounted } from 'vue'
+import { useAudioProcessor } from '../../composables/useAudioProcessor.js'
 
 const props = defineProps({
-  isMicrophoneActive: Boolean,
   patientData: {
     type: Object,
     default: () => ({})
   }
 })
 
-// Computed property to check if fields should be locked
+const emit = defineEmits(['field-update'])
+
+const {
+  isRecording,
+  isProcessing,
+  audioBlob,
+  rawTranscript,
+  parsedData,
+  error,
+  startRecording,
+  stopRecording,
+  processAudio,
+  cleanup
+} = useAudioProcessor()
+
+const recordingDuration = ref(0)
+let recordingInterval = null
+
+watch(isRecording, (recording) => {
+  if (recording) {
+    recordingDuration.value = 0
+    recordingInterval = setInterval(() => {
+      recordingDuration.value++
+    }, 1000)
+  } else {
+    if (recordingInterval) {
+      clearInterval(recordingInterval)
+      recordingInterval = null
+    }
+  }
+})
+
 const isFieldLocked = computed(() => {
-  // Lock fields if:
-  // 1. A patient is selected (hasPatientSelected is true), OR
-  // 2. We're editing a saved document (check if we have an editingDocumentId flag)
   const hasSelectedPatient = props.patientData?.hasPatientSelected === true
   const isEditingSavedDocument = localStorage.getItem('editingDocumentId') !== null
   return hasSelectedPatient || isEditingSavedDocument
 })
 
-const emit = defineEmits(['field-click', 'field-update'])
-
-// Recording state
-const isRecording = ref(false)
-const currentRecordingField = ref(null)
-const recordingStarted = ref(false)
+const formFields = [
+  {
+    key: 'patientName',
+    romanianName: 'nume pacient'
+  },
+  {
+    key: 'dateOfBirth',
+    romanianName: 'data nasterii'
+  },
+  {
+    key: 'gender',
+    romanianName: 'gen'
+  },
+  {
+    key: 'contactInfo',
+    romanianName: 'informatii contact'
+  },
+  {
+    key: 'chiefComplaint',
+    romanianName: 'plangere principala'
+  },
+  {
+    key: 'presentIllness',
+    romanianName: 'istoricul prezent'
+  },
+  {
+    key: 'pastMedicalHistory',
+    romanianName: 'istoric medical trecut'
+  },
+  {
+    key: 'medications',
+    romanianName: 'medicamente'
+  },
+  {
+    key: 'allergies',
+    romanianName: 'alergii'
+  },
+  {
+    key: 'familyHistory',
+    romanianName: 'istoric familial'
+  },
+  {
+    key: 'socialHistory',
+    romanianName: 'istoric social'
+  },
+  {
+    key: 'vitalSigns',
+    romanianName: 'semne vitale'
+  },
+  {
+    key: 'physicalExam',
+    romanianName: 'examinare fizica'
+  },
+  {
+    key: 'assessment',
+    romanianName: 'evaluare'
+  },
+  {
+    key: 'plan',
+    romanianName: 'plan'
+  },
+  {
+    key: 'followUp',
+    romanianName: 'urmarire'
+  }
+]
 
 const formData = reactive({
   patientName: '',
@@ -422,169 +478,22 @@ const formData = reactive({
   followUp: ''
 })
 
-const activeRecordingField = inject('activeRecordingField')
-
-const emitFieldClick = (fieldName) => {
-  emit('field-click', fieldName)
-}
-
-// Add MediaRecorder state
-const mediaRecorder = ref(null)
-const audioChunks = ref([])
-const audioStream = ref(null)
-
-// Toggle recording function
-const toggleRecording = async (fieldName) => {
-  if (isRecording.value && currentRecordingField.value === fieldName) {
-    // Stop recording for this field
-    await stopRecording(fieldName)
-  } else if (!isRecording.value) {
-    // Start recording for this field
-    await startRecording(fieldName)
-  }
-}
-
-const startRecording = async (fieldName) => {
-  if (isRecording.value) {
-    console.log('Already recording, please wait...')
-    return
-  }
-
-  try {
-    console.log(`Starting recording for field: ${fieldName}`)
-    isRecording.value = true
-    currentRecordingField.value = fieldName
-    recordingStarted.value = true
-    
-    // Request microphone access
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-    console.log('Microphone access granted')
-    
-    // Store the stream
-    audioStream.value = stream
-    
-    // Create MediaRecorder
-    mediaRecorder.value = new MediaRecorder(stream)
-    audioChunks.value = []
-    
-    mediaRecorder.value.ondataavailable = (event) => {
-      if (event.data.size > 0) {
-        audioChunks.value.push(event.data)
-      }
-    }
-    
-    mediaRecorder.value.onstop = async () => {
-      await sendAudioToTranscriptionAPI(fieldName, stream)
-    }
-    
-    // Start recording
-    mediaRecorder.value.start()
-    console.log('Recording started')
-    
-  } catch (error) {
-    console.error('Failed to start recording:', error)
-    isRecording.value = false
-    currentRecordingField.value = null
-    recordingStarted.value = false
-    audioStream.value = null
-    alert('Microphone access denied. Please allow microphone access to use speech-to-text.')
-  }
-}
-
-const stopRecording = async (fieldName) => {
-  if (!mediaRecorder.value || mediaRecorder.value.state === 'inactive') {
-    return
-  }
-  
-  console.log(`Stopping recording for field: ${fieldName}`)
-  mediaRecorder.value.stop()
-  
-  // Stop all tracks if we have the stream
-  if (audioStream.value) {
-    audioStream.value.getTracks().forEach(track => track.stop())
-    audioStream.value = null
-  }
-}
-
-const sendAudioToTranscriptionAPI = async (fieldName, stream) => {
-  try {
-    // Stop all tracks to free microphone
-    stream.getTracks().forEach(track => track.stop())
-    
-    // Create audio blob
-    const audioBlob = new Blob(audioChunks.value, { type: 'audio/webm' })
-    
-    // Create form data
-    const formData = new FormData()
-    // Use a proper filename with extension
-    const timestamp = Date.now()
-    formData.append('audio_file', audioBlob, `recording_${timestamp}.webm`)
-    
-    console.log('Sending audio to transcription API...')
-    
-    // Send to backend
-    const response = await fetch('http://127.0.0.1:8000/api/transcribe', {
-      method: 'POST',
-      body: formData
-    })
-    
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('Transcription API error:', response.status, errorText)
-      throw new Error(`Transcription failed: ${response.statusText} - ${errorText}`)
-    }
-    
-    const data = await response.json()
-    console.log('Transcription result:', data.text)
-    
-    // Update the field with transcribed text
-    updateField(fieldName, data.text)
-    
-  } catch (error) {
-    console.error('Error during transcription:', error)
-    const errorMsg = error.message || 'Failed to transcribe audio'
-    alert(`Transcription error: ${errorMsg}`)
-  } finally {
-    isRecording.value = false
-    currentRecordingField.value = null
-    recordingStarted.value = false
-    audioChunks.value = []
-    audioStream.value = null
-  }
-}
-
-const updateField = (fieldName, value) => {
-  console.log(`FirstTimeNewPatient: Updating field ${fieldName} with value:`, value)
-  formData[fieldName] = value
-  emit('field-update', fieldName, value)
-  console.log(`FirstTimeNewPatient: Emitted field-update event for ${fieldName}`)
-}
-
-// Watch for changes in patientData to sync with form
 watch(() => props.patientData, (newData) => {
-  console.log('FirstTimeNewPatient watch triggered with:', newData)
-  
-  // Always update these specific fields that come from patientData
   if (newData) {
     const newPatientName = newData.patientName || newData.name || ''
     const newDateOfBirth = newData.dateOfBirth || ''
     const newGender = newData.gender || ''
     
-    // Only update if values have changed
     if (newPatientName && newPatientName !== formData.patientName) {
       formData.patientName = newPatientName
-      console.log('Updated patientName to:', newPatientName)
     }
     if (newDateOfBirth && newDateOfBirth !== formData.dateOfBirth) {
       formData.dateOfBirth = newDateOfBirth
-      console.log('Updated dateOfBirth to:', newDateOfBirth)
     }
     if (newGender && newGender !== formData.gender) {
       formData.gender = newGender
-      console.log('Updated gender to:', newGender)
     }
     
-    // Update other fields
     Object.assign(formData, {
       contactInfo: newData.contactInfo || '',
       chiefComplaint: newData.chiefComplaint || '',
@@ -602,6 +511,92 @@ watch(() => props.patientData, (newData) => {
     })
   }
 }, { deep: true, immediate: true })
+
+const getRomanianFieldNames = () => {
+  return formFields.map(field => field.romanianName)
+}
+
+const shouldAutoProcess = ref(false)
+
+const handleToggleRecording = async () => {
+  if (isRecording.value) {
+    shouldAutoProcess.value = true
+    stopRecording()
+  } else {
+    shouldAutoProcess.value = false
+    try {
+      await startRecording()
+    } catch (err) {
+      console.error('Failed to start recording:', err)
+    }
+  }
+}
+
+watch([audioBlob, isRecording], async ([newBlob, recording]) => {
+  if (!recording && newBlob && shouldAutoProcess.value) {
+    shouldAutoProcess.value = false
+    const fieldList = getRomanianFieldNames()
+    try {
+      await processAudio(fieldList, 'first-time-new-patient')
+    } catch (err) {
+      console.error('Error auto-processing audio:', err)
+    }
+  }
+})
+
+const clearRecording = () => {
+  audioBlob.value = null
+  rawTranscript.value = null
+  parsedData.value = null
+  error.value = null
+  recordingDuration.value = 0
+}
+
+const formatDuration = (seconds) => {
+  const mins = Math.floor(seconds / 60)
+  const secs = seconds % 60
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+}
+
+const formatFileSize = (bytes) => {
+  if (!bytes) return '0 B'
+  if (bytes < 1024) return bytes + ' B'
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB'
+  return (bytes / (1024 * 1024)).toFixed(2) + ' MB'
+}
+
+watch(parsedData, (newParsedData) => {
+  if (!newParsedData) return
+
+  formFields.forEach(field => {
+    const romanianName = field.romanianName
+    const value = newParsedData[romanianName]
+    
+    if (value !== undefined && value !== null && value !== '') {
+      if (field.key === 'patientName' || field.key === 'dateOfBirth' || field.key === 'gender') {
+        if (!isFieldLocked.value) {
+          formData[field.key] = value
+          updateField(field.key, value)
+        }
+      } else {
+        formData[field.key] = value
+        updateField(field.key, value)
+      }
+    }
+  })
+}, { deep: true, immediate: true })
+
+const updateField = (fieldName, value) => {
+  formData[fieldName] = value
+  emit('field-update', fieldName, value)
+}
+
+onUnmounted(() => {
+  if (recordingInterval) {
+    clearInterval(recordingInterval)
+  }
+  cleanup()
+})
 </script>
 
 <style scoped>
@@ -610,13 +605,256 @@ watch(() => props.patientData, (newData) => {
   border: 1px solid #e0e0e0;
   border-radius: 8px;
   background-color: #fdfdfd;
+  max-width: 900px;
+  margin: 0 auto;
 }
 
-.document-template h3 {
-  color: #34495e;
-  margin-bottom: 1.5rem;
+.document-header {
+  border-bottom: 2px solid #e9ecef;
+  padding-bottom: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.document-header h3 {
+  color: #2c3e50;
+  margin-bottom: 1rem;
   text-align: center;
   font-size: 1.8rem;
+}
+
+.report-info {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.info-item label {
+  font-weight: 600;
+  color: #495057;
+}
+
+.info-item span {
+  color: #6c757d;
+  padding: 0.25rem 0.75rem;
+  background: #f8f9fa;
+  border-radius: 4px;
+}
+
+.recording-section {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.recording-controls {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.record-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.start-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.start-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.stop-btn {
+  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+  color: white;
+  animation: pulse 2s infinite;
+}
+
+.stop-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+}
+
+.mic-icon,
+.stop-icon {
+  width: 20px;
+  height: 20px;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+}
+
+.error-message {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #f8d7da;
+  color: #721c24;
+  border-radius: 4px;
+  border: 1px solid #f5c6cb;
+}
+
+.processing-message {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #d1ecf1;
+  color: #0c5460;
+  border-radius: 4px;
+  border: 1px solid #bee5eb;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid #bee5eb;
+  border-top-color: #0c5460;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.recording-status {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #fff3cd;
+  border-radius: 4px;
+  border: 1px solid #ffc107;
+}
+
+.recording-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-weight: 600;
+  color: #856404;
+}
+
+.recording-dot {
+  width: 12px;
+  height: 12px;
+  background: #dc3545;
+  border-radius: 50%;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0.3; }
+}
+
+.recording-duration {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: #856404;
+}
+
+.audio-status {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  background: #d4edda;
+  border-radius: 4px;
+  border: 1px solid #c3e6cb;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.audio-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #155724;
+  font-weight: 500;
+}
+
+.audio-icon {
+  font-size: 1.2rem;
+}
+
+.clear-btn {
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+}
+
+.clear-btn:hover {
+  background: #c82333;
+  transform: scale(1.1);
+}
+
+.recording-tips {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  background: #e7f3ff;
+  border-radius: 4px;
+  border: 1px solid #b3d9ff;
+  color: #004085;
+  font-size: 0.9rem;
+}
+
+.error-help {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(114, 28, 36, 0.2);
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+.transcript-preview {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 4px;
+  border: 1px solid #dee2e6;
+}
+
+.transcript-preview strong {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #495057;
+}
+
+.transcript-preview p {
+  margin: 0;
+  color: #6c757d;
+  line-height: 1.6;
 }
 
 .form-section {
@@ -631,16 +869,16 @@ watch(() => props.patientData, (newData) => {
   font-weight: 600;
 }
 
-.input-with-button {
+.input-group {
   display: flex;
   gap: 0.5rem;
   align-items: flex-start;
 }
 
-.input-with-button input[type="text"],
-.input-with-button input[type="date"],
-.input-with-button select,
-.input-with-button textarea {
+.input-group input[type="text"],
+.input-group input[type="date"],
+.input-group select,
+.input-group textarea {
   flex: 1;
   padding: 0.8rem 1rem;
   border: 1px solid #ccc;
@@ -648,95 +886,33 @@ watch(() => props.patientData, (newData) => {
   font-size: 1rem;
   transition: all 0.2s ease-in-out;
   box-sizing: border-box;
+  font-family: inherit;
 }
 
-.input-with-button textarea {
+.input-group textarea {
   min-height: 100px;
   resize: vertical;
 }
 
-.input-with-button select {
+.input-group select {
   cursor: pointer;
 }
 
-.record-button {
-  padding: 0.8rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 1.2rem;
-  transition: all 0.3s ease;
-  min-width: 50px;
-  height: fit-content;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.record-button:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-}
-
-.record-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.record-button:active {
-  transform: translateY(0);
-}
-
-.record-button.recording {
-  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
-  animation: recordingPulse 1s infinite;
-}
-
-.record-button.recording:hover {
-  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
-}
-
-/* Recording active state */
-.recording-active {
-  border-color: #667eea !important;
-  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2) !important;
-  animation: recordingPulse 2s infinite;
-}
-
-@keyframes recordingPulse {
-  0% { box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2); }
-  50% { box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.4); }
-  100% { box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2); }
-}
-
-.form-group input[type="text"]:focus,
-.form-group input[type="date"]:focus,
-.form-group select:focus,
-.form-group textarea:focus {
+.input-group input:focus,
+.input-group select:focus,
+.input-group textarea:focus {
   border-color: #667eea;
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
   outline: none;
 }
 
-.recording-active {
-  border-color: #ffc107 !important;
-  box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.4) !important;
-  animation: pulse-border 1.5s infinite alternate;
+.parsed-indicator {
+  color: #28a745;
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin-top: 0.5rem;
 }
 
-@keyframes pulse-border {
-  from {
-    box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.4);
-  }
-  to {
-    box-shadow: 0 0 0 6px rgba(255, 193, 7, 0.7);
-  }
-}
-
-/* Locked field styles */
 .field-locked {
   background-color: #f5f5f5 !important;
   color: #666 !important;
@@ -748,5 +924,20 @@ watch(() => props.patientData, (newData) => {
 .field-locked:focus {
   border-color: #ccc !important;
   box-shadow: none !important;
+}
+
+@media (max-width: 768px) {
+  .document-template {
+    padding: 1rem;
+  }
+  
+  .recording-controls {
+    flex-direction: column;
+  }
+  
+  .record-btn {
+    width: 100%;
+    justify-content: center;
+  }
 }
 </style>

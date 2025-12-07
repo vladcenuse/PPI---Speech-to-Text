@@ -1,208 +1,203 @@
 <template>
   <div class="medical-report">
     <div class="document-header">
-      <h2>Medical Report</h2>
+      <h2>Raport Medical</h2>
       <div class="report-info">
         <div class="info-item">
-          <label>Date:</label>
+          <label>Data:</label>
           <span>{{ patientData.date }}</span>
         </div>
         <div class="info-item">
-          <label>Patient:</label>
-          <span>{{ patientData.name || 'Select Patient' }}</span>
+          <label>Pacient:</label>
+          <span>{{ patientData.name || 'Selectați Pacient' }}</span>
         </div>
+      </div>
+    </div>
+
+    <!-- Audio Recording Controls -->
+    <div class="recording-section">
+      <div class="recording-controls">
+        <button
+          @click="handleToggleRecording"
+          class="record-btn"
+          :class="isRecording ? 'stop-btn' : 'start-btn'"
+          :disabled="isProcessing"
+        >
+          <svg v-if="!isRecording" viewBox="0 0 24 24" fill="currentColor" class="mic-icon">
+            <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+            <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+          </svg>
+          <svg v-else viewBox="0 0 24 24" fill="currentColor" class="stop-icon">
+            <rect x="6" y="6" width="12" height="12" rx="2"/>
+          </svg>
+          {{ isRecording ? 'Oprește Înregistrarea' : 'Începe Înregistrarea' }}
+        </button>
+      </div>
+
+      <!-- Recording Status -->
+      <div v-if="isRecording" class="recording-status">
+        <div class="recording-indicator">
+          <span class="recording-dot"></span>
+          <span>Înregistrare în curs...</span>
+        </div>
+        <div v-if="recordingDuration > 0" class="recording-duration">
+          Durată: {{ formatDuration(recordingDuration) }}
+        </div>
+      </div>
+
+      <!-- Audio Status -->
+      <div v-if="audioBlob && !isRecording" class="audio-status">
+        <div class="audio-info">
+          <span class="audio-icon">🎵</span>
+          <span>Audio înregistrat: {{ formatFileSize(audioBlob.size) }}</span>
+        </div>
+        <button @click="clearRecording" class="clear-btn" title="Șterge înregistrarea">
+          ✕
+        </button>
+      </div>
+
+      <!-- Recording Tips -->
+      <div v-if="!isRecording && !audioBlob" class="recording-tips">
+        <strong>💡 Sfat:</strong> Spuneți câmpurile și valorile în română, de exemplu: "plângere principală durere de cap, istoricul prezent febră de 3 zile, examinare fizică temperatura 38 grade"
+      </div>
+
+      <!-- Status Messages -->
+      <div v-if="error" class="error-message">
+        <strong>Eroare:</strong> {{ error }}
+        <div v-if="error.includes('microphone')" class="error-help">
+          Asigurați-vă că ați acordat permisiuni pentru microfon în browser.
+        </div>
+        <div v-if="error.includes('Processing failed')" class="error-help">
+          Verificați că serverul backend rulează și că Deepgram API key este configurat corect.
+        </div>
+      </div>
+      <div v-if="isProcessing" class="processing-message">
+        <div class="spinner"></div>
+        <span>Se procesează audio-ul... Vă rugăm așteptați.</span>
+      </div>
+      <div v-if="rawTranscript" class="transcript-preview">
+        <strong>Transcriere:</strong>
+        <p>{{ rawTranscript }}</p>
       </div>
     </div>
 
     <div class="form-sections">
       <!-- Chief Complaint -->
       <div class="form-section">
-        <h3>Chief Complaint</h3>
+        <h3>Plângere Principală</h3>
         <div class="field-container">
-          <label>Primary reason for visit:</label>
-          <div class="input-with-button">
+          <label>Motivul principal al vizitei:</label>
+          <div class="input-group">
             <textarea 
               v-model="localData.chiefComplaint"
-              placeholder="Click to record or type the chief complaint..."
+              placeholder="Introduceți sau înregistrați plângerea principală..."
               rows="3"
               @input="updateField('chiefComplaint', $event.target.value)"
-              @click="handleFieldClick('chiefComplaint')"
-              :class="{ 'recording-active': isRecording && currentField === 'chiefComplaint' }"
+              class="form-input"
             ></textarea>
-            <button 
-              type="button"
-              class="record-button"
-              :class="{ 'recording': isRecording && currentField === 'chiefComplaint' }"
-              @click="toggleRecording('chiefComplaint')"
-            >
-              <svg v-if="isRecording && currentField === 'chiefComplaint'" viewBox="0 0 24 24" fill="currentColor" class="stop-icon">
-                <rect x="6" y="6" width="12" height="12" rx="2"/>
-              </svg>
-              <svg v-else viewBox="0 0 24 24" fill="currentColor" class="mic-icon">
-                <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
-                <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
-              </svg>
-            </button>
+            <span v-if="parsedData && parsedData['plangere principala'] && parsedData['plangere principala'] !== ''" class="parsed-indicator" title="Valoare extrasă din audio">
+              ✓
+            </span>
           </div>
         </div>
       </div>
 
       <!-- History of Present Illness -->
       <div class="form-section">
-        <h3>History of Present Illness</h3>
+        <h3>Istoricul Bolii Prezente</h3>
         <div class="field-container">
-          <label>Detailed history and symptoms:</label>
-          <div class="input-with-button">
+          <label>Istoric detaliat și simptome:</label>
+          <div class="input-group">
             <textarea 
               v-model="localData.historyOfPresentIllness"
-              placeholder="Click to record or type the history of present illness..."
+              placeholder="Introduceți sau înregistrați istoricul bolii prezente..."
               rows="4"
               @input="updateField('historyOfPresentIllness', $event.target.value)"
-              @click="handleFieldClick('historyOfPresentIllness')"
-              :class="{ 'recording-active': isRecording && currentField === 'historyOfPresentIllness' }"
+              class="form-input"
             ></textarea>
-            <button 
-              type="button"
-              class="record-button"
-              :class="{ 'recording': isRecording && currentField === 'historyOfPresentIllness' }"
-              @click="toggleRecording('historyOfPresentIllness')"
-            >
-              <svg v-if="isRecording && currentField === 'historyOfPresentIllness'" viewBox="0 0 24 24" fill="currentColor" class="stop-icon">
-                <rect x="6" y="6" width="12" height="12" rx="2"/>
-              </svg>
-              <svg v-else viewBox="0 0 24 24" fill="currentColor" class="mic-icon">
-                <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
-                <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
-              </svg>
-            </button>
+            <span v-if="parsedData && parsedData['istoricul prezent'] && parsedData['istoricul prezent'] !== ''" class="parsed-indicator" title="Valoare extrasă din audio">
+              ✓
+            </span>
           </div>
         </div>
       </div>
 
       <!-- Physical Examination -->
       <div class="form-section">
-        <h3>Physical Examination</h3>
+        <h3>Examinare Fizică</h3>
         <div class="field-container">
-          <label>Examination findings:</label>
-          <div class="input-with-button">
+          <label>Găsiri la examinare:</label>
+          <div class="input-group">
             <textarea 
               v-model="localData.physicalExamination"
-              placeholder="Click to record or type physical examination findings..."
+              placeholder="Introduceți sau înregistrați găsirile examinării fizice..."
               rows="4"
               @input="updateField('physicalExamination', $event.target.value)"
-              @click="handleFieldClick('physicalExamination')"
-              :class="{ 'recording-active': isRecording && currentField === 'physicalExamination' }"
+              class="form-input"
             ></textarea>
-            <button 
-              type="button"
-              class="record-button"
-              :class="{ 'recording': isRecording && currentField === 'physicalExamination' }"
-              @click="toggleRecording('physicalExamination')"
-            >
-              <svg v-if="isRecording && currentField === 'physicalExamination'" viewBox="0 0 24 24" fill="currentColor" class="stop-icon">
-                <rect x="6" y="6" width="12" height="12" rx="2"/>
-              </svg>
-              <svg v-else viewBox="0 0 24 24" fill="currentColor" class="mic-icon">
-                <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
-                <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
-              </svg>
-            </button>
+            <span v-if="parsedData && parsedData['examinare fizica'] && parsedData['examinare fizica'] !== ''" class="parsed-indicator" title="Valoare extrasă din audio">
+              ✓
+            </span>
           </div>
         </div>
       </div>
 
       <!-- Diagnosis -->
       <div class="form-section">
-        <h3>Diagnosis</h3>
+        <h3>Diagnostic</h3>
         <div class="field-container">
-          <label>Medical diagnosis:</label>
-          <div class="input-with-button">
+          <label>Diagnostic medical:</label>
+          <div class="input-group">
             <textarea 
               v-model="localData.diagnosis"
-              placeholder="Click to record or type the diagnosis..."
+              placeholder="Introduceți sau înregistrați diagnosticul..."
               rows="3"
               @input="updateField('diagnosis', $event.target.value)"
-              @click="handleFieldClick('diagnosis')"
-              :class="{ 'recording-active': isRecording && currentField === 'diagnosis' }"
+              class="form-input"
             ></textarea>
-            <button 
-              type="button"
-              class="record-button"
-              :class="{ 'recording': isRecording && currentField === 'diagnosis' }"
-              @click="toggleRecording('diagnosis')"
-            >
-              <svg v-if="isRecording && currentField === 'diagnosis'" viewBox="0 0 24 24" fill="currentColor" class="stop-icon">
-                <rect x="6" y="6" width="12" height="12" rx="2"/>
-              </svg>
-              <svg v-else viewBox="0 0 24 24" fill="currentColor" class="mic-icon">
-                <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
-                <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
-              </svg>
-            </button>
+            <span v-if="parsedData && parsedData['diagnostic'] && parsedData['diagnostic'] !== ''" class="parsed-indicator" title="Valoare extrasă din audio">
+              ✓
+            </span>
           </div>
         </div>
       </div>
 
       <!-- Treatment -->
       <div class="form-section">
-        <h3>Treatment Plan</h3>
+        <h3>Plan de Tratament</h3>
         <div class="field-container">
-          <label>Recommended treatment:</label>
-          <div class="input-with-button">
+          <label>Tratament recomandat:</label>
+          <div class="input-group">
             <textarea 
               v-model="localData.treatment"
-              placeholder="Click to record or type the treatment plan..."
+              placeholder="Introduceți sau înregistrați planul de tratament..."
               rows="4"
               @input="updateField('treatment', $event.target.value)"
-              @click="handleFieldClick('treatment')"
-              :class="{ 'recording-active': isRecording && currentField === 'treatment' }"
+              class="form-input"
             ></textarea>
-            <button 
-              type="button"
-              class="record-button"
-              :class="{ 'recording': isRecording && currentField === 'treatment' }"
-              @click="toggleRecording('treatment')"
-            >
-              <svg v-if="isRecording && currentField === 'treatment'" viewBox="0 0 24 24" fill="currentColor" class="stop-icon">
-                <rect x="6" y="6" width="12" height="12" rx="2"/>
-              </svg>
-              <svg v-else viewBox="0 0 24 24" fill="currentColor" class="mic-icon">
-                <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
-                <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
-              </svg>
-            </button>
+            <span v-if="parsedData && parsedData['tratament'] && parsedData['tratament'] !== ''" class="parsed-indicator" title="Valoare extrasă din audio">
+              ✓
+            </span>
           </div>
         </div>
       </div>
 
       <!-- Recommendations -->
       <div class="form-section">
-        <h3>Recommendations</h3>
+        <h3>Recomandări</h3>
         <div class="field-container">
-          <label>Follow-up recommendations:</label>
-          <div class="input-with-button">
+          <label>Recomandări pentru urmărire:</label>
+          <div class="input-group">
             <textarea 
               v-model="localData.recommendations"
-              placeholder="Click to record or type recommendations..."
+              placeholder="Introduceți sau înregistrați recomandările..."
               rows="3"
               @input="updateField('recommendations', $event.target.value)"
-              @click="handleFieldClick('recommendations')"
-              :class="{ 'recording-active': isRecording && currentField === 'recommendations' }"
+              class="form-input"
             ></textarea>
-            <button 
-              type="button"
-              class="record-button"
-              :class="{ 'recording': isRecording && currentField === 'recommendations' }"
-              @click="toggleRecording('recommendations')"
-            >
-              <svg v-if="isRecording && currentField === 'recommendations'" viewBox="0 0 24 24" fill="currentColor" class="stop-icon">
-                <rect x="6" y="6" width="12" height="12" rx="2"/>
-              </svg>
-              <svg v-else viewBox="0 0 24 24" fill="currentColor" class="mic-icon">
-                <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
-                <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
-              </svg>
-            </button>
+            <span v-if="parsedData && parsedData['recomandari'] && parsedData['recomandari'] !== ''" class="parsed-indicator" title="Valoare extrasă din audio">
+              ✓
+            </span>
           </div>
         </div>
       </div>
@@ -211,46 +206,75 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch } from 'vue'
+import { ref, reactive, watch, onUnmounted } from 'vue'
+import { useAudioProcessor } from '../../composables/useAudioProcessor.js'
 
 const props = defineProps({
   patientData: {
     type: Object,
     required: true
-  },
-  isRecording: {
-    type: Boolean,
-    default: false
-  },
-  currentField: {
-    type: String,
-    default: ''
   }
 })
 
-const emit = defineEmits(['field-click', 'field-update'])
+const emit = defineEmits(['field-update'])
 
-// Recording state
-const isRecording = ref(false)
-const currentField = ref('')
+const {
+  isRecording,
+  isProcessing,
+  audioBlob,
+  rawTranscript,
+  parsedData,
+  error,
+  startRecording,
+  stopRecording,
+  processAudio,
+  cleanup
+} = useAudioProcessor()
 
-// Add MediaRecorder state
-const mediaRecorder = ref(null)
-const audioChunks = ref([])
-const audioStream = ref(null)
+const recordingDuration = ref(0)
+let recordingInterval = null
 
-// Toggle recording function
-const toggleRecording = async (fieldName) => {
-  if (isRecording.value && currentField.value === fieldName) {
-    // Stop recording for this field
-    await stopRecording(fieldName)
-  } else if (!isRecording.value) {
-    // Start recording for this field
-    await startRecording(fieldName)
+watch(isRecording, (recording) => {
+  if (recording) {
+    recordingDuration.value = 0
+    recordingInterval = setInterval(() => {
+      recordingDuration.value++
+    }, 1000)
+  } else {
+    if (recordingInterval) {
+      clearInterval(recordingInterval)
+      recordingInterval = null
+    }
   }
-}
+})
 
-// Local reactive data
+const formFields = [
+  {
+    key: 'chiefComplaint',
+    romanianName: 'plangere principala'
+  },
+  {
+    key: 'historyOfPresentIllness',
+    romanianName: 'istoricul prezent'
+  },
+  {
+    key: 'physicalExamination',
+    romanianName: 'examinare fizica'
+  },
+  {
+    key: 'diagnosis',
+    romanianName: 'diagnostic'
+  },
+  {
+    key: 'treatment',
+    romanianName: 'tratament'
+  },
+  {
+    key: 'recommendations',
+    romanianName: 'recomandari'
+  }
+]
+
 const localData = reactive({
   chiefComplaint: props.patientData.chiefComplaint || '',
   historyOfPresentIllness: props.patientData.historyOfPresentIllness || '',
@@ -260,7 +284,6 @@ const localData = reactive({
   recommendations: props.patientData.recommendations || ''
 })
 
-// Watch for changes in patientData
 watch(() => props.patientData, (newData) => {
   Object.assign(localData, {
     chiefComplaint: newData.chiefComplaint || '',
@@ -272,128 +295,91 @@ watch(() => props.patientData, (newData) => {
   })
 }, { deep: true })
 
-const handleFieldClick = (fieldName) => {
-  emit('field-click', fieldName)
+const getRomanianFieldNames = () => {
+  return formFields.map(field => field.romanianName)
 }
 
-const startRecording = async (fieldName) => {
+const shouldAutoProcess = ref(false)
+
+const handleToggleRecording = async () => {
   if (isRecording.value) {
-    console.log('Already recording, please wait...')
-    return
-  }
-
-  try {
-    console.log(`Starting recording for field: ${fieldName}`)
-    isRecording.value = true
-    currentField.value = fieldName
-    
-    // Request microphone access
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-    console.log('Microphone access granted')
-    
-    // Store the stream
-    audioStream.value = stream
-    
-    // Create MediaRecorder
-    mediaRecorder.value = new MediaRecorder(stream)
-    audioChunks.value = []
-    
-    mediaRecorder.value.ondataavailable = (event) => {
-      if (event.data.size > 0) {
-        audioChunks.value.push(event.data)
-      }
+    shouldAutoProcess.value = true
+    stopRecording()
+  } else {
+    shouldAutoProcess.value = false
+    try {
+      await startRecording()
+    } catch (err) {
+      console.error('Failed to start recording:', err)
     }
-    
-    mediaRecorder.value.onstop = async () => {
-      await sendAudioToTranscriptionAPI(fieldName, stream)
-    }
-    
-    // Start recording
-    mediaRecorder.value.start()
-    console.log('Recording started')
-    
-  } catch (error) {
-    console.error('Failed to start recording:', error)
-    isRecording.value = false
-    currentField.value = ''
-    audioStream.value = null
-    alert('Microphone access denied. Please allow microphone access to use speech-to-text.')
   }
 }
 
-const stopRecording = async (fieldName) => {
-  if (!mediaRecorder.value || mediaRecorder.value.state === 'inactive') {
-    return
+watch([audioBlob, isRecording], async ([newBlob, recording]) => {
+  if (!recording && newBlob && shouldAutoProcess.value) {
+    shouldAutoProcess.value = false
+    const fieldList = getRomanianFieldNames()
+    try {
+      await processAudio(fieldList, 'medical-report')
+    } catch (err) {
+      console.error('Error auto-processing audio:', err)
+    }
   }
-  
-  console.log(`Stopping recording for field: ${fieldName}`)
-  mediaRecorder.value.stop()
-  
-  // Stop all tracks if we have the stream
-  if (audioStream.value) {
-    audioStream.value.getTracks().forEach(track => track.stop())
-    audioStream.value = null
-  }
+})
+
+const clearRecording = () => {
+  audioBlob.value = null
+  rawTranscript.value = null
+  parsedData.value = null
+  error.value = null
+  recordingDuration.value = 0
 }
 
-const sendAudioToTranscriptionAPI = async (fieldName, stream) => {
-  try {
-    // Stop all tracks to free microphone
-    stream.getTracks().forEach(track => track.stop())
-    
-    // Create audio blob
-    const audioBlob = new Blob(audioChunks.value, { type: 'audio/webm' })
-    
-    // Create form data
-    const formData = new FormData()
-    // Use a proper filename with extension
-    const timestamp = Date.now()
-    formData.append('audio_file', audioBlob, `recording_${timestamp}.webm`)
-    
-    console.log('Sending audio to transcription API...')
-    
-    // Send to backend
-    const response = await fetch('http://127.0.0.1:8000/api/transcribe', {
-      method: 'POST',
-      body: formData
-    })
-    
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('Transcription API error:', response.status, errorText)
-      throw new Error(`Transcription failed: ${response.statusText} - ${errorText}`)
-    }
-    
-    const data = await response.json()
-    console.log('Transcription result:', data.text)
-    
-    // Update the field with transcribed text
-    updateField(fieldName, data.text)
-    
-  } catch (error) {
-    console.error('Error during transcription:', error)
-    const errorMsg = error.message || 'Failed to transcribe audio'
-    alert(`Transcription error: ${errorMsg}`)
-  } finally {
-    isRecording.value = false
-    currentField.value = ''
-    audioChunks.value = []
-    audioStream.value = null
-  }
+const formatDuration = (seconds) => {
+  const mins = Math.floor(seconds / 60)
+  const secs = seconds % 60
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
 }
+
+const formatFileSize = (bytes) => {
+  if (!bytes) return '0 B'
+  if (bytes < 1024) return bytes + ' B'
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB'
+  return (bytes / (1024 * 1024)).toFixed(2) + ' MB'
+}
+
+watch(parsedData, (newParsedData) => {
+  if (!newParsedData) return
+
+  formFields.forEach(field => {
+    const romanianName = field.romanianName
+    const value = newParsedData[romanianName]
+    
+    if (value !== undefined && value !== null && value !== '') {
+      localData[field.key] = value
+      updateField(field.key, value)
+    }
+  })
+}, { deep: true, immediate: true })
 
 const updateField = (fieldName, value) => {
-  console.log(`MedicalReport: Updating field ${fieldName} with value:`, value)
   localData[fieldName] = value
   emit('field-update', fieldName, value)
-  console.log(`MedicalReport: Emitted field-update event for ${fieldName}`)
 }
+
+onUnmounted(() => {
+  if (recordingInterval) {
+    clearInterval(recordingInterval)
+  }
+  cleanup()
+})
 </script>
 
 <style scoped>
 .medical-report {
-  max-width: 800px;
+  max-width: 900px;
   margin: 0 auto;
+  padding: 2rem;
 }
 
 .document-header {
@@ -432,6 +418,216 @@ const updateField = (fieldName, value) => {
   border-radius: 4px;
 }
 
+.recording-section {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.recording-controls {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.record-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.start-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.start-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.stop-btn {
+  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+  color: white;
+  animation: pulse 2s infinite;
+}
+
+.stop-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+}
+
+.mic-icon,
+.stop-icon {
+  width: 20px;
+  height: 20px;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+}
+
+.error-message {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #f8d7da;
+  color: #721c24;
+  border-radius: 4px;
+  border: 1px solid #f5c6cb;
+}
+
+.processing-message {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #d1ecf1;
+  color: #0c5460;
+  border-radius: 4px;
+  border: 1px solid #bee5eb;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid #bee5eb;
+  border-top-color: #0c5460;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.recording-status {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #fff3cd;
+  border-radius: 4px;
+  border: 1px solid #ffc107;
+}
+
+.recording-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-weight: 600;
+  color: #856404;
+}
+
+.recording-dot {
+  width: 12px;
+  height: 12px;
+  background: #dc3545;
+  border-radius: 50%;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0.3; }
+}
+
+.recording-duration {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: #856404;
+}
+
+.audio-status {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  background: #d4edda;
+  border-radius: 4px;
+  border: 1px solid #c3e6cb;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.audio-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #155724;
+  font-weight: 500;
+}
+
+.audio-icon {
+  font-size: 1.2rem;
+}
+
+.clear-btn {
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+}
+
+.clear-btn:hover {
+  background: #c82333;
+  transform: scale(1.1);
+}
+
+.recording-tips {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  background: #e7f3ff;
+  border-radius: 4px;
+  border: 1px solid #b3d9ff;
+  color: #004085;
+  font-size: 0.9rem;
+}
+
+.error-help {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(114, 28, 36, 0.2);
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+.transcript-preview {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 4px;
+  border: 1px solid #dee2e6;
+}
+
+.transcript-preview strong {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #495057;
+}
+
+.transcript-preview p {
+  margin: 0;
+  color: #6c757d;
+  line-height: 1.6;
+}
+
 .form-sections {
   display: flex;
   flex-direction: column;
@@ -447,34 +643,14 @@ const updateField = (fieldName, value) => {
 
 .form-section h3 {
   color: #2c3e50;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
   font-size: 1.3rem;
   border-bottom: 1px solid #dee2e6;
   padding-bottom: 0.5rem;
 }
 
 .field-container {
-  position: relative;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  border-radius: 6px;
-  padding: 0.5rem;
-}
-
-.field-container:hover {
-  background: #f8f9fa;
-}
-
-.field-container--recording {
-  background: #fff3cd;
-  border: 2px solid #ffc107;
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.4); }
-  70% { box-shadow: 0 0 0 10px rgba(255, 193, 7, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); }
+  margin-bottom: 1.5rem;
 }
 
 .field-container label {
@@ -484,13 +660,13 @@ const updateField = (fieldName, value) => {
   margin-bottom: 0.5rem;
 }
 
-.input-with-button {
+.input-group {
   display: flex;
-  gap: 0.5rem;
   align-items: flex-start;
+  gap: 0.5rem;
 }
 
-.input-with-button textarea {
+.form-input {
   flex: 1;
   border: 1px solid #ced4da;
   border-radius: 6px;
@@ -499,92 +675,34 @@ const updateField = (fieldName, value) => {
   line-height: 1.5;
   resize: vertical;
   transition: all 0.3s ease;
+  font-family: inherit;
 }
 
-.input-with-button textarea:focus {
+.form-input:focus {
   outline: none;
   border-color: #667eea;
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
-.record-button {
-  width: 40px;
-  height: 40px;
-  border: none;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.parsed-indicator {
+  color: #28a745;
   font-size: 1.2rem;
-  transition: all 0.3s ease;
-  flex-shrink: 0;
-}
-
-.record-button:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-}
-
-.record-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.record-button.recording {
-  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-  animation: pulse 2s infinite;
-}
-
-.recording-active {
-  border-color: #ffc107 !important;
-  box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.1) !important;
-}
-
-.mic-icon,
-.stop-icon {
-  width: 20px;
-  height: 20px;
-}
-
-.recording-indicator {
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: #dc3545;
-  color: white;
-  padding: 0.25rem 0.75rem;
-  border-radius: 4px;
-  font-size: 0.8rem;
-  font-weight: 600;
-}
-
-.recording-dot {
-  width: 8px;
-  height: 8px;
-  background: white;
-  border-radius: 50%;
-  animation: blink 1s infinite;
-}
-
-@keyframes blink {
-  0%, 50% { opacity: 1; }
-  51%, 100% { opacity: 0; }
+  font-weight: bold;
+  margin-top: 0.5rem;
 }
 
 @media (max-width: 768px) {
-  .report-info {
-    flex-direction: column;
-    gap: 1rem;
+  .medical-report {
+    padding: 1rem;
   }
   
-  .form-section {
-    padding: 1rem;
+  .recording-controls {
+    flex-direction: column;
+  }
+  
+  .record-btn {
+    width: 100%;
+    justify-content: center;
   }
 }
 </style>

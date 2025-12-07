@@ -1,11 +1,13 @@
 import os
 import json
 import re
+import httpx
 from rapidfuzz import fuzz
 from fastapi import FastAPI, UploadFile, File, HTTPException, Form, APIRouter
 from pydantic import BaseModel
 from deepgram import DeepgramClient
 from fastapi.middleware.cors import CORSMiddleware
+from openai import OpenAI
 
 def check_and_init_db():
     print("Database initialization mocked.")
@@ -22,6 +24,79 @@ new_patient_forms = MockRouter("new_patient_forms")
 medical_reports = MockRouter("medical_reports")
 consultation_forms = MockRouter("consultation_forms")
 prescription_forms = MockRouter("prescription_forms")
+
+HF_TOKEN = os.getenv("HF_TOKEN", "your_huggingface_token_here")
+MODEL_ID = "google/gemma-2-2b-it"
+SYSTEM_PROMPT = (
+    "Sunteți un asistent expert în extragerea informațiilor din text medical transcrit. "
+    "Analizați cu atenție textul și extrageți informațiile solicitate de utilizator. "
+    "Răspunsul trebuie să fie STRICT un JSON valid care respectă schema furnizată. "
+    "Nu includeți niciun text suplimentar, explicații sau caractere înainte sau după JSON. "
+    "IMPORTANT: Toate valorile trebuie să fie STRING-uri simple, NU liste, NU array-uri, NU obiecte. "
+    "Dacă există multiple informații pentru un câmp, combinați-le într-un singur string, separând cu virgulă sau punct. "
+    "CRITICAL: Când extrageți valoarea pentru un câmp, NU includeți numele câmpului în valoarea extrasă. "
+    "Extrageți DOAR textul care apare DUPĂ numele câmpului, fără a include numele câmpului însuși. "
+    "De exemplu, dacă textul spune 'Diagnostic, are probleme cu inima', extrageți DOAR 'are probleme cu inima', NU 'Diagnostic, are probleme cu inima'. "
+    "Când căutați informații pentru un câmp, căutați variații ale numelui câmpului în text (ignorați diferențe de majuscule/minuscule și variații de formulare). "
+    "Exemple de variații acceptate: 'istoricul prezent' = 'istoric bolii prezente' = 'istoricul bolii prezente' = 'istoric prezent'. "
+    "Exemple de variații acceptate: 'examinare fizica' = 'examinare fizică' = 'examinare fizica,'. "
+    "Dacă un câmp apare în text urmat de virgulă sau două puncte, extrageți tot textul care urmează până la următorul câmp sau până la sfârșitul propoziției. "
+    "Extrageți EXACT textul care apare după numele câmpului (fără numele câmpului), chiar dacă pare neclar sau conține erori. "
+    "Valorile extrase trebuie să includă întotdeauna unitatea de măsură când este relevant (de exemplu, '10 milimetri', '40kg', '9cm', '2 bete', '3 paduri'). "
+    "Dacă nu se găsesc informații pentru o cheie, utilizați exact valoarea 'null'. "
+    "Adauga unitatile de masura utilizate in Romania pentru fiecare dimensiune extrasa. Exemplu: '10 milimetri', '20 centimetri', '30 metri', '40 mm', '50 cm', '60 m', '40kg'. "
+    "Exemplu corect: {\"simptome\": \"tuse seacă, durere în gât, febră ușoară\"} - NU {\"simptome\": [\"tuse seacă\", \"durere în gât\"]}"
+)
+
+FORM_SCHEMAS = {
+    "echocardiography": {
+        "aorta la inel": "dimensiunea in mm a aortei la inel",
+        "aorta la sinusur levart sagva": "dimensiunea in mm a aortei la sinusur levart sagva",
+        "aorta ascendenta": "dimensiunea in mm a aortei ascendente",
+        "ventricul drept": "dimensiunea in mm a ventriculului drept",
+        "atriu stang": "dimensiunea in mm a atriului stang",
+        "as": "dimensiunea in mm a atriului stang (prescurtat)",
+        "vd": "dimensiunea in mm a ventriculului drept (prescurtat)"
+    },
+    "medical-report": {
+        "plangere principala": "plângerea principală a pacientului, motivul principal pentru consultație",
+        "istoricul prezent": "istoricul bolii prezente, descrierea detaliată a simptomelor și evoluției",
+        "examinare fizica": "rezultatele examinării fizice, observațiile clinice",
+        "diagnostic": "diagnosticul medical stabilit",
+        "tratament": "planul de tratament recomandat",
+        "recomandari": "recomandări pentru urmărire și monitorizare"
+    },
+    "consultation-form": {
+        "simptome": "simptomele prezente și plângerile pacientului",
+        "semne vitale": "semnele vitale măsurate (tensiune arterială, temperatură, puls, etc.)",
+        "evaluare": "evaluarea clinică și concluziile medicale",
+        "plan": "planul de tratament și urmărire"
+    },
+    "prescription-form": {
+        "medicamente": "numele medicamentelor prescrise",
+        "dozaj": "dozajul și frecvența de administrare",
+        "instructiuni": "instrucțiuni speciale și avertismente",
+        "urmarire": "instrucțiuni pentru urmărire și control"
+    },
+    "first-time-new-patient": {
+        "nume pacient": "numele complet al pacientului",
+        "data nasterii": "data nașterii pacientului",
+        "gen": "genul pacientului",
+        "informatii contact": "informații de contact (telefon, email, contact de urgență)",
+        "plangere principala": "plângerea principală, motivul consultației",
+        "istoricul prezent": "istoricul bolii prezente",
+        "istoric medical trecut": "istoricul medical anterior (boli, intervenții chirurgicale, spitalizări)",
+        "medicamente": "medicamentele curente și dozajele",
+        "alergii": "alergiile cunoscute (medicamente, alimente, mediu)",
+        "istoric familial": "istoricul medical familial relevant",
+        "istoric social": "istoricul social (fumat, alcool, ocupație, factori de stil de viață)",
+        "semne vitale": "semnele vitale măsurate",
+        "examinare fizica": "găsirile examinării fizice",
+        "evaluare": "impresia clinică și diagnosticul de lucru",
+        "plan": "teste diagnostice, medicamente, instrucțiuni de urmărire",
+        "urmarire": "când să revină, semne de alarmă de urmărit, modificări de stil de viață"
+    }
+}
 
 class TranscriptionResponse(BaseModel):
     text: str
@@ -285,60 +360,87 @@ def extract_value_after_field(transcript: str, field_end_pos: int, all_field_nam
     
     return ""
 
-def fuzzy_transcription_to_json(transcription_string: str, field_list: list, threshold: int = 50) -> str:
-    """
-    Parse transcription to extract field values.
-    For each field name found, extracts only the value (number + unit) immediately following it.
-    """
-    normalized_transcription = transcription_string.lower()
-    
-    matched_fields = {}
-    
-    for expected_field in field_list:
-        normalized_expected_field = expected_field.lower()
-        
-        best_match_key = None
-        best_score = -1
-        best_start_pos = -1
-        best_end_pos = -1
-        
-        len_expected = len(normalized_expected_field)
-        min_len = max(1, int(len_expected * 0.5))
-        max_len = int(len_expected * 2.5)
+def extract_strict_json(response_text):
+    """Extract JSON from response text, handling cases where JSON is wrapped in text"""
+    if not response_text:
+        return None
+    try:
+        return json.loads(response_text)
+    except json.JSONDecodeError:
+        match = re.search(r"\{.*\}", response_text, re.DOTALL)
+        if match:
+            try:
+                return json.loads(match.group())
+            except json.JSONDecodeError:
+                return None
+        else:
+            return None
 
-        for start in range(len(normalized_transcription)):
-            end_limit = min(start + max_len, len(normalized_transcription)) + 1
-            
-            for end in range(start + min_len, end_limit):
-                segment = normalized_transcription[start:end]
-                
-                score = fuzz.ratio(normalized_expected_field, segment)
-                
-                if score > best_score and score >= threshold:
-                    best_score = score
-                    if abs(len(segment) - len_expected) < len_expected * 0.6:
-                        best_match_key = transcription_string[start:end].strip()
-                        best_start_pos = start
-                        best_end_pos = end
-            
-        if best_match_key:
-            matched_fields[expected_field] = (best_match_key, best_start_pos, best_end_pos)
+def extract_data_with_api(model_id, text_to_analyze, form_schema, hf_token):
+    api_key_to_use = HF_TOKEN
     
-    result_dict = {}
+    if not api_key_to_use:
+        print("ERROR: Hugging Face Token (hf_token) is missing or not set in environment variables.")
+        return "Extraction failed: Missing API Key."
     
-    for expected_field, (matched_key, start_pos, end_pos) in matched_fields.items():
-        value = extract_value_after_field(
-            transcription_string,
-            end_pos,
-            field_list
-        )
-        result_dict[expected_field] = value
+    user_content = (
+        f"""
+Vă rugăm să extrageți informațiile din textul următor pe baza schemei JSON furnizate.
+
+TEXT TRANSCRIS:
+"{text_to_analyze}"
+
+SCHEMA JSON (cheile sunt numele câmpurilor, valorile sunt descrieri):
+{form_schema}
+
+INSTRUCȚIUNI CRITICE:
+1. Căutați în text variații ale numelor câmpurilor (ignorați diferențe de majuscule/minuscule și variații de formulare)
+   - Exemple: "istoricul prezent" = "istoric bolii prezente" = "istoricul bolii prezente" = "istoric prezent"
+   - Exemple: "examinare fizica" = "examinare fizică" = "examinare fizica,"
+   - Exemple: "plangere principala" = "plângerea principală" = "plangerea principala"
+2. Extrageți DOAR textul care apare DUPĂ numele câmpului, FĂRĂ a include numele câmpului în valoarea extrasă
+   - Dacă textul spune "Diagnostic, are probleme cu inima", extrageți DOAR "are probleme cu inima"
+   - Dacă textul spune "Plan de tratament, 7 pastile", extrageți DOAR "7 pastile"
+   - Dacă textul spune "Examinare fizica, 40kg, 2 bete", extrageți DOAR "40kg, 2 bete"
+3. Extrageți tot textul care apare după numele câmpului până la următorul câmp sau sfârșitul propoziției
+4. Păstrați textul exact așa cum apare, chiar dacă conține erori sau pare neclar
+5. Dacă un câmp nu este găsit în text, folosiți "null"
+
+JSON OUTPUT (doar JSON, fără text suplimentar):
+"""
+    )
     
-    for field in field_list:
-        if field not in result_dict:
-            result_dict[field] = ""
-            
-    return json.dumps(result_dict, indent=4, ensure_ascii=False)
+    messages = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": user_content}
+    ]
+    
+    payload = {
+        "model": model_id,
+        "messages": messages,
+        "max_tokens": 512,
+        "temperature": 0.0
+    }
+    
+    try:
+        with httpx.Client() as client:
+            response = client.post(
+                "https://router.huggingface.co/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {api_key_to_use}",
+                    "Content-Type": "application/json"
+                },
+                json=payload,
+                timeout=30.0
+            )
+            response.raise_for_status()
+            result = response.json()
+            response_text = result["choices"][0]["message"]["content"]
+            return response_text
+    
+    except Exception as e:
+        return f"Extraction failed due to API error: {e}"
+
 
 
 check_and_init_db()
@@ -371,7 +473,8 @@ app.include_router(prescription_forms.router, prefix="/api/prescription-forms", 
 @app.post("/api/process-recording", response_model=ParsedRecordingResponse, tags=["transcription"])
 async def process_recording_endpoint(
     audio_file: UploadFile = File(...),
-    fields_json: str = Form(...) 
+    fields_json: str = Form(...),
+    form_type: str = Form(None)
 ):
     
     try:
@@ -395,6 +498,7 @@ async def process_recording_endpoint(
         
         safe_print(f"Processing audio file: {audio_file.filename}, size: {len(audio_content)} bytes")
         safe_print(f"Content type: {audio_file.content_type}")
+        safe_print(f"Form type: {form_type}")
         
         transcript_response = transcribe_audio_bytes_ro(
             audio_content,
@@ -403,11 +507,70 @@ async def process_recording_endpoint(
         raw_transcript = transcript_response.text
         safe_print(f"Transcription successful, length: {len(raw_transcript)} chars")
 
-        parsed_json_string = fuzzy_transcription_to_json(
-            raw_transcript, 
-            target_fields
-        )
-        parsed_json = json.loads(parsed_json_string)
+        if form_type and form_type in FORM_SCHEMAS:
+            predefined_schema = FORM_SCHEMAS[form_type]
+            form_schema_dict = {}
+            for field in target_fields:
+                if field in predefined_schema:
+                    form_schema_dict[field] = predefined_schema[field]
+                else:
+                    form_schema_dict[field] = f"valoarea pentru {field}"
+            safe_print(f"Using predefined schema for form type: {form_type}")
+        else:
+            form_schema_dict = {}
+            for field in target_fields:
+                form_schema_dict[field] = f"dimensiunea in mm pentru {field}"
+            safe_print("Using dynamically generated schema")
+        
+        form_schema = json.dumps(form_schema_dict, indent=2, ensure_ascii=False)
+        
+        response_text = extract_data_with_api(MODEL_ID, raw_transcript, form_schema, HF_TOKEN)
+        
+        parsed_json = extract_strict_json(response_text)
+        
+        if parsed_json is None:
+            parsed_json = {field: "" for field in target_fields}
+        else:
+            result_dict = {}
+            for field in target_fields:
+                value = parsed_json.get(field)
+                if value is None or value == "null":
+                    result_dict[field] = ""
+                elif isinstance(value, list):
+                    result_dict[field] = ", ".join(str(item) for item in value)
+                elif isinstance(value, dict):
+                    result_dict[field] = str(value)
+                else:
+                    value_str = str(value)
+                    field_lower = field.lower()
+                    value_lower = value_str.lower()
+                    
+                    if value_lower.startswith(field_lower):
+                        remaining = value_str[len(field):].strip()
+                        if remaining.startswith(','):
+                            remaining = remaining[1:].strip()
+                        if remaining.startswith(':'):
+                            remaining = remaining[1:].strip()
+                        result_dict[field] = remaining
+                    else:
+                        variations = [
+                            field.replace("ul ", " ").replace("ului ", " "),
+                            field.replace("ul ", "").replace("ului ", ""),
+                            field.split()[-1] if len(field.split()) > 1 else field
+                        ]
+                        for variation in variations:
+                            var_lower = variation.lower()
+                            if value_lower.startswith(var_lower):
+                                remaining = value_str[len(variation):].strip()
+                                if remaining.startswith(','):
+                                    remaining = remaining[1:].strip()
+                                if remaining.startswith(':'):
+                                    remaining = remaining[1:].strip()
+                                result_dict[field] = remaining
+                                break
+                        else:
+                            result_dict[field] = value_str
+            parsed_json = result_dict
         
         return ParsedRecordingResponse(
             raw_transcript=raw_transcript,
