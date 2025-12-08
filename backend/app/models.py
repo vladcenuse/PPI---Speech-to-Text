@@ -83,3 +83,13 @@ class TranscriptionResponse(BaseModel):
     """Speech-to-text transcription response"""
     text: str
 
+
+class ProcessRecordingRequest(BaseModel):
+    """Process recording with field list request"""
+    fields: list[str]
+
+
+class ProcessRecordingResponse(BaseModel):
+    """Process recording response with parsed data"""
+    raw_transcript: str
+    parsed_json: Dict[str, Any]

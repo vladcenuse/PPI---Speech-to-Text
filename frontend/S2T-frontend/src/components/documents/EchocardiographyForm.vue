@@ -1,11 +1,11 @@
 <template>
-  <div class="consultation-form">
+  <div class="echocardiography-form">
     <div class="document-header">
-      <h2>Formular de Consultație</h2>
+      <h2>Ecografie Cardiacă / Echocardiography</h2>
       <div class="report-info">
         <div class="info-item">
           <label>Data:</label>
-          <span>{{ patientData.date }}</span>
+          <span>{{ patientData.date || new Date().toISOString().split('T')[0] }}</span>
         </div>
         <div class="info-item">
           <label>Pacient:</label>
@@ -31,6 +31,14 @@
             <rect x="6" y="6" width="12" height="12" rx="2"/>
           </svg>
           {{ isRecording ? 'Oprește Înregistrarea' : 'Începe Înregistrarea' }}
+        </button>
+        <button
+          @click="handleTestWithMockData"
+          class="test-btn"
+          :disabled="isProcessing || isRecording"
+          title="Testează cu date mock pentru a verifica funcționalitatea"
+        >
+          🧪 Test cu Date Mock
         </button>
       </div>
 
@@ -58,7 +66,7 @@
 
       <!-- Recording Tips -->
       <div v-if="!isRecording && !audioBlob" class="recording-tips">
-        <strong>💡 Sfat:</strong> Spuneți câmpurile și valorile în română, de exemplu: "simptome durere de cap, semne vitale tensiune 120 pe 80, evaluare clinica migrena"
+        <strong>💡 Sfat:</strong> Spuneți câmpurile și valorile în română, de exemplu: "aorta la inel 10 milimetri, ventricul drept 10 milimetri"
       </div>
 
       <!-- Status Messages -->
@@ -81,81 +89,22 @@
       </div>
     </div>
 
+    <!-- Form Fields -->
     <div class="form-sections">
-      <!-- Symptoms -->
       <div class="form-section">
-        <h3>Simptome Prezente</h3>
-        <div class="field-container">
-          <label>Simptome și plângeri actuale:</label>
+        <h3>Măsurători Ecocardiografice</h3>
+        
+        <div class="field-container" v-for="field in formFields" :key="field.key">
+          <label :for="field.key">{{ field.label }}</label>
           <div class="input-group">
-            <textarea 
-              v-model="localData.symptoms"
-              placeholder="Introduceți sau înregistrați simptomele prezente..."
-              rows="4"
-              @input="updateField('symptoms', $event.target.value)"
+            <input
+              :id="field.key"
+              type="text"
+              v-model="formData[field.key]"
+              :placeholder="field.placeholder"
               class="form-input"
-            ></textarea>
-            <span v-if="parsedData && parsedData['simptome'] && parsedData['simptome'] !== ''" class="parsed-indicator" title="Valoare extrasă din audio">
-              ✓
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Vital Signs -->
-      <div class="form-section">
-        <h3>Semne Vitale</h3>
-        <div class="field-container">
-          <label>Tensiune arterială, temperatură, puls, etc.:</label>
-          <div class="input-group">
-            <textarea 
-              v-model="localData.vitalSigns"
-              placeholder="Introduceți sau înregistrați semnele vitale..."
-              rows="3"
-              @input="updateField('vitalSigns', $event.target.value)"
-              class="form-input"
-            ></textarea>
-            <span v-if="parsedData && parsedData['semne vitale'] && parsedData['semne vitale'] !== ''" class="parsed-indicator" title="Valoare extrasă din audio">
-              ✓
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Assessment -->
-      <div class="form-section">
-        <h3>Evaluare Clinică</h3>
-        <div class="field-container">
-          <label>Găsiri clinice și evaluare:</label>
-          <div class="input-group">
-            <textarea 
-              v-model="localData.assessment"
-              placeholder="Introduceți sau înregistrați evaluarea clinică..."
-              rows="4"
-              @input="updateField('assessment', $event.target.value)"
-              class="form-input"
-            ></textarea>
-            <span v-if="parsedData && parsedData['evaluare'] && parsedData['evaluare'] !== ''" class="parsed-indicator" title="Valoare extrasă din audio">
-              ✓
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Treatment Plan -->
-      <div class="form-section">
-        <h3>Plan de Tratament</h3>
-        <div class="field-container">
-          <label>Tratament recomandat și urmărire:</label>
-          <div class="input-group">
-            <textarea 
-              v-model="localData.plan"
-              placeholder="Introduceți sau înregistrați planul de tratament..."
-              rows="4"
-              @input="updateField('plan', $event.target.value)"
-              class="form-input"
-            ></textarea>
-            <span v-if="parsedData && parsedData['plan'] && parsedData['plan'] !== ''" class="parsed-indicator" title="Valoare extrasă din audio">
+            />
+            <span v-if="parsedData && parsedData[field.romanianName] && parsedData[field.romanianName] !== ''" class="parsed-indicator" title="Valoare extrasă din audio">
               ✓
             </span>
           </div>
@@ -172,12 +121,13 @@ import { useAudioProcessor } from '../../composables/useAudioProcessor.js'
 const props = defineProps({
   patientData: {
     type: Object,
-    required: true
+    default: () => ({})
   }
 })
 
 const emit = defineEmits(['field-update'])
 
+// Use the composable
 const {
   isRecording,
   isProcessing,
@@ -191,9 +141,11 @@ const {
   cleanup
 } = useAudioProcessor()
 
+// Recording duration tracking
 const recordingDuration = ref(0)
 let recordingInterval = null
 
+// Watch isRecording to start/stop duration timer
 watch(isRecording, (recording) => {
   if (recording) {
     recordingDuration.value = 0
@@ -208,40 +160,62 @@ watch(isRecording, (recording) => {
   }
 })
 
+// Form fields based on mock data structure
 const formFields = [
   {
-    key: 'symptoms',
-    romanianName: 'simptome'
+    key: 'aorta_la_inel',
+    label: 'Aorta la Inel',
+    placeholder: 'ex: 10 milimetri',
+    romanianName: 'aorta la inel'
   },
   {
-    key: 'vitalSigns',
-    romanianName: 'semne vitale'
+    key: 'aorta_la_sinusur_levart_sagva',
+    label: 'Aorta la Sinusur Levart Sagva',
+    placeholder: 'ex: 15 milimetri',
+    romanianName: 'aorta la sinusur levart sagva'
   },
   {
-    key: 'assessment',
-    romanianName: 'evaluare'
+    key: 'aorta_ascendenta',
+    label: 'Aorta Ascendentă',
+    placeholder: 'ex: 14 milimetri',
+    romanianName: 'aorta ascendenta'
   },
   {
-    key: 'plan',
-    romanianName: 'plan'
+    key: 'as',
+    label: 'AS (Aorta Ascendentă)',
+    placeholder: 'ex: 14 milimetri',
+    romanianName: 'as'
+  },
+  {
+    key: 'ventricul_drept',
+    label: 'Ventricul Drept',
+    placeholder: 'ex: 10 milimetri',
+    romanianName: 'ventricul drept'
+  },
+  {
+    key: 'atriu_stang',
+    label: 'Atriu Stâng',
+    placeholder: 'ex: 12 milimetri',
+    romanianName: 'atriu stang'
+  },
+  {
+    key: 'vd',
+    label: 'VD (Ventricul Drept)',
+    placeholder: 'ex: 10 milimetri',
+    romanianName: 'vd'
   }
 ]
 
-const localData = reactive({
-  symptoms: props.patientData.symptoms || '',
-  vitalSigns: props.patientData.vitalSigns || '',
-  assessment: props.patientData.assessment || '',
-  plan: props.patientData.plan || ''
+// Form data
+const formData = reactive({
+  aorta_la_inel: '',
+  aorta_la_sinusur_levart_sagva: '',
+  aorta_ascendenta: '',
+  as: '',
+  ventricul_drept: '',
+  atriu_stang: '',
+  vd: ''
 })
-
-watch(() => props.patientData, (newData) => {
-  Object.assign(localData, {
-    symptoms: newData.symptoms || '',
-    vitalSigns: newData.vitalSigns || '',
-    assessment: newData.assessment || '',
-    plan: newData.plan || ''
-  })
-}, { deep: true })
 
 const getRomanianFieldNames = () => {
   return formFields.map(field => field.romanianName)
@@ -268,13 +242,14 @@ watch([audioBlob, isRecording], async ([newBlob, recording]) => {
     shouldAutoProcess.value = false
     const fieldList = getRomanianFieldNames()
     try {
-      await processAudio(fieldList, 'consultation-form')
+      await processAudio(fieldList, 'echocardiography')
     } catch (err) {
       console.error('Error auto-processing audio:', err)
     }
   }
 })
 
+// Clear recording
 const clearRecording = () => {
   audioBlob.value = null
   rawTranscript.value = null
@@ -283,17 +258,49 @@ const clearRecording = () => {
   recordingDuration.value = 0
 }
 
+// Format duration (seconds to MM:SS)
 const formatDuration = (seconds) => {
   const mins = Math.floor(seconds / 60)
   const secs = seconds % 60
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
 }
 
+// Format file size
 const formatFileSize = (bytes) => {
   if (!bytes) return '0 B'
   if (bytes < 1024) return bytes + ' B'
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB'
   return (bytes / (1024 * 1024)).toFixed(2) + ' MB'
+}
+
+// Handle audio processing
+const handleProcessAudio = async () => {
+  const fieldList = getRomanianFieldNames()
+  try {
+    await processAudio(fieldList, 'echocardiography')
+  } catch (err) {
+    console.error('Error processing audio:', err)
+  }
+}
+
+// Handle test with mock data
+const handleTestWithMockData = () => {
+  // Mock data as provided by the user
+  const mockParsedData = {
+    "aorta la inel": "10 milimetri",
+    "aorta la sinusur levart sagva": "15 milimetri",
+    "aorta ascendenta": "",
+    "as": "cendenta 14 milimetri",
+    "ventricul drept": "10 milimetri",
+    "atriu stang": "12 milimetri pot să le dictești și prescurtat adică mă rog aorta la inel și asta cu aorta nu dar după aia as 14 milimetri",
+    "vd": "10 milimetri no cam asa ne auzim multumesc"
+  }
+  
+  const mockTranscript = "aorta la inel 10 milimetri, aorta la sinusur levart sagva 15 milimetri, as cendenta 14 milimetri, ventricul drept 10 milimetri, atriu stang 12 milimetri pot să le dictești și prescurtat adică mă rog aorta la inel și asta cu aorta nu dar după aia as 14 milimetri, vd 10 milimetri no cam asa ne auzim multumesc"
+  
+  rawTranscript.value = mockTranscript
+  parsedData.value = mockParsedData
+  error.value = null
 }
 
 watch(parsedData, (newParsedData) => {
@@ -304,17 +311,20 @@ watch(parsedData, (newParsedData) => {
     const value = newParsedData[romanianName]
     
     if (value !== undefined && value !== null && value !== '') {
-      localData[field.key] = value
-      updateField(field.key, value)
+      formData[field.key] = value
+      emit('field-update', field.key, value)
     }
   })
 }, { deep: true, immediate: true })
 
-const updateField = (fieldName, value) => {
-  localData[fieldName] = value
-  emit('field-update', fieldName, value)
-}
+// Watch formData changes and emit updates
+watch(formData, (newData) => {
+  Object.keys(newData).forEach(key => {
+    emit('field-update', key, newData[key])
+  })
+}, { deep: true })
 
+// Cleanup on unmount
 onUnmounted(() => {
   if (recordingInterval) {
     clearInterval(recordingInterval)
@@ -324,7 +334,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.consultation-form {
+.echocardiography-form {
   max-width: 900px;
   margin: 0 auto;
   padding: 2rem;
@@ -412,6 +422,50 @@ onUnmounted(() => {
 .stop-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+}
+
+.process-btn {
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.process-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.process-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.test-btn {
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.test-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+}
+
+.test-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .mic-icon,
@@ -610,7 +664,7 @@ onUnmounted(() => {
 
 .input-group {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 0.5rem;
 }
 
@@ -620,10 +674,7 @@ onUnmounted(() => {
   border-radius: 6px;
   padding: 0.75rem;
   font-size: 0.95rem;
-  line-height: 1.5;
-  resize: vertical;
   transition: all 0.3s ease;
-  font-family: inherit;
 }
 
 .form-input:focus {
@@ -636,11 +687,10 @@ onUnmounted(() => {
   color: #28a745;
   font-size: 1.2rem;
   font-weight: bold;
-  margin-top: 0.5rem;
 }
 
 @media (max-width: 768px) {
-  .consultation-form {
+  .echocardiography-form {
     padding: 1rem;
   }
   
@@ -648,9 +698,11 @@ onUnmounted(() => {
     flex-direction: column;
   }
   
-  .record-btn {
+  .record-btn,
+  .process-btn {
     width: 100%;
     justify-content: center;
   }
 }
 </style>
+

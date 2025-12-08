@@ -163,6 +163,7 @@ import MedicalReport from '@/components/documents/MedicalReport.vue'
 import ConsultationForm from '@/components/documents/ConsultationForm.vue'
 import PrescriptionForm from '@/components/documents/PrescriptionForm.vue'
 import FirstTimeNewPatient from '@/components/documents/FirstTimeNewPatient.vue'
+import EchocardiographyForm from '@/components/documents/EchocardiographyForm.vue'
 import { usePatientViewModel } from '@/viewmodels/PatientViewModel.js'
 import { toastService } from '@/services/ToastService.js'
 import { apiClient } from '@/services/ApiClient.js'
@@ -258,6 +259,12 @@ const documentTemplates = ref([
     name: 'New Patient Form',
     description: 'First-time patient intake form',
     component: FirstTimeNewPatient
+  },
+  {
+    id: 'echocardiography-form',
+    name: 'Ecografie Cardiacă',
+    description: 'Echocardiography measurements with voice input',
+    component: EchocardiographyForm
   }
 ])
 
