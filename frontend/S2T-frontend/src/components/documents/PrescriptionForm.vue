@@ -56,11 +56,6 @@
         </button>
       </div>
 
-      <!-- Recording Tips -->
-      <div v-if="!isRecording && !audioBlob" class="recording-tips">
-        <strong>💡 Sfat:</strong> Spuneți câmpurile și valorile în română, de exemplu: "medicamente paracetamol, dozaj 500 miligrame de 3 ori pe zi, instructiuni luati dupa masa"
-      </div>
-
       <!-- Status Messages -->
       <div v-if="error" class="error-message">
         <strong>Eroare:</strong> {{ error }}
@@ -536,16 +531,6 @@ onUnmounted(() => {
 .clear-btn:hover {
   background: #c82333;
   transform: scale(1.1);
-}
-
-.recording-tips {
-  margin-top: 1rem;
-  padding: 0.75rem 1rem;
-  background: #e7f3ff;
-  border-radius: 4px;
-  border: 1px solid #b3d9ff;
-  color: #004085;
-  font-size: 0.9rem;
 }
 
 .error-help {

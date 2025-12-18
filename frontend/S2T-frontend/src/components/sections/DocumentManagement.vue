@@ -237,10 +237,10 @@ const patientData = reactive({
 // Document templates
 const documentTemplates = ref([
   {
-    id: 'medical-report',
-    name: 'Medical Report',
-    description: 'Comprehensive medical examination report',
-    component: MedicalReport
+    id: 'new-patient-form',
+    name: 'New Patient Form',
+    description: 'First-time patient intake form',
+    component: FirstTimeNewPatient
   },
   {
     id: 'consultation-form',
@@ -255,10 +255,10 @@ const documentTemplates = ref([
     component: PrescriptionForm
   },
   {
-    id: 'new-patient-form',
-    name: 'New Patient Form',
-    description: 'First-time patient intake form',
-    component: FirstTimeNewPatient
+    id: 'medical-report',
+    name: 'Medical Report',
+    description: 'Comprehensive medical examination report',
+    component: MedicalReport
   },
   {
     id: 'echocardiography-form',
@@ -819,8 +819,16 @@ onMounted(async () => {
 
 .template-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 1.5rem;
+}
+
+.template-card:nth-child(4) {
+  grid-column: 1;
+}
+
+.template-card:nth-child(5) {
+  grid-column: 2;
 }
 
 .template-card {
