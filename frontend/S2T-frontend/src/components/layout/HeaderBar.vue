@@ -39,9 +39,12 @@
           <span class="nav-text">Documents</span>
         </button>
         <div class="user-section" v-if="currentDoctor">
-          <span class="doctor-name">
-            Dr. {{ currentDoctor.username }}
-          </span>
+          <div class="nav-link doctor-name-link">
+            <svg viewBox="0 0 24 24" fill="currentColor" class="nav-icon">
+              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+            </svg>
+            <span class="nav-text doctor-name-text">Dr. {{ currentDoctor.username }}</span>
+          </div>
           <button 
             @click="handleLogout"
             class="nav-link logout-link"
@@ -259,11 +262,19 @@ onMounted(() => {
   margin-left: 1rem;
 }
 
-.doctor-name {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #fff;
-  text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+.doctor-name-link {
+  background: rgba(255, 255, 255, 0.1);
+  cursor: default;
+}
+
+.doctor-name-link:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 8px 25px rgba(255, 255, 255, 0.2);
+}
+
+.doctor-name-text {
+  text-transform: capitalize;
 }
 
 @media (max-width: 768px) {

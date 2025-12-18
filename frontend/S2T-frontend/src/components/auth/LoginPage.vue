@@ -38,7 +38,7 @@
           </button>
         </form>
         <div class="form-footer">
-          <p>Don't have an account? <a href="#" @click.prevent="showRegister = true">Register here</a></p>
+          <p>Don't have an account? <a href="#" @click.prevent="switchToRegister">Register here</a></p>
         </div>
       </div>
 
@@ -85,7 +85,7 @@
           </button>
         </form>
         <div class="form-footer">
-          <p>Already have an account? <a href="#" @click.prevent="showRegister = false">Login here</a></p>
+          <p>Already have an account? <a href="#" @click.prevent="switchToLogin">Login here</a></p>
         </div>
       </div>
 
@@ -168,9 +168,20 @@ const handleRegister = async () => {
   }
 }
 
+const switchToRegister = () => {
+  loginError.value = ''
+  showRegister.value = true
+}
+
+const switchToLogin = () => {
+  registerError.value = ''
+  loginError.value = ''
+  showRegister.value = false
+}
+
 const handleSuccessClose = () => {
   showSuccessModal.value = false
-  showRegister.value = false
+  switchToLogin()
   // Clear registration form
   registerForm.value = {
     username: '',

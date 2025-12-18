@@ -50,21 +50,17 @@ def migrate_table(db, firestore_db, table_name, collection_name=None):
     if collection_name is None:
         collection_name = table_name
     
-    print(f"\nMigrating table '{table_name}' to Firestore collection '{collection_name}'...")
-    
     cursor = db.cursor()
     
     # Check if table exists
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table_name,))
     if not cursor.fetchone():
-        print(f"  ⚠️  Table '{table_name}' does not exist in SQLite database")
         return 0
     
     cursor.execute(f"SELECT * FROM {table_name}")
     rows = cursor.fetchall()
     
     if not rows:
-        print(f"  No data found in {table_name}")
         return 0
     
     collection_ref = firestore_db.collection(collection_name)
@@ -90,27 +86,15 @@ def migrate_table(db, firestore_db, table_name, collection_name=None):
             collection_ref.document(doc_id).set(doc_data)
             migrated_count += 1
         except Exception as e:
-            print(f"  ✗ Error migrating document {migrated_count + 1}: {str(e)}")
             continue
     
-    print(f"  ✓ Migrated {migrated_count} documents to '{collection_name}'")
     return migrated_count
 
 
 def migrate_all():
     """Migrate all tables from SQLite to Firestore"""
-    print("=" * 60)
-    print("SQLite to Firebase Firestore Migration")
-    print("=" * 60)
-    
-    # Initialize connections
-    print("\n1. Connecting to SQLite database...")
     sqlite_db = get_sqlite_connection()
-    print("   ✓ SQLite connection established")
-    
-    print("\n2. Initializing Firebase...")
     firestore_db = initialize_firebase()
-    print("   ✓ Firebase initialized")
     
     # Define tables to migrate
     tables = [
@@ -122,7 +106,6 @@ def migrate_all():
         ('prescription_forms', 'prescription_forms'),
     ]
     
-    print("\n3. Starting migration...")
     total_migrated = 0
     
     for table_name, collection_name in tables:
@@ -130,14 +113,9 @@ def migrate_all():
             count = migrate_table(sqlite_db, firestore_db, table_name, collection_name)
             total_migrated += count
         except Exception as e:
-            print(f"  ✗ Error migrating {table_name}: {str(e)}")
+            pass
     
     sqlite_db.close()
-    
-    print("\n" + "=" * 60)
-    print(f"Migration completed! Total documents migrated: {total_migrated}")
-    print("=" * 60)
-    
     return total_migrated
 
 
@@ -145,10 +123,5 @@ if __name__ == '__main__':
     try:
         migrate_all()
     except Exception as e:
-        print(f"\n✗ Migration failed: {str(e)}")
-        print("\nPlease check:")
-        print("1. Firebase credentials file exists and is valid")
-        print("2. SQLite database exists and is accessible")
-        print("3. You have proper Firebase permissions")
         exit(1)
 

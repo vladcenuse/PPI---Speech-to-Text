@@ -56,11 +56,6 @@
         </button>
       </div>
 
-      <!-- Recording Tips -->
-      <div v-if="!isRecording && !audioBlob" class="recording-tips">
-        <strong>💡 Sfat:</strong> Spuneți câmpurile și valorile în română, de exemplu: "informatii contact telefon 0712345678, plangere principala durere de cap, semne vitale tensiune 120 pe 80"
-      </div>
-
       <!-- Status Messages -->
       <div v-if="error" class="error-message">
         <strong>Eroare:</strong> {{ error }}
@@ -817,16 +812,6 @@ onUnmounted(() => {
 .clear-btn:hover {
   background: #c82333;
   transform: scale(1.1);
-}
-
-.recording-tips {
-  margin-top: 1rem;
-  padding: 0.75rem 1rem;
-  background: #e7f3ff;
-  border-radius: 4px;
-  border: 1px solid #b3d9ff;
-  color: #004085;
-  font-size: 0.9rem;
 }
 
 .error-help {

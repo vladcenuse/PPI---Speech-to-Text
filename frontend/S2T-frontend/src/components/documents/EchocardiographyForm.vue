@@ -32,14 +32,6 @@
           </svg>
           {{ isRecording ? 'Oprește Înregistrarea' : 'Începe Înregistrarea' }}
         </button>
-        <button
-          @click="handleTestWithMockData"
-          class="test-btn"
-          :disabled="isProcessing || isRecording"
-          title="Testează cu date mock pentru a verifica funcționalitatea"
-        >
-          🧪 Test cu Date Mock
-        </button>
       </div>
 
       <!-- Recording Status -->
@@ -62,11 +54,6 @@
         <button @click="clearRecording" class="clear-btn" title="Șterge înregistrarea">
           ✕
         </button>
-      </div>
-
-      <!-- Recording Tips -->
-      <div v-if="!isRecording && !audioBlob" class="recording-tips">
-        <strong>💡 Sfat:</strong> Spuneți câmpurile și valorile în română, de exemplu: "aorta la inel 10 milimetri, ventricul drept 10 milimetri"
       </div>
 
       <!-- Status Messages -->
@@ -283,26 +270,6 @@ const handleProcessAudio = async () => {
   }
 }
 
-// Handle test with mock data
-const handleTestWithMockData = () => {
-  // Mock data as provided by the user
-  const mockParsedData = {
-    "aorta la inel": "10 milimetri",
-    "aorta la sinusur levart sagva": "15 milimetri",
-    "aorta ascendenta": "",
-    "as": "cendenta 14 milimetri",
-    "ventricul drept": "10 milimetri",
-    "atriu stang": "12 milimetri pot să le dictești și prescurtat adică mă rog aorta la inel și asta cu aorta nu dar după aia as 14 milimetri",
-    "vd": "10 milimetri no cam asa ne auzim multumesc"
-  }
-  
-  const mockTranscript = "aorta la inel 10 milimetri, aorta la sinusur levart sagva 15 milimetri, as cendenta 14 milimetri, ventricul drept 10 milimetri, atriu stang 12 milimetri pot să le dictești și prescurtat adică mă rog aorta la inel și asta cu aorta nu dar după aia as 14 milimetri, vd 10 milimetri no cam asa ne auzim multumesc"
-  
-  rawTranscript.value = mockTranscript
-  parsedData.value = mockParsedData
-  error.value = null
-}
-
 watch(parsedData, (newParsedData) => {
   if (!newParsedData) return
 
@@ -446,28 +413,6 @@ onUnmounted(() => {
   cursor: not-allowed;
 }
 
-.test-btn {
-  padding: 0.75rem 1.5rem;
-  background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.test-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
-}
-
-.test-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
 .mic-icon,
 .stop-icon {
   width: 20px;
@@ -590,16 +535,6 @@ onUnmounted(() => {
 .clear-btn:hover {
   background: #c82333;
   transform: scale(1.1);
-}
-
-.recording-tips {
-  margin-top: 1rem;
-  padding: 0.75rem 1rem;
-  background: #e7f3ff;
-  border-radius: 4px;
-  border: 1px solid #b3d9ff;
-  color: #004085;
-  font-size: 0.9rem;
 }
 
 .error-help {
