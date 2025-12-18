@@ -86,7 +86,7 @@
       <div class="form-section">
         <h3>Simptome Prezente</h3>
         <div class="field-container">
-          <label>Simptome și plângeri actuale:</label>
+          
           <div class="input-group">
             <textarea 
               v-model="localData.symptoms"
@@ -106,7 +106,7 @@
       <div class="form-section">
         <h3>Semne Vitale</h3>
         <div class="field-container">
-          <label>Tensiune arterială, temperatură, puls, etc.:</label>
+          
           <div class="input-group">
             <textarea 
               v-model="localData.vitalSigns"
@@ -126,7 +126,7 @@
       <div class="form-section">
         <h3>Evaluare Clinică</h3>
         <div class="field-container">
-          <label>Găsiri clinice și evaluare:</label>
+         
           <div class="input-group">
             <textarea 
               v-model="localData.assessment"
@@ -146,7 +146,7 @@
       <div class="form-section">
         <h3>Plan de Tratament</h3>
         <div class="field-container">
-          <label>Tratament recomandat și urmărire:</label>
+          
           <div class="input-group">
             <textarea 
               v-model="localData.plan"

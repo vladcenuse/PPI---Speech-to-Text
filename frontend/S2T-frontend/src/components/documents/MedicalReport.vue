@@ -86,7 +86,7 @@
       <div class="form-section">
         <h3>Plângere Principală</h3>
         <div class="field-container">
-          <label>Motivul principal al vizitei:</label>
+          
           <div class="input-group">
             <textarea 
               v-model="localData.chiefComplaint"
@@ -106,7 +106,7 @@
       <div class="form-section">
         <h3>Istoricul Bolii Prezente</h3>
         <div class="field-container">
-          <label>Istoric detaliat și simptome:</label>
+          
           <div class="input-group">
             <textarea 
               v-model="localData.historyOfPresentIllness"
@@ -126,7 +126,7 @@
       <div class="form-section">
         <h3>Examinare Fizică</h3>
         <div class="field-container">
-          <label>Găsiri la examinare:</label>
+          
           <div class="input-group">
             <textarea 
               v-model="localData.physicalExamination"
@@ -146,7 +146,7 @@
       <div class="form-section">
         <h3>Diagnostic</h3>
         <div class="field-container">
-          <label>Diagnostic medical:</label>
+          
           <div class="input-group">
             <textarea 
               v-model="localData.diagnosis"

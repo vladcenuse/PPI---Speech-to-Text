@@ -8,24 +8,11 @@ from pydantic import BaseModel
 from deepgram import DeepgramClient
 from fastapi.middleware.cors import CORSMiddleware
 from openai import OpenAI
+from app.routers import patients, documents, new_patient_forms, medical_reports, consultation_forms, prescription_forms
+from app.database import check_and_init_db
 
-def check_and_init_db():
-    print("Database initialization mocked.")
-    pass
 
-class MockRouter:
-    def __init__(self, name):
-        self.router = APIRouter()
-        print(f"Mocking router: {name}")
-
-patients = MockRouter("patients")
-documents = MockRouter("documents")
-new_patient_forms = MockRouter("new_patient_forms")
-medical_reports = MockRouter("medical_reports")
-consultation_forms = MockRouter("consultation_forms")
-prescription_forms = MockRouter("prescription_forms")
-
-HF_TOKEN = os.getenv("HF_TOKEN", "your_huggingface_token_here")
+HF_TOKEN = os.getenv("HF_TOKEN", "placeholder_token")
 MODEL_ID = "google/gemma-2-2b-it"
 SYSTEM_PROMPT = (
     "Sunteți un asistent expert în extragerea informațiilor din text medical transcrit. "
