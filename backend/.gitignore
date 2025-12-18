@@ -6,6 +6,9 @@
 *.sqlite
 medical_records.db
 
+# Firebase
+firebase-credentials.json
+
 # Python
 __pycache__/
 *.py[cod]

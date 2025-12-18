@@ -12,8 +12,6 @@ from app.routers import patients, documents, new_patient_forms, medical_reports,
 from app.database import check_and_init_db
 
 
-# HF_TOKEN = os.getenv("HF_TOKEN", "placeholder_token")
-HF_TOKEN = "placeholder_token2"
 MODEL_ID = "google/gemma-2-2b-it"
 SYSTEM_PROMPT = (
     "Sunteți un asistent expert în extragerea informațiilor din text medical transcrit. "
