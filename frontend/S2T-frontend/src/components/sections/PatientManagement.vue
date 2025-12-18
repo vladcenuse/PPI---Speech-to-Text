@@ -367,11 +367,12 @@ const loadMedicalRecords = async (patientId) => {
     console.log('Loading medical records for patient:', patientId)
     
     // Fetch all document types from backend API
-    const [newPatientForms, medicalReports, consultationForms, prescriptionForms] = await Promise.all([
+    const [newPatientForms, medicalReports, consultationForms, prescriptionForms, echocardiographyForms] = await Promise.all([
       apiClient.get(`/new-patient-forms/patient/${patientId}`).catch(() => []),
       apiClient.get(`/medical-reports/patient/${patientId}`).catch(() => []),
       apiClient.get(`/consultation-forms/patient/${patientId}`).catch(() => []),
-      apiClient.get(`/prescription-forms/patient/${patientId}`).catch(() => [])
+      apiClient.get(`/prescription-forms/patient/${patientId}`).catch(() => []),
+      apiClient.get(`/echocardiography-forms/patient/${patientId}`).catch(() => [])
     ])
     
     // Combine and transform all documents to a unified format
@@ -479,6 +480,31 @@ const loadMedicalRecords = async (patientId) => {
       })
     }
     
+    // Transform echocardiography forms
+    if (Array.isArray(echocardiographyForms)) {
+      echocardiographyForms.forEach(form => {
+        allDocuments.push({
+          id: form.id,
+          patientId: form.patient_id,
+          patientName: selectedPatientForRecords.value?.name || '',
+          documentType: 'Echocardiography',
+          documentId: 'echocardiography-form',
+          customName: form.custom_name,
+          date: form.date,
+          data: {
+            aorta_la_inel: form.aorta_la_inel,
+            aorta_la_sinusur_levart_sagva: form.aorta_la_sinusur_levart_sagva,
+            aorta_ascendenta: form.aorta_ascendenta,
+            as: form.as || form.as_value, // Handle both field name and alias
+            ventricul_drept: form.ventricul_drept,
+            atriu_stang: form.atriu_stang,
+            vd: form.vd,
+            date: form.date
+          }
+        })
+      })
+    }
+    
     medicalRecords.value = allDocuments
     console.log(`Loaded ${medicalRecords.value.length} medical records for patient ${patientId}`)
     console.log('Medical records:', medicalRecords.value)
@@ -526,7 +552,8 @@ const deleteMedicalRecord = async (record) => {
         'new-patient-form': 'new-patient-forms',
         'medical-report': 'medical-reports',
         'consultation-form': 'consultation-forms',
-        'prescription-form': 'prescription-forms'
+        'prescription-form': 'prescription-forms',
+        'echocardiography-form': 'echocardiography-forms'
       }
       
       const endpoint = formTypeEndpoints[record.documentId]

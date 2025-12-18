@@ -161,7 +161,8 @@ async def delete_patient(patient_id: int, doctor_id: int = Depends(get_current_d
         'prescription_forms': 0,
         'consultation_forms': 0,
         'medical_reports': 0,
-        'new_patient_forms': 0
+        'new_patient_forms': 0,
+        'echocardiography_forms': 0
     }
     
     # Delete prescription forms
@@ -191,6 +192,13 @@ async def delete_patient(patient_id: int, doctor_id: int = Depends(get_current_d
     for form in new_forms:
         form.reference.delete()
         deleted_counts['new_patient_forms'] += 1
+    
+    # Delete echocardiography forms
+    echocardiography_ref = db.collection('echocardiography_forms')
+    echocardiography_forms = echocardiography_ref.where('patient_id', '==', patient_id).stream()
+    for form in echocardiography_forms:
+        form.reference.delete()
+        deleted_counts['echocardiography_forms'] += 1
     
     # Finally delete the patient
     doc_ref.delete()

@@ -79,6 +79,8 @@ async def create_medical_report(form_data: MedicalReportBase):
     form_id = get_next_id('medical_reports')
     
     report_dict = form_data.model_dump()
+    # Ensure patient_id is an integer (Firestore queries are type-sensitive)
+    report_dict['patient_id'] = int(report_dict['patient_id'])
     report_dict['id'] = form_id
     report_dict['created_at'] = current_time
     report_dict['updated_at'] = current_time
@@ -106,6 +108,8 @@ async def update_medical_report(form_id: int, form_data: MedicalReportBase):
     created_at = doc.to_dict().get('created_at', current_time)
     
     update_data = form_data.model_dump()
+    # Ensure patient_id is an integer (Firestore queries are type-sensitive)
+    update_data['patient_id'] = int(update_data['patient_id'])
     update_data['updated_at'] = current_time
     doc_ref.update(update_data)
     
