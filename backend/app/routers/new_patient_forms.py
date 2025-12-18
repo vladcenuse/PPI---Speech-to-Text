@@ -98,6 +98,8 @@ async def create_new_patient_form(form_data: NewPatientFormBase):
         form_id = existing_doc.to_dict().get('id', int(existing_doc.id) if existing_doc.id.isdigit() else None)
         
         update_data = form_data.model_dump()
+        # Ensure patient_id is an integer (Firestore queries are type-sensitive)
+        update_data['patient_id'] = int(update_data['patient_id'])
         update_data['updated_at'] = current_time
         existing_doc.reference.update(update_data)
         
@@ -110,6 +112,8 @@ async def create_new_patient_form(form_data: NewPatientFormBase):
         form_id = get_next_id('new_patient_forms')
         
         form_dict = form_data.model_dump()
+        # Ensure patient_id is an integer (Firestore queries are type-sensitive)
+        form_dict['patient_id'] = int(form_dict['patient_id'])
         form_dict['id'] = form_id
         form_dict['created_at'] = current_time
         form_dict['updated_at'] = current_time
@@ -142,6 +146,8 @@ async def update_new_patient_form(form_id: int, form_data: NewPatientFormBase):
     current_time = datetime.now().isoformat()
     
     update_data = form_data.model_dump()
+    # Ensure patient_id is an integer (Firestore queries are type-sensitive)
+    update_data['patient_id'] = int(update_data['patient_id'])
     update_data['updated_at'] = current_time
     doc_ref.update(update_data)
     

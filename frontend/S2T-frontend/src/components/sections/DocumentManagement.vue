@@ -308,9 +308,31 @@ const selectDocument = (template) => {
     }
   }
   
-  // Clear form-specific fields when switching to a new document
+  // Clear editing flags when switching to a different document type
   const editingDocumentId = localStorage.getItem('editingDocumentId')
-  if (!editingDocumentId) {
+  const editingDocumentType = localStorage.getItem('editingDocumentType')
+  
+  // Map document types to template IDs for comparison
+  const typeToTemplateId = {
+    'New Patient Form': 'new-patient-form',
+    'Medical Report': 'medical-report',
+    'Consultation Form': 'consultation-form',
+    'Prescription Form': 'prescription-form',
+    'Echocardiography': 'echocardiography-form'
+  }
+  
+  const editingTemplateId = editingDocumentType ? typeToTemplateId[editingDocumentType] : null
+  
+  // If switching to a different document type, clear editing flags
+  if (editingDocumentId && editingTemplateId !== template.id) {
+    console.log('Switching document type, clearing editing flags')
+    localStorage.removeItem('editingDocumentId')
+    localStorage.removeItem('editingDocumentData')
+    localStorage.removeItem('editingDocumentType')
+    localStorage.removeItem('editingDocumentCustomName')
+    clearFormSpecificFields()
+  } else if (!editingDocumentId) {
+    // Not editing, clear form fields
     clearFormSpecificFields()
   }
   
@@ -345,6 +367,20 @@ const finishEditingTitle = () => {
 }
 
 const selectPatient = (patient) => {
+  // Clear editing flags when switching to a different patient
+  const editingDocumentId = localStorage.getItem('editingDocumentId')
+  const editingDocumentData = JSON.parse(localStorage.getItem('editingDocumentData') || '{}')
+  
+  // If we're editing a document but switching to a different patient, clear editing flags
+  if (editingDocumentId && editingDocumentData.patientId && editingDocumentData.patientId !== patient.id) {
+    console.log('Switching patient, clearing editing flags')
+    localStorage.removeItem('editingDocumentId')
+    localStorage.removeItem('editingDocumentData')
+    localStorage.removeItem('editingDocumentType')
+    localStorage.removeItem('editingDocumentCustomName')
+    clearFormSpecificFields()
+  }
+  
   selectedPatient.value = patient
   showPatientSelector.value = false
   
@@ -543,7 +579,12 @@ const saveDocument = async () => {
     
     // Map form data to backend API format based on document type
     let apiData
-    const patientId = selectedPatient.value.id
+    // Ensure patient_id is always an integer (Firestore queries are type-sensitive)
+    const patientId = parseInt(selectedPatient.value.id, 10)
+    if (isNaN(patientId)) {
+      toastService.error('Invalid Patient ID', 'The selected patient has an invalid ID.')
+      return
+    }
     const customName = currentFormName.value || selectedDocument.value.name
     
     switch (selectedDocument.value.id) {
@@ -645,11 +686,29 @@ const saveDocument = async () => {
     }
   
     // Save to backend API
-    if (editingDocumentId) {
+    // Only use PUT if we're editing the same document type and patient
+    const editingDocumentType = localStorage.getItem('editingDocumentType')
+    const editingDocumentData = JSON.parse(localStorage.getItem('editingDocumentData') || '{}')
+    
+    // Map document types to template IDs for comparison
+    const typeToTemplateId = {
+      'New Patient Form': 'new-patient-form',
+      'Medical Report': 'medical-report',
+      'Consultation Form': 'consultation-form',
+      'Prescription Form': 'prescription-form',
+      'Echocardiography': 'echocardiography-form'
+    }
+    
+    const editingTemplateId = editingDocumentType ? typeToTemplateId[editingDocumentType] : null
+    const isEditingSameDocument = editingDocumentId && 
+                                   editingTemplateId === selectedDocument.value.id &&
+                                   editingDocumentData.patientId === patientId
+    
+    if (isEditingSameDocument) {
       console.log('Updating existing document with ID:', editingDocumentId)
       await apiClient.put(`/${endpoint}/${editingDocumentId}`, apiData)
       
-      // Clear editing flags
+      // Clear editing flags after successful update
       localStorage.removeItem('editingDocumentId')
       localStorage.removeItem('editingDocumentData')
       localStorage.removeItem('editingDocumentType')
@@ -661,10 +720,19 @@ const saveDocument = async () => {
       )
       
       // Show confirmation alert
-  setTimeout(() => {
+      setTimeout(() => {
         alert('✓ Document has been successfully updated!')
       }, 100)
     } else {
+      // Clear any stale editing flags if they exist but don't match
+      if (editingDocumentId) {
+        console.log('Clearing stale editing flags - document type or patient mismatch')
+        localStorage.removeItem('editingDocumentId')
+        localStorage.removeItem('editingDocumentData')
+        localStorage.removeItem('editingDocumentType')
+        localStorage.removeItem('editingDocumentCustomName')
+      }
+      
       console.log('Creating new document')
       await apiClient.post(`/${endpoint}/`, apiData)
       

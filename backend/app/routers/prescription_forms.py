@@ -77,6 +77,8 @@ async def create_prescription_form(form_data: PrescriptionFormBase):
     form_id = get_next_id('prescription_forms')
     
     form_dict = form_data.model_dump()
+    # Ensure patient_id is an integer (Firestore queries are type-sensitive)
+    form_dict['patient_id'] = int(form_dict['patient_id'])
     form_dict['id'] = form_id
     form_dict['created_at'] = current_time
     form_dict['updated_at'] = current_time
@@ -104,6 +106,8 @@ async def update_prescription_form(form_id: int, form_data: PrescriptionFormBase
     created_at = doc.to_dict().get('created_at', current_time)
     
     update_data = form_data.model_dump()
+    # Ensure patient_id is an integer (Firestore queries are type-sensitive)
+    update_data['patient_id'] = int(update_data['patient_id'])
     update_data['updated_at'] = current_time
     doc_ref.update(update_data)
     
