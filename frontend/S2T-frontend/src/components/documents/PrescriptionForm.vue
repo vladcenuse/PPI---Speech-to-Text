@@ -86,7 +86,7 @@
       <div class="form-section">
         <h3>Medicamente Prescrise</h3>
         <div class="field-container">
-          <label>Numele și tipurile de medicamente:</label>
+          
           <div class="input-group">
             <textarea 
               v-model="localData.medications"
@@ -106,7 +106,7 @@
       <div class="form-section">
         <h3>Instrucțiuni de Dozaj</h3>
         <div class="field-container">
-          <label>Cantități de dozaj și frecvență:</label>
+          
           <div class="input-group">
             <textarea 
               v-model="localData.dosage"
@@ -126,7 +126,7 @@
       <div class="form-section">
         <h3>Instrucțiuni Speciale</h3>
         <div class="field-container">
-          <label>Instrucțiuni speciale și avertismente:</label>
+          
           <div class="input-group">
             <textarea 
               v-model="localData.instructions"
@@ -146,7 +146,7 @@
       <div class="form-section">
         <h3>Instrucțiuni de Urmărire</h3>
         <div class="field-container">
-          <label>Programări de urmărire și monitorizare:</label>
+          
           <div class="input-group">
             <textarea 
               v-model="localData.followUp"
