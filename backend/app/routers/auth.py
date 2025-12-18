@@ -5,10 +5,10 @@ from fastapi import APIRouter, HTTPException, Depends, Request, Header
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from datetime import datetime, timedelta
 from typing import Optional
-import sqlite3
 from passlib.context import CryptContext
 from app.models import DoctorCreate, DoctorLogin, DoctorResponse, LoginResponse
-from app.database import get_db_connection
+from app.database import get_firestore_db
+from app.firestore_helpers import get_next_id
 
 router = APIRouter()
 security = HTTPBearer()
@@ -111,27 +111,30 @@ async def register_doctor(doctor: DoctorCreate):
     if len(doctor.password) < 6:
         raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
     
-    conn = get_db_connection()
-    cursor = conn.cursor()
+    db = get_firestore_db()
+    doctors_ref = db.collection('doctors')
     
     # Check if username already exists
-    cursor.execute('SELECT id FROM doctors WHERE username = ?', (doctor.username,))
-    if cursor.fetchone():
-        conn.close()
+    existing = doctors_ref.where('username', '==', doctor.username).limit(1).stream()
+    if list(existing):
         raise HTTPException(status_code=400, detail="Username already exists")
     
     # Hash password and create doctor
     password_hash = hash_password(doctor.password)
     current_time = datetime.now().isoformat()
     
-    cursor.execute('''
-        INSERT INTO doctors (username, password_hash, created_at, updated_at)
-        VALUES (?, ?, ?, ?)
-    ''', (doctor.username, password_hash, current_time, current_time))
+    # Get next ID from counter
+    doctor_id = get_next_id('doctors')
     
-    doctor_id = cursor.lastrowid
-    conn.commit()
-    conn.close()
+    # Create doctor document with ID as document ID
+    doc_ref = doctors_ref.document(str(doctor_id))
+    doc_ref.set({
+        'id': doctor_id,
+        'username': doctor.username,
+        'password_hash': password_hash,
+        'created_at': current_time,
+        'updated_at': current_time
+    })
     
     return LoginResponse(
         success=True,
@@ -144,18 +147,26 @@ async def register_doctor(doctor: DoctorCreate):
 @router.post("/login", response_model=LoginResponse)
 async def login_doctor(doctor: DoctorLogin):
     """Login doctor and create session"""
-    conn = get_db_connection()
-    cursor = conn.cursor()
+    db = get_firestore_db()
+    doctors_ref = db.collection('doctors')
     
     # Find doctor by username
-    cursor.execute('SELECT id, username, password_hash FROM doctors WHERE username = ?', (doctor.username,))
-    row = cursor.fetchone()
-    conn.close()
+    docs = doctors_ref.where('username', '==', doctor.username).limit(1).stream()
+    doc_list = list(docs)
     
-    if not row:
+    if not doc_list:
         raise HTTPException(status_code=401, detail="Invalid username or password")
     
-    doctor_id, username, password_hash = row['id'], row['username'], row['password_hash']
+    doc = doc_list[0]
+    doc_data = doc.to_dict()
+    doctor_id = doc_data.get('id')
+    if doctor_id is None:
+        # Fallback: try to parse document ID as integer
+        doctor_id = int(doc.id) if doc.id.isdigit() else None
+    if doctor_id is None:
+        raise HTTPException(status_code=500, detail="Invalid doctor record")
+    username = doc_data.get('username', '')
+    password_hash = doc_data.get('password_hash', '')
     
     # Verify password
     if not verify_password(doctor.password, password_hash):
@@ -206,19 +217,23 @@ async def logout_doctor(request: Request):
 @router.get("/me", response_model=DoctorResponse)
 async def get_current_doctor(doctor_id: int = Depends(get_current_doctor_id)):
     """Get current logged-in doctor info"""
-    conn = get_db_connection()
-    cursor = conn.cursor()
+    db = get_firestore_db()
+    doctors_ref = db.collection('doctors')
     
-    cursor.execute('SELECT id, username, created_at FROM doctors WHERE id = ?', (doctor_id,))
-    row = cursor.fetchone()
-    conn.close()
+    # Find doctor by ID
+    docs = doctors_ref.where('id', '==', doctor_id).limit(1).stream()
+    doc_list = list(docs)
     
-    if not row:
+    if not doc_list:
         raise HTTPException(status_code=404, detail="Doctor not found")
     
+    doc = doc_list[0]
+    doc_data = doc.to_dict()
+    
+    found_id = doc_data.get('id', doctor_id)
+    
     return DoctorResponse(
-        id=row['id'],
-        username=row['username'],
-        created_at=row['created_at']
+        id=found_id,
+        username=doc_data.get('username', ''),
+        created_at=doc_data.get('created_at', '')
     )
-
