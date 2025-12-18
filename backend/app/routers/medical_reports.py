@@ -3,7 +3,9 @@ from fastapi import APIRouter, HTTPException
 from datetime import datetime
 from typing import List, Optional
 from pydantic import BaseModel
-from app.database import get_db_connection
+from app.database import get_firestore_db
+from app.firestore_helpers import get_next_id, doc_to_dict
+from firebase_admin import firestore
 
 router = APIRouter()
 
@@ -29,114 +31,100 @@ class MedicalReportResponse(MedicalReportBase):
 @router.get("/patient/{patient_id}", response_model=List[MedicalReportResponse])
 async def get_medical_reports(patient_id: int):
     """Get all medical reports for a specific patient"""
-    conn = get_db_connection()
-    cursor = conn.cursor()
+    db = get_firestore_db()
+    reports_ref = db.collection('medical_reports')
     
-    cursor.execute('''
-        SELECT * FROM medical_reports WHERE patient_id = ? ORDER BY created_at DESC
-    ''', (patient_id,))
+    docs = reports_ref.where('patient_id', '==', patient_id).stream()
     
-    rows = cursor.fetchall()
-    conn.close()
+    reports = []
+    for doc in docs:
+        report_data = doc_to_dict(doc)
+        if report_data:
+            reports.append(report_data)
     
-    return [dict(row) for row in rows]
+    # Sort by created_at descending in memory
+    reports.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+    
+    return reports
 
 
 @router.get("/{form_id}", response_model=MedicalReportResponse)
 async def get_medical_report(form_id: int):
     """Get a single medical report by ID"""
-    conn = get_db_connection()
-    cursor = conn.cursor()
+    db = get_firestore_db()
+    reports_ref = db.collection('medical_reports')
     
-    cursor.execute('SELECT * FROM medical_reports WHERE id = ?', (form_id,))
-    row = cursor.fetchone()
-    conn.close()
+    doc_ref = reports_ref.document(str(form_id))
+    doc = doc_ref.get()
     
-    if not row:
+    if not doc.exists:
         raise HTTPException(status_code=404, detail="Report not found")
     
-    return dict(row)
+    return doc_to_dict(doc)
 
 
 @router.post("/", response_model=MedicalReportResponse)
 async def create_medical_report(form_data: MedicalReportBase):
     """Create a new medical report"""
-    conn = get_db_connection()
-    cursor = conn.cursor()
+    db = get_firestore_db()
+    reports_ref = db.collection('medical_reports')
+    patients_ref = db.collection('patients')
     
-    cursor.execute('SELECT * FROM patients WHERE id = ?', (form_data.patient_id,))
-    if not cursor.fetchone():
-        conn.close()
+    # Verify patient exists
+    patient_doc = patients_ref.document(str(form_data.patient_id)).get()
+    if not patient_doc.exists:
         raise HTTPException(status_code=404, detail="Patient not found")
     
     current_time = datetime.now().isoformat()
+    form_id = get_next_id('medical_reports')
     
-    cursor.execute('''
-        INSERT INTO medical_reports (
-            patient_id, custom_name, date, chief_complaint,
-            history_of_present_illness, physical_examination, diagnosis, treatment,
-            recommendations, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ''', (
-        form_data.patient_id, form_data.custom_name, form_data.date,
-        form_data.chief_complaint, form_data.history_of_present_illness,
-        form_data.physical_examination, form_data.diagnosis, form_data.treatment,
-        form_data.recommendations, current_time, current_time
-    ))
+    report_dict = form_data.model_dump()
+    report_dict['id'] = form_id
+    report_dict['created_at'] = current_time
+    report_dict['updated_at'] = current_time
     
-    conn.commit()
-    form_id = cursor.lastrowid
-    conn.close()
+    doc_ref = reports_ref.document(str(form_id))
+    doc_ref.set(report_dict)
     
-    return {**form_data.model_dump(), 'id': form_id, 'created_at': current_time, 'updated_at': current_time}
+    return report_dict
 
 
 @router.put("/{form_id}", response_model=MedicalReportResponse)
 async def update_medical_report(form_id: int, form_data: MedicalReportBase):
     """Update an existing medical report"""
-    conn = get_db_connection()
-    cursor = conn.cursor()
+    db = get_firestore_db()
+    reports_ref = db.collection('medical_reports')
     
     # Fetch existing record to get created_at
-    cursor.execute('SELECT * FROM medical_reports WHERE id = ?', (form_id,))
-    existing = cursor.fetchone()
-    if not existing:
-        conn.close()
+    doc_ref = reports_ref.document(str(form_id))
+    doc = doc_ref.get()
+    
+    if not doc.exists:
         raise HTTPException(status_code=404, detail="Report not found")
     
     current_time = datetime.now().isoformat()
+    created_at = doc.to_dict().get('created_at', current_time)
     
-    cursor.execute('''
-        UPDATE medical_reports SET
-            custom_name = ?, date = ?, chief_complaint = ?,
-            history_of_present_illness = ?, physical_examination = ?,
-            diagnosis = ?, treatment = ?, recommendations = ?, updated_at = ?
-        WHERE id = ?
-    ''', (
-        form_data.custom_name, form_data.date, form_data.chief_complaint,
-        form_data.history_of_present_illness, form_data.physical_examination,
-        form_data.diagnosis, form_data.treatment, form_data.recommendations,
-        current_time, form_id
-    ))
+    update_data = form_data.model_dump()
+    update_data['updated_at'] = current_time
+    doc_ref.update(update_data)
     
-    conn.commit()
-    conn.close()
+    result = doc_ref.get().to_dict()
+    result['id'] = form_id
+    result['created_at'] = created_at
     
-    # Get created_at from existing record
-    created_at = dict(existing)['created_at']
-    
-    return {**form_data.model_dump(), 'id': form_id, 'created_at': created_at, 'updated_at': current_time}
+    return result
 
 
 @router.delete("/{form_id}")
 async def delete_medical_report(form_id: int):
     """Delete a medical report"""
-    conn = get_db_connection()
-    cursor = conn.cursor()
+    db = get_firestore_db()
+    reports_ref = db.collection('medical_reports')
     
-    cursor.execute('DELETE FROM medical_reports WHERE id = ?', (form_id,))
-    conn.commit()
-    conn.close()
+    doc_ref = reports_ref.document(str(form_id))
+    if not doc_ref.get().exists:
+        raise HTTPException(status_code=404, detail="Report not found")
     
+    doc_ref.delete()
     return {"message": "Report deleted successfully"}
-

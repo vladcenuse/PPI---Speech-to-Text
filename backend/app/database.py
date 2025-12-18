@@ -1,162 +1,58 @@
 """
-Database setup and configuration
+Firebase Firestore database setup and configuration
 """
-import sqlite3
 import os
 from datetime import datetime
+from firebase_admin import credentials, firestore, initialize_app
 from typing import Optional
 
-DB_PATH = os.path.join(os.path.dirname(__file__), '..', 'medical_records.db')
+# Path to your Firebase service account key JSON file
+FIREBASE_CREDENTIALS_PATH = os.path.join(os.path.dirname(__file__), '..', 'firebase-credentials.json')
+
+# Initialize Firebase Admin SDK
+_db = None
 
 def get_db_connection():
-    """Get database connection"""
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row  # Enable column access by name
-    return conn
+    """Get Firestore database client (alias for compatibility)"""
+    return get_firestore_db()
 
-
-def init_db():
-    """Initialize database with tables if they don't exist"""
-    conn = get_db_connection()
-    cursor = conn.cursor()
+def get_firestore_db():
+    """Get Firestore database client"""
+    global _db
+    if _db is None:
+        if not os.path.exists(FIREBASE_CREDENTIALS_PATH):
+            raise FileNotFoundError(
+                f"Firebase credentials file not found at {FIREBASE_CREDENTIALS_PATH}\n"
+                "Please download your service account key from Firebase Console and save it as 'firebase-credentials.json'"
+            )
+        
+        cred = credentials.Certificate(FIREBASE_CREDENTIALS_PATH)
+        try:
+            initialize_app(cred)
+        except ValueError:
+            # App already initialized, that's fine
+            pass
+        
+        _db = firestore.client()
     
-    # Create doctors table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS doctors (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT NOT NULL UNIQUE,
-            password_hash TEXT NOT NULL,
-            created_at TEXT NOT NULL,
-            updated_at TEXT NOT NULL
-        )
-    ''')
-    
-    # Create patients table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS patients (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            doctor_id INTEGER NOT NULL,
-            name TEXT NOT NULL,
-            age INTEGER,
-            gender TEXT,
-            date_of_birth TEXT,
-            phone TEXT,
-            email TEXT,
-            address TEXT,
-            medical_history TEXT,
-            allergies TEXT,
-            current_medications TEXT,
-            blood_type TEXT,
-            insurance_number TEXT,
-            emergency_contact TEXT,
-            created_at TEXT NOT NULL,
-            updated_at TEXT NOT NULL,
-            FOREIGN KEY (doctor_id) REFERENCES doctors(id) ON DELETE CASCADE
-        )
-    ''')
-    
-    # Create new_patient_forms table (unique per patient)
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS new_patient_forms (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            patient_id INTEGER NOT NULL UNIQUE,
-            custom_name TEXT,
-            date TEXT NOT NULL,
-            patient_name TEXT,
-            date_of_birth TEXT,
-            gender TEXT,
-            contact_info TEXT,
-            chief_complaint TEXT,
-            present_illness TEXT,
-            past_medical_history TEXT,
-            medications TEXT,
-            allergies TEXT,
-            family_history TEXT,
-            social_history TEXT,
-            vital_signs TEXT,
-            physical_exam TEXT,
-            assessment TEXT,
-            plan TEXT,
-            follow_up TEXT,
-            created_at TEXT NOT NULL,
-            updated_at TEXT NOT NULL,
-            FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE
-        )
-    ''')
-    
-    # Create medical_reports table (multiple per patient)
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS medical_reports (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            patient_id INTEGER NOT NULL,
-            custom_name TEXT,
-            date TEXT NOT NULL,
-            chief_complaint TEXT,
-            history_of_present_illness TEXT,
-            physical_examination TEXT,
-            diagnosis TEXT,
-            treatment TEXT,
-            recommendations TEXT,
-            created_at TEXT NOT NULL,
-            updated_at TEXT NOT NULL,
-            FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE
-        )
-    ''')
-    
-    # Create consultation_forms table (multiple per patient)
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS consultation_forms (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            patient_id INTEGER NOT NULL,
-            custom_name TEXT,
-            date TEXT NOT NULL,
-            symptoms TEXT,
-            vital_signs TEXT,
-            assessment TEXT,
-            plan TEXT,
-            created_at TEXT NOT NULL,
-            updated_at TEXT NOT NULL,
-            FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE
-        )
-    ''')
-    
-    # Create prescription_forms table (multiple per patient)
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS prescription_forms (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            patient_id INTEGER NOT NULL,
-            custom_name TEXT,
-            date TEXT NOT NULL,
-            medications TEXT,
-            dosage TEXT,
-            instructions TEXT,
-            follow_up TEXT,
-            created_at TEXT NOT NULL,
-            updated_at TEXT NOT NULL,
-            FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE
-        )
-    ''')
-    
-    conn.commit()
-    conn.close()
-    print("Database initialized successfully")
+    return _db
 
 
 def check_and_init_db():
-    """Initialize database - always ensures tables exist (safe to call multiple times)"""
-    init_db()
+    """Initialize Firebase - collections are created automatically on first write"""
+    db = get_firestore_db()
     
-    # Report current state
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT COUNT(*) FROM patients")
-    patient_count = cursor.fetchone()[0]
-    cursor.execute("SELECT COUNT(*) FROM doctors")
-    doctor_count = cursor.fetchone()[0]
-    print(f"Database ready. Found {doctor_count} doctors and {patient_count} patients.")
-    conn.close()
-
-
+    # Check if collections exist by trying to count documents
+    try:
+        doctors_ref = db.collection('doctors')
+        doctors_count = len(list(doctors_ref.limit(1).stream()))
+        
+        patients_ref = db.collection('patients')
+        patients_count = len(list(patients_ref.limit(1).stream()))
+        
+        print(f"Firebase ready. Found {doctors_count} doctors and {patients_count} patients.")
+    except Exception as e:
+        print(f"Firebase initialized. Collections will be created on first write.")
 
 
 if __name__ == '__main__':

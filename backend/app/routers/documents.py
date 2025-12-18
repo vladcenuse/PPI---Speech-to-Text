@@ -6,7 +6,9 @@ from datetime import datetime
 from typing import List
 import json
 from app.models import MedicalDocumentCreate, MedicalDocumentUpdate, MedicalDocumentResponse
-from app.database import get_db_connection
+from app.database import get_firestore_db
+from app.firestore_helpers import get_next_id, doc_to_dict
+from firebase_admin import firestore
 
 router = APIRouter()
 
@@ -14,182 +16,143 @@ router = APIRouter()
 @router.get("/", response_model=List[MedicalDocumentResponse])
 async def get_documents():
     """Get all medical documents"""
-    conn = get_db_connection()
-    cursor = conn.cursor()
+    db = get_firestore_db()
+    docs_ref = db.collection('medical_documents')
     
-    cursor.execute('''
-        SELECT * FROM medical_documents ORDER BY created_at DESC
-    ''')
+    docs = docs_ref.order_by('created_at', direction=firestore.Query.DESCENDING).stream()
     
-    rows = cursor.fetchall()
     documents = []
+    for doc in docs:
+        doc_data = doc_to_dict(doc)
+        if doc_data:
+            # Ensure data is a dict, not a string
+            if isinstance(doc_data.get('data'), str):
+                try:
+                    doc_data['data'] = json.loads(doc_data['data'])
+                except:
+                    doc_data['data'] = {}
+            documents.append(doc_data)
     
-    for row in rows:
-        documents.append({
-            'id': row['id'],
-            'patient_id': row['patient_id'],
-            'patient_name': row['patient_name'],
-            'document_type': row['document_type'],
-            'document_id': row['document_id'],
-            'custom_name': row['custom_name'],
-            'date': row['date'],
-            'data': json.loads(row['data']) if row['data'] else {},
-            'created_at': row['created_at'],
-            'updated_at': row['updated_at']
-        })
-    
-    conn.close()
     return documents
 
 
 @router.get("/patient/{patient_id}", response_model=List[MedicalDocumentResponse])
 async def get_documents_by_patient(patient_id: int):
     """Get all medical documents for a specific patient"""
-    conn = get_db_connection()
-    cursor = conn.cursor()
+    db = get_firestore_db()
+    docs_ref = db.collection('medical_documents')
     
-    cursor.execute('''
-        SELECT * FROM medical_documents WHERE patient_id = ? ORDER BY created_at DESC
-    ''', (patient_id,))
+    docs = docs_ref.where('patient_id', '==', patient_id).stream()
     
-    rows = cursor.fetchall()
     documents = []
+    for doc in docs:
+        doc_data = doc_to_dict(doc)
+        if doc_data:
+            # Ensure data is a dict, not a string
+            if isinstance(doc_data.get('data'), str):
+                try:
+                    doc_data['data'] = json.loads(doc_data['data'])
+                except:
+                    doc_data['data'] = {}
+            documents.append(doc_data)
     
-    for row in rows:
-        documents.append({
-            'id': row['id'],
-            'patient_id': row['patient_id'],
-            'patient_name': row['patient_name'],
-            'document_type': row['document_type'],
-            'document_id': row['document_id'],
-            'custom_name': row['custom_name'],
-            'date': row['date'],
-            'data': json.loads(row['data']) if row['data'] else {},
-            'created_at': row['created_at'],
-            'updated_at': row['updated_at']
-        })
+    # Sort by created_at descending in memory
+    documents.sort(key=lambda x: x.get('created_at', ''), reverse=True)
     
-    conn.close()
     return documents
 
 
 @router.get("/{document_id}", response_model=MedicalDocumentResponse)
 async def get_document(document_id: int):
     """Get a single medical document by ID"""
-    conn = get_db_connection()
-    cursor = conn.cursor()
+    db = get_firestore_db()
+    docs_ref = db.collection('medical_documents')
     
-    cursor.execute('SELECT * FROM medical_documents WHERE id = ?', (document_id,))
-    row = cursor.fetchone()
-    conn.close()
+    doc_ref = docs_ref.document(str(document_id))
+    doc = doc_ref.get()
     
-    if not row:
+    if not doc.exists:
         raise HTTPException(status_code=404, detail="Document not found")
     
-    return {
-        'id': row['id'],
-        'patient_id': row['patient_id'],
-        'patient_name': row['patient_name'],
-        'document_type': row['document_type'],
-        'document_id': row['document_id'],
-        'custom_name': row['custom_name'],
-        'date': row['date'],
-        'data': json.loads(row['data']) if row['data'] else {},
-        'created_at': row['created_at'],
-        'updated_at': row['updated_at']
-    }
+    doc_data = doc_to_dict(doc)
+    # Ensure data is a dict, not a string
+    if isinstance(doc_data.get('data'), str):
+        try:
+            doc_data['data'] = json.loads(doc_data['data'])
+        except:
+            doc_data['data'] = {}
+    
+    return doc_data
 
 
 @router.post("/", response_model=MedicalDocumentResponse)
 async def create_document(document: MedicalDocumentCreate):
     """Create a new medical document"""
-    conn = get_db_connection()
-    cursor = conn.cursor()
+    db = get_firestore_db()
+    docs_ref = db.collection('medical_documents')
+    patients_ref = db.collection('patients')
     
     # Verify patient exists
-    cursor.execute('SELECT * FROM patients WHERE id = ?', (document.patient_id,))
-    if not cursor.fetchone():
-        conn.close()
+    patient_doc = patients_ref.document(str(document.patient_id)).get()
+    if not patient_doc.exists:
         raise HTTPException(status_code=404, detail="Patient not found")
     
     current_time = datetime.now().isoformat()
+    document_id = get_next_id('medical_documents')
     
-    cursor.execute('''
-        INSERT INTO medical_documents (
-            patient_id, patient_name, document_type, document_id,
-            custom_name, date, data, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ''', (
-        document.patient_id, document.patient_name, document.document_type,
-        document.document_id, document.custom_name, document.date,
-        json.dumps(document.data), current_time, current_time
-    ))
+    doc_dict = document.model_dump()
+    doc_dict['id'] = document_id
+    doc_dict['data'] = json.dumps(doc_dict['data']) if isinstance(doc_dict['data'], dict) else doc_dict['data']
+    doc_dict['created_at'] = current_time
+    doc_dict['updated_at'] = current_time
     
-    conn.commit()
-    document_id = cursor.lastrowid
-    conn.close()
+    doc_ref = docs_ref.document(str(document_id))
+    doc_ref.set(doc_dict)
     
-    return {
-        **document.model_dump(),
-        'id': document_id,
-        'created_at': current_time,
-        'updated_at': current_time
-    }
+    result = doc_dict.copy()
+    result['data'] = json.loads(result['data']) if isinstance(result['data'], str) else result['data']
+    return result
 
 
 @router.put("/{document_id}", response_model=MedicalDocumentResponse)
 async def update_document(document_id: int, document: MedicalDocumentUpdate):
     """Update an existing medical document"""
-    conn = get_db_connection()
-    cursor = conn.cursor()
+    db = get_firestore_db()
+    docs_ref = db.collection('medical_documents')
     
     # Check if document exists
-    cursor.execute('SELECT * FROM medical_documents WHERE id = ?', (document_id,))
-    existing = cursor.fetchone()
-    if not existing:
-        conn.close()
+    doc_ref = docs_ref.document(str(document_id))
+    doc = doc_ref.get()
+    
+    if not doc.exists:
         raise HTTPException(status_code=404, detail="Document not found")
     
     current_time = datetime.now().isoformat()
+    created_at = doc.to_dict().get('created_at', current_time)
     
-    cursor.execute('''
-        UPDATE medical_documents SET
-            patient_id = ?, patient_name = ?, document_type = ?,
-            document_id = ?, custom_name = ?, date = ?, data = ?,
-            updated_at = ?
-        WHERE id = ?
-    ''', (
-        document.patient_id, document.patient_name, document.document_type,
-        document.document_id, document.custom_name, document.date,
-        json.dumps(document.data), current_time, document_id
-    ))
+    update_data = document.model_dump()
+    update_data['data'] = json.dumps(update_data['data']) if isinstance(update_data['data'], dict) else update_data['data']
+    update_data['updated_at'] = current_time
     
-    conn.commit()
-    conn.close()
+    doc_ref.update(update_data)
     
-    return {
-        **document.model_dump(),
-        'id': document_id,
-        'created_at': existing['created_at'],
-        'updated_at': current_time
-    }
+    result = doc_ref.get().to_dict()
+    result['id'] = document_id
+    result['created_at'] = created_at
+    result['data'] = json.loads(result['data']) if isinstance(result.get('data'), str) else result.get('data', {})
+    
+    return result
 
 
 @router.delete("/{document_id}")
 async def delete_document(document_id: int):
     """Delete a medical document"""
-    conn = get_db_connection()
-    cursor = conn.cursor()
+    db = get_firestore_db()
+    docs_ref = db.collection('medical_documents')
     
-    # Check if document exists
-    cursor.execute('SELECT * FROM medical_documents WHERE id = ?', (document_id,))
-    if not cursor.fetchone():
-        conn.close()
+    doc_ref = docs_ref.document(str(document_id))
+    if not doc_ref.get().exists:
         raise HTTPException(status_code=404, detail="Document not found")
     
-    cursor.execute('DELETE FROM medical_documents WHERE id = ?', (document_id,))
-    conn.commit()
-    conn.close()
-    
+    doc_ref.delete()
     return {"message": "Document deleted successfully"}
-

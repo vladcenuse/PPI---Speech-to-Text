@@ -1,8 +1,10 @@
-"""Consultation Forms endpoints (multiple per patient)"""
+"""
+Echocardiography form management endpoints
+"""
 from fastapi import APIRouter, HTTPException
 from datetime import datetime
 from typing import List, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from app.database import get_firestore_db
 from app.firestore_helpers import get_next_id, doc_to_dict
 from firebase_admin import firestore
@@ -10,27 +12,33 @@ from firebase_admin import firestore
 router = APIRouter()
 
 
-class ConsultationFormBase(BaseModel):
+class EchocardiographyFormBase(BaseModel):
     patient_id: int
     custom_name: Optional[str] = None
     date: str
-    symptoms: Optional[str] = None
-    vital_signs: Optional[str] = None
-    assessment: Optional[str] = None
-    plan: Optional[str] = None
+    aorta_la_inel: Optional[str] = None
+    aorta_la_sinusur_levart_sagva: Optional[str] = None
+    aorta_ascendenta: Optional[str] = None
+    as_value: Optional[str] = Field(None, alias='as')
+    ventricul_drept: Optional[str] = None
+    atriu_stang: Optional[str] = None
+    vd: Optional[str] = None
+    
+    class Config:
+        populate_by_name = True
 
 
-class ConsultationFormResponse(ConsultationFormBase):
+class EchocardiographyFormResponse(EchocardiographyFormBase):
     id: int
     created_at: str
     updated_at: str
 
 
-@router.get("/patient/{patient_id}", response_model=List[ConsultationFormResponse])
-async def get_consultation_forms(patient_id: int):
-    """Get all consultation forms for a specific patient"""
+@router.get("/patient/{patient_id}", response_model=List[EchocardiographyFormResponse])
+async def get_echocardiography_forms(patient_id: int):
+    """Get all echocardiography forms for a specific patient"""
     db = get_firestore_db()
-    forms_ref = db.collection('consultation_forms')
+    forms_ref = db.collection('echocardiography_forms')
     
     docs = forms_ref.where('patient_id', '==', patient_id).stream()
     
@@ -46,11 +54,11 @@ async def get_consultation_forms(patient_id: int):
     return forms
 
 
-@router.get("/{form_id}", response_model=ConsultationFormResponse)
-async def get_consultation_form(form_id: int):
-    """Get a single consultation form by ID"""
+@router.get("/{form_id}", response_model=EchocardiographyFormResponse)
+async def get_echocardiography_form(form_id: int):
+    """Get a single echocardiography form by ID"""
     db = get_firestore_db()
-    forms_ref = db.collection('consultation_forms')
+    forms_ref = db.collection('echocardiography_forms')
     
     doc_ref = forms_ref.document(str(form_id))
     doc = doc_ref.get()
@@ -61,11 +69,11 @@ async def get_consultation_form(form_id: int):
     return doc_to_dict(doc)
 
 
-@router.post("/", response_model=ConsultationFormResponse)
-async def create_consultation_form(form_data: ConsultationFormBase):
-    """Create a new consultation form"""
+@router.post("/", response_model=EchocardiographyFormResponse)
+async def create_echocardiography_form(form_data: EchocardiographyFormBase):
+    """Create a new echocardiography form"""
     db = get_firestore_db()
-    forms_ref = db.collection('consultation_forms')
+    forms_ref = db.collection('echocardiography_forms')
     patients_ref = db.collection('patients')
     
     # Verify patient exists
@@ -74,9 +82,9 @@ async def create_consultation_form(form_data: ConsultationFormBase):
         raise HTTPException(status_code=404, detail="Patient not found")
     
     current_time = datetime.now().isoformat()
-    form_id = get_next_id('consultation_forms')
+    form_id = get_next_id('echocardiography_forms')
     
-    form_dict = form_data.model_dump()
+    form_dict = form_data.model_dump(by_alias=True)
     form_dict['id'] = form_id
     form_dict['created_at'] = current_time
     form_dict['updated_at'] = current_time
@@ -87,11 +95,11 @@ async def create_consultation_form(form_data: ConsultationFormBase):
     return form_dict
 
 
-@router.put("/{form_id}", response_model=ConsultationFormResponse)
-async def update_consultation_form(form_id: int, form_data: ConsultationFormBase):
-    """Update an existing consultation form"""
+@router.put("/{form_id}", response_model=EchocardiographyFormResponse)
+async def update_echocardiography_form(form_id: int, form_data: EchocardiographyFormBase):
+    """Update an existing echocardiography form"""
     db = get_firestore_db()
-    forms_ref = db.collection('consultation_forms')
+    forms_ref = db.collection('echocardiography_forms')
     
     # Fetch existing record to get created_at
     doc_ref = forms_ref.document(str(form_id))
@@ -103,7 +111,7 @@ async def update_consultation_form(form_id: int, form_data: ConsultationFormBase
     current_time = datetime.now().isoformat()
     created_at = doc.to_dict().get('created_at', current_time)
     
-    update_data = form_data.model_dump()
+    update_data = form_data.model_dump(by_alias=True)
     update_data['updated_at'] = current_time
     doc_ref.update(update_data)
     
@@ -115,10 +123,10 @@ async def update_consultation_form(form_id: int, form_data: ConsultationFormBase
 
 
 @router.delete("/{form_id}")
-async def delete_consultation_form(form_id: int):
-    """Delete a consultation form"""
+async def delete_echocardiography_form(form_id: int):
+    """Delete an echocardiography form"""
     db = get_firestore_db()
-    forms_ref = db.collection('consultation_forms')
+    forms_ref = db.collection('echocardiography_forms')
     
     doc_ref = forms_ref.document(str(form_id))
     if not doc_ref.get().exists:
@@ -126,3 +134,4 @@ async def delete_consultation_form(form_id: int):
     
     doc_ref.delete()
     return {"message": "Form deleted successfully"}
+
