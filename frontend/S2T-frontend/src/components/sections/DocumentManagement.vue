@@ -609,6 +609,21 @@ const saveDocument = async () => {
         }
         break
       }
+      case 'echocardiography-form': {
+        apiData = {
+          patient_id: patientId,
+          custom_name: customName,
+          date: patientData.date || new Date().toISOString().split('T')[0],
+          aorta_la_inel: patientData.aorta_la_inel || '',
+          aorta_la_sinusur_levart_sagva: patientData.aorta_la_sinusur_levart_sagva || '',
+          aorta_ascendenta: patientData.aorta_ascendenta || '',
+          as: patientData.as || '',
+          ventricul_drept: patientData.ventricul_drept || '',
+          atriu_stang: patientData.atriu_stang || '',
+          vd: patientData.vd || ''
+        }
+        break
+      }
       default:
         toastService.error('Unknown document type')
         return
@@ -619,14 +634,15 @@ const saveDocument = async () => {
       'new-patient-form': 'new-patient-forms',
       'medical-report': 'medical-reports',
       'consultation-form': 'consultation-forms',
-      'prescription-form': 'prescription-forms'
+      'prescription-form': 'prescription-forms',
+      'echocardiography-form': 'echocardiography-forms'
     }
     
     const endpoint = formTypeEndpoints[selectedDocument.value.id]
     if (!endpoint) {
       toastService.error('Unknown document type')
-    return
-  }
+      return
+    }
   
     // Save to backend API
     if (editingDocumentId) {
