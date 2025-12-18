@@ -93,3 +93,38 @@ class ProcessRecordingResponse(BaseModel):
     """Process recording response with parsed data"""
     raw_transcript: str
     parsed_json: Dict[str, Any]
+
+
+class DoctorBase(BaseModel):
+    """Base doctor model"""
+    username: str
+
+
+class DoctorCreate(DoctorBase):
+    """Doctor creation model"""
+    password: str
+    confirm_password: str
+
+
+class DoctorLogin(BaseModel):
+    """Doctor login model"""
+    username: str
+    password: str
+
+
+class DoctorResponse(DoctorBase):
+    """Doctor response model"""
+    id: int
+    created_at: str
+    
+    class Config:
+        from_attributes = True
+
+
+class LoginResponse(BaseModel):
+    """Login response model"""
+    success: bool
+    doctor_id: int
+    username: str
+    message: str
+    token: str | None = None

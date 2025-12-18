@@ -1,12 +1,13 @@
 """
 Patient management endpoints
 """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends, Header
 from datetime import datetime
 from typing import List, Optional
 import sqlite3
 from app.models import PatientCreate, PatientUpdate, PatientResponse
 from app.database import get_db_connection
+from app.routers.auth import get_current_doctor_id
 
 router = APIRouter()
 
@@ -17,14 +18,14 @@ def row_to_dict(cursor, row):
 
 
 @router.get("/", response_model=List[PatientResponse])
-async def get_patients():
-    """Get all patients"""
+async def get_patients(doctor_id: int = Depends(get_current_doctor_id)):
+    """Get all patients for the current doctor"""
     conn = get_db_connection()
     cursor = conn.cursor()
     
     cursor.execute('''
-        SELECT * FROM patients ORDER BY created_at DESC
-    ''')
+        SELECT * FROM patients WHERE doctor_id = ? ORDER BY created_at DESC
+    ''', (doctor_id,))
     
     rows = cursor.fetchall()
     patients = []
@@ -54,12 +55,12 @@ async def get_patients():
 
 
 @router.get("/{patient_id}", response_model=PatientResponse)
-async def get_patient(patient_id: int):
-    """Get a single patient by ID"""
+async def get_patient(patient_id: int, doctor_id: int = Depends(get_current_doctor_id)):
+    """Get a single patient by ID (only if owned by current doctor)"""
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    cursor.execute('SELECT * FROM patients WHERE id = ?', (patient_id,))
+    cursor.execute('SELECT * FROM patients WHERE id = ? AND doctor_id = ?', (patient_id, doctor_id))
     row = cursor.fetchone()
     conn.close()
     
@@ -87,8 +88,8 @@ async def get_patient(patient_id: int):
 
 
 @router.post("/", response_model=PatientResponse)
-async def create_patient(patient: PatientCreate):
-    """Create a new patient"""
+async def create_patient(patient: PatientCreate, doctor_id: int = Depends(get_current_doctor_id)):
+    """Create a new patient (associated with current doctor)"""
     conn = get_db_connection()
     cursor = conn.cursor()
     
@@ -96,12 +97,12 @@ async def create_patient(patient: PatientCreate):
     
     cursor.execute('''
         INSERT INTO patients (
-            name, age, gender, date_of_birth, phone, email, address,
+            doctor_id, name, age, gender, date_of_birth, phone, email, address,
             medical_history, allergies, current_medications, blood_type,
             insurance_number, emergency_contact, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
-        patient.name, patient.age, patient.gender, patient.date_of_birth,
+        doctor_id, patient.name, patient.age, patient.gender, patient.date_of_birth,
         patient.phone, patient.email, patient.address,
         patient.medical_history, patient.allergies, patient.current_medications,
         patient.blood_type, patient.insurance_number, patient.emergency_contact,
@@ -121,13 +122,13 @@ async def create_patient(patient: PatientCreate):
 
 
 @router.put("/{patient_id}", response_model=PatientResponse)
-async def update_patient(patient_id: int, patient: PatientUpdate):
-    """Update an existing patient"""
+async def update_patient(patient_id: int, patient: PatientUpdate, doctor_id: int = Depends(get_current_doctor_id)):
+    """Update an existing patient (only if owned by current doctor)"""
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # Check if patient exists
-    cursor.execute('SELECT * FROM patients WHERE id = ?', (patient_id,))
+    # Check if patient exists and belongs to current doctor
+    cursor.execute('SELECT * FROM patients WHERE id = ? AND doctor_id = ?', (patient_id, doctor_id))
     if not cursor.fetchone():
         conn.close()
         raise HTTPException(status_code=404, detail="Patient not found")
@@ -162,13 +163,13 @@ async def update_patient(patient_id: int, patient: PatientUpdate):
 
 
 @router.delete("/{patient_id}")
-async def delete_patient(patient_id: int):
-    """Delete a patient and all associated documents"""
+async def delete_patient(patient_id: int, doctor_id: int = Depends(get_current_doctor_id)):
+    """Delete a patient and all associated documents (only if owned by current doctor)"""
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # Check if patient exists
-    cursor.execute('SELECT * FROM patients WHERE id = ?', (patient_id,))
+    # Check if patient exists and belongs to current doctor
+    cursor.execute('SELECT * FROM patients WHERE id = ? AND doctor_id = ?', (patient_id, doctor_id))
     patient = cursor.fetchone()
     if not patient:
         conn.close()
