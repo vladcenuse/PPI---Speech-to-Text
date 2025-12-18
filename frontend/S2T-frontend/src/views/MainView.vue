@@ -89,6 +89,13 @@ const handleNavigateToDocuments = (event) => {
   changeSection('documents')
 }
 
+// Listen for auth changes to reset to home on login
+const handleAuthChanged = () => {
+  // When user logs in, always start at home page
+  currentSection.value = 'home'
+  localStorage.setItem('s2t-current-section', 'home')
+}
+
 // Lifecycle
 onMounted(() => {
   // Initialize services
@@ -107,10 +114,17 @@ onMounted(() => {
   // Set up navigation to documents event listener
   window.addEventListener('navigate-to-documents', handleNavigateToDocuments)
   
-  // Restore last section from localStorage
+  // Listen for auth changes to reset to home on login
+  window.addEventListener('auth-changed', handleAuthChanged)
+  
+  // Restore last section from localStorage (only if it exists)
   const savedSection = localStorage.getItem('s2t-current-section')
   if (savedSection && ['home', 'patients', 'documents'].includes(savedSection)) {
     currentSection.value = savedSection
+  } else {
+    // Default to home if no saved section
+    currentSection.value = 'home'
+    localStorage.setItem('s2t-current-section', 'home')
   }
 })
 </script>

@@ -38,13 +38,29 @@
           </svg>
           <span class="nav-text">Documents</span>
         </button>
+        <div class="user-section" v-if="currentDoctor">
+          <span class="doctor-name">
+            Dr. {{ currentDoctor.username }}
+          </span>
+          <button 
+            @click="handleLogout"
+            class="nav-link logout-link"
+            title="Logout"
+          >
+            <svg viewBox="0 0 24 24" fill="currentColor" class="nav-icon">
+              <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.59L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
+            </svg>
+            <span class="nav-text">Logout</span>
+          </button>
+        </div>
       </nav>
     </div>
   </header>
 </template>
 
 <script setup>
-import { defineProps, defineEmits } from 'vue'
+import { defineProps, defineEmits, ref, onMounted } from 'vue'
+import { authService } from '@/services/AuthService.js'
 
 // Props
 const props = defineProps({
@@ -57,10 +73,28 @@ const props = defineProps({
 // Emits
 const emit = defineEmits(['section-change'])
 
+// State
+const currentDoctor = ref(authService.getDoctorInfo())
+
 // Methods
 const navigateToSection = (section) => {
   emit('section-change', section)
 }
+
+const handleLogout = async () => {
+  await authService.logout()
+  // Clear saved section so login always starts at home
+  localStorage.removeItem('s2t-current-section')
+  window.dispatchEvent(new Event('auth-changed'))
+}
+
+onMounted(() => {
+  const updateDoctor = () => {
+    currentDoctor.value = authService.getDoctorInfo()
+  }
+  updateDoctor()
+  window.addEventListener('auth-changed', updateDoctor)
+})
 </script>
 
 <style scoped>
@@ -208,6 +242,28 @@ const navigateToSection = (section) => {
   font-size: 0.9rem;
   letter-spacing: 0.5px;
   font-weight: 600;
+}
+
+.logout-link {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.logout-link:hover {
+  background: rgba(255, 100, 100, 0.2);
+}
+
+.user-section {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-left: 1rem;
+}
+
+.doctor-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.3);
 }
 
 @media (max-width: 768px) {

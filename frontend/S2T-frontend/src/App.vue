@@ -1,11 +1,27 @@
 <template>
   <div id="app">
-    <MainView />
+    <LoginPage v-if="!isAuthenticated" />
+    <MainView v-else />
   </div>
 </template>
 
 <script setup>
+import { ref, onMounted } from 'vue'
 import MainView from '@/views/MainView.vue'
+import LoginPage from '@/components/auth/LoginPage.vue'
+import { authService } from '@/services/AuthService.js'
+
+const isAuthenticated = ref(false)
+
+const checkAuth = () => {
+  isAuthenticated.value = authService.isAuthenticated()
+}
+
+onMounted(() => {
+  checkAuth()
+  // Listen for auth changes (e.g., after login)
+  window.addEventListener('auth-changed', checkAuth)
+})
 </script>
 
 <style>

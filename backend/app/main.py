@@ -8,11 +8,12 @@ from pydantic import BaseModel
 from deepgram import DeepgramClient
 from fastapi.middleware.cors import CORSMiddleware
 from openai import OpenAI
-from app.routers import patients, documents, new_patient_forms, medical_reports, consultation_forms, prescription_forms
+from app.routers import patients, documents, new_patient_forms, medical_reports, consultation_forms, prescription_forms, auth
 from app.database import check_and_init_db
 
 
-HF_TOKEN = os.getenv("HF_TOKEN", "placeholder_token")
+# HF_TOKEN = os.getenv("HF_TOKEN", "placeholder_token")
+HF_TOKEN = "placeholder_token"
 MODEL_ID = "google/gemma-2-2b-it"
 SYSTEM_PROMPT = (
     "Sunteți un asistent expert în extragerea informațiilor din text medical transcrit. "
@@ -446,11 +447,12 @@ app.add_middleware(
         "http://127.0.0.1:5173",  
         "http://127.0.0.1:5174"
     ],
-    allow_credentials=False,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+app.include_router(auth.router, prefix="/api/auth", tags=["authentication"])
 app.include_router(patients.router, prefix="/api/patients", tags=["patients"])
 app.include_router(new_patient_forms.router, prefix="/api/new-patient-forms", tags=["new-patient-forms"])
 app.include_router(medical_reports.router, prefix="/api/medical-reports", tags=["medical-reports"])

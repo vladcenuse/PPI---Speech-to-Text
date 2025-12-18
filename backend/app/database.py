@@ -20,10 +20,22 @@ def init_db():
     conn = get_db_connection()
     cursor = conn.cursor()
     
+    # Create doctors table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS doctors (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE,
+            password_hash TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )
+    ''')
+    
     # Create patients table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS patients (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            doctor_id INTEGER NOT NULL,
             name TEXT NOT NULL,
             age INTEGER,
             gender TEXT,
@@ -38,7 +50,8 @@ def init_db():
             insurance_number TEXT,
             emergency_contact TEXT,
             created_at TEXT NOT NULL,
-            updated_at TEXT NOT NULL
+            updated_at TEXT NOT NULL,
+            FOREIGN KEY (doctor_id) REFERENCES doctors(id) ON DELETE CASCADE
         )
     ''')
     
@@ -130,26 +143,18 @@ def init_db():
 
 
 def check_and_init_db():
-    """Check if database exists, if not create it"""
-    if not os.path.exists(DB_PATH):
-        print("Database not found. Creating new database...")
-        init_db()
-    else:
-        print("Database exists. Checking tables...")
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Check if tables exist
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='patients'")
-        if not cursor.fetchone():
-            print("Tables not found. Initializing database...")
-            init_db()
-        else:
-            cursor.execute("SELECT COUNT(*) FROM patients")
-            patient_count = cursor.fetchone()[0]
-            print(f"Database and tables exist. Found {patient_count} patients.")
-        
-        conn.close()
+    """Initialize database - always ensures tables exist (safe to call multiple times)"""
+    init_db()
+    
+    # Report current state
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM patients")
+    patient_count = cursor.fetchone()[0]
+    cursor.execute("SELECT COUNT(*) FROM doctors")
+    doctor_count = cursor.fetchone()[0]
+    print(f"Database ready. Found {doctor_count} doctors and {patient_count} patients.")
+    conn.close()
 
 
 

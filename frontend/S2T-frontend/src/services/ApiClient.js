@@ -2,6 +2,8 @@
  * API Client for backend communication
  */
 
+import { authService } from './AuthService.js'
+
 const API_BASE_URL = 'http://127.0.0.1:8000/api'
 
 class ApiClient {
@@ -11,18 +13,35 @@ class ApiClient {
 
   async request(endpoint, options = {}) {
     const url = `${this.baseURL}${endpoint}`
+    const authHeaders = authService.getAuthHeader()
     const config = {
       ...options,
       headers: {
         'Content-Type': 'application/json',
+        ...authHeaders,
         ...options.headers,
       },
+    }
+
+    // Debug: log auth header
+    if (authHeaders.Authorization) {
+      console.log(' Sending Authorization header:', authHeaders.Authorization.substring(0, 20) + '...')
+    } else {
+      console.warn(' No Authorization header found!')
     }
 
     try {
       const response = await fetch(url, config)
       
       if (!response.ok) {
+        // Handle 401 Unauthorized - session expired or invalid
+        if (response.status === 401) {
+          console.warn('Session expired or invalid. Clearing auth and redirecting to login...')
+          authService.clearAuth()
+          window.dispatchEvent(new Event('auth-changed'))
+          throw new Error('Session expired or invalid. Please login again.')
+        }
+        
         const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }))
         throw new Error(errorData.detail || `HTTP error! status: ${response.status}`)
       }
@@ -58,7 +77,8 @@ class ApiClient {
 
   // Patient endpoints
   async getPatients() {
-    return this.get('/patients')
+    // Use trailing slash to avoid redirect that may drop Authorization header
+    return this.get('/patients/')
   }
 
   async getPatient(id) {
