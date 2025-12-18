@@ -1,8 +1,8 @@
-# 🎙️ Speech-to-Text Web App
+# Speech-to-Text Web App
 
 A full-stack web application built with FastAPI (backend) and Vue 3 + Vite (frontend) for speech-to-text conversion.
 
-## 🚀 Requirements
+## Requirements
 
 - Python 3.10+
 - Node.js (v18+ recommended)
@@ -62,12 +62,12 @@ npm run dev
 ```
 The frontend will be running at http://localhost:5173
 
-## 🌐 Usage
+## Usage
 
 1. Once both servers are running, open your browser and go to http://localhost:5173
 2. The FastAPI backend API documentation is available at http://localhost:8000/docs
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 PPI---Speech-to-Text/
@@ -83,14 +83,14 @@ PPI---Speech-to-Text/
         └── package.json  # Node.js dependencies
 ```
 
-## 💡 Development Notes
+##  Development Notes
 
 - The backend runs on port 8000 by default
 - The frontend runs on port 5173 by default
 - Make sure both servers are running simultaneously for the application to work
 - Check the FastAPI documentation at /docs for available API endpoints
 
-## 🤝 Contributing
+##  Contributing
 
 1. Fork the repository
 2. Create your feature branch
