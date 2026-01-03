@@ -1,6 +1,3 @@
-"""
-New Patient Forms endpoints (unique per patient)
-"""
 from fastapi import APIRouter, HTTPException
 from datetime import datetime
 from typing import List
@@ -45,7 +42,6 @@ class NewPatientFormResponse(NewPatientFormBase):
 
 @router.get("/patient/{patient_id}", response_model=List[NewPatientFormResponse])
 async def get_new_patient_form(patient_id: int):
-    """Get new patient form for a specific patient (unique per patient)"""
     db = get_firestore_db()
     forms_ref = db.collection('new_patient_forms')
     
@@ -61,7 +57,6 @@ async def get_new_patient_form(patient_id: int):
 
 @router.get("/{form_id}", response_model=NewPatientFormResponse)
 async def get_new_patient_form_by_id(form_id: int):
-    """Get a single new patient form by ID"""
     db = get_firestore_db()
     forms_ref = db.collection('new_patient_forms')
     
@@ -76,29 +71,24 @@ async def get_new_patient_form_by_id(form_id: int):
 
 @router.post("/", response_model=NewPatientFormResponse)
 async def create_new_patient_form(form_data: NewPatientFormBase):
-    """Create or update new patient form (unique per patient)"""
     db = get_firestore_db()
     forms_ref = db.collection('new_patient_forms')
     patients_ref = db.collection('patients')
     
-    # Verify patient exists
     patient_doc = patients_ref.document(str(form_data.patient_id)).get()
     if not patient_doc.exists:
         raise HTTPException(status_code=404, detail="Patient not found")
     
-    # Check if form already exists for this patient
     existing_docs = forms_ref.where('patient_id', '==', form_data.patient_id).limit(1).stream()
     existing_list = list(existing_docs)
     
     current_time = datetime.now().isoformat()
     
     if existing_list:
-        # Update existing form
         existing_doc = existing_list[0]
         form_id = existing_doc.to_dict().get('id', int(existing_doc.id) if existing_doc.id.isdigit() else None)
         
         update_data = form_data.model_dump()
-        # Ensure patient_id is an integer (Firestore queries are type-sensitive)
         update_data['patient_id'] = int(update_data['patient_id'])
         update_data['updated_at'] = current_time
         existing_doc.reference.update(update_data)
@@ -108,11 +98,9 @@ async def create_new_patient_form(form_data: NewPatientFormBase):
         result['created_at'] = existing_doc.to_dict().get('created_at', current_time)
         return result
     else:
-        # Create new form
         form_id = get_next_id('new_patient_forms')
         
         form_dict = form_data.model_dump()
-        # Ensure patient_id is an integer (Firestore queries are type-sensitive)
         form_dict['patient_id'] = int(form_dict['patient_id'])
         form_dict['id'] = form_id
         form_dict['created_at'] = current_time
@@ -126,19 +114,16 @@ async def create_new_patient_form(form_data: NewPatientFormBase):
 
 @router.put("/{form_id}", response_model=NewPatientFormResponse)
 async def update_new_patient_form(form_id: int, form_data: NewPatientFormBase):
-    """Update an existing new patient form"""
     db = get_firestore_db()
     forms_ref = db.collection('new_patient_forms')
     patients_ref = db.collection('patients')
     
-    # Check if form exists
     doc_ref = forms_ref.document(str(form_id))
     doc = doc_ref.get()
     
     if not doc.exists:
         raise HTTPException(status_code=404, detail="Form not found")
     
-    # Verify patient exists
     patient_doc = patients_ref.document(str(form_data.patient_id)).get()
     if not patient_doc.exists:
         raise HTTPException(status_code=404, detail="Patient not found")
@@ -146,12 +131,10 @@ async def update_new_patient_form(form_id: int, form_data: NewPatientFormBase):
     current_time = datetime.now().isoformat()
     
     update_data = form_data.model_dump()
-    # Ensure patient_id is an integer (Firestore queries are type-sensitive)
     update_data['patient_id'] = int(update_data['patient_id'])
     update_data['updated_at'] = current_time
     doc_ref.update(update_data)
     
-    # Get updated data
     updated_doc = doc_ref.get()
     result = updated_doc.to_dict()
     result['id'] = form_id
@@ -162,7 +145,6 @@ async def update_new_patient_form(form_id: int, form_data: NewPatientFormBase):
 
 @router.delete("/{form_id}")
 async def delete_new_patient_form_by_id(form_id: int):
-    """Delete new patient form by ID"""
     db = get_firestore_db()
     forms_ref = db.collection('new_patient_forms')
     
@@ -176,7 +158,6 @@ async def delete_new_patient_form_by_id(form_id: int):
 
 @router.delete("/patient/{patient_id}")
 async def delete_new_patient_form(patient_id: int):
-    """Delete new patient form for a specific patient"""
     db = get_firestore_db()
     forms_ref = db.collection('new_patient_forms')
     

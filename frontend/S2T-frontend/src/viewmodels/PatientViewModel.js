@@ -1,8 +1,3 @@
-/**
- * Patient ViewModel
- * Business logic for patient management
- */
-
 import { reactive, ref, computed } from 'vue'
 import { PatientForm } from '@/models/PatientForm.js'
 import { apiClient } from '@/services/ApiClient.js'
@@ -13,7 +8,6 @@ import { errorService } from '@/services/ErrorService.js'
 import { cookieService } from '@/services/CookieService.js'
 
 export function usePatientViewModel() {
-  // Reactive state
   const state = reactive({
     patients: [],
     currentPatient: null,
@@ -30,19 +24,15 @@ export function usePatientViewModel() {
     sortOrder: 'asc'
   })
 
-  // Computed properties
   const filteredPatients = computed(() => {
     let result = [...state.patients]
 
-    // Apply search
     if (state.searchQuery) {
       result = filterService.searchPatients(result, state.searchQuery)
     }
 
-    // Apply filters
     result = filterService.filterPatients(result, state.filters)
 
-    // Apply sorting
     result = filterService.sortPatients(result, state.sortBy, state.sortOrder)
 
     return result
@@ -51,14 +41,12 @@ export function usePatientViewModel() {
   const patientsCount = computed(() => state.patients.length)
   const filteredPatientsCount = computed(() => filteredPatients.value.length)
 
-  // Methods
   const loadPatients = async () => {
     state.isLoading = true
     state.error = null
 
     try {
       console.log('🔵 Loading patients from backend API...')
-      // Load patients from backend API
       const patientsData = await apiClient.getPatients()
       console.log('✅ Backend API response:', patientsData)
       
@@ -95,19 +83,15 @@ export function usePatientViewModel() {
     }
   }
 
-  // Helper function to save patients to both localStorage and cookies
   const savePatientsToStorage = (patients) => {
     try {
-      // Save to localStorage (primary storage)
       localStorage.setItem('s2t-patients', JSON.stringify(patients))
       
-      // Save to cookies as backup
       cookieService.setJSON('patients', patients)
       
       console.log(`Saved ${patients.length} patients to storage`)
     } catch (error) {
       console.error('Failed to save patients to storage:', error)
-      // Try cookies as fallback
       try {
         cookieService.setJSON('patients', patients)
       } catch (cookieError) {
@@ -121,7 +105,6 @@ export function usePatientViewModel() {
     state.error = null
 
     try {
-      // Prepare data for backend API (convert camelCase to snake_case)
       const apiData = {
         name: patientData.name,
         age: patientData.age,
@@ -138,10 +121,8 @@ export function usePatientViewModel() {
         emergency_contact: patientData.emergencyContact
       }
 
-      // Create patient via API
       const createdPatient = await apiClient.createPatient(apiData)
       
-      // Convert snake_case response to camelCase for frontend
       const newPatient = new PatientForm({
         id: createdPatient.id,
         name: createdPatient.name,
@@ -163,7 +144,6 @@ export function usePatientViewModel() {
 
       state.patients.push(newPatient)
       
-      // Show success toast
       toastService.success(`Pacientul "${newPatient.name}" a fost creat cu succes!`)
       
       return { success: true, patient: newPatient }
@@ -183,7 +163,6 @@ export function usePatientViewModel() {
     state.error = null
 
     try {
-      // Prepare data for backend API (convert camelCase to snake_case)
       const apiData = {
         name: patientData.name,
         age: patientData.age,
@@ -200,10 +179,8 @@ export function usePatientViewModel() {
         emergency_contact: patientData.emergencyContact
       }
 
-      // Update patient via API
       const updatedPatientData = await apiClient.updatePatient(patientId, apiData)
       
-      // Convert snake_case response to camelCase for frontend
       const updatedPatient = new PatientForm({
         id: updatedPatientData.id,
         name: updatedPatientData.name,
@@ -223,7 +200,6 @@ export function usePatientViewModel() {
         updatedAt: updatedPatientData.updated_at
       })
 
-      // Update local state
       const patientIndex = state.patients.findIndex(p => p.id === patientId)
       if (patientIndex !== -1) {
         state.patients[patientIndex] = updatedPatient
@@ -243,10 +219,8 @@ export function usePatientViewModel() {
     state.error = null
 
     try {
-      // Delete patient via API
       await apiClient.deletePatient(patientId)
 
-      // Remove from local state
       const patientIndex = state.patients.findIndex(p => p.id === patientId)
       if (patientIndex !== -1) {
         state.patients.splice(patientIndex, 1)
@@ -342,7 +316,6 @@ export function usePatientViewModel() {
   }
 
   return {
-    // State
     patients: filteredPatients,
     currentPatient: computed(() => {
       console.log('currentPatient computed called, state.currentPatient:', state.currentPatient)
@@ -355,11 +328,9 @@ export function usePatientViewModel() {
     sortBy: computed(() => state.sortBy),
     sortOrder: computed(() => state.sortOrder),
 
-    // Computed
     patientsCount,
     filteredPatientsCount,
 
-    // Methods
     loadPatients,
     createPatient,
     updatePatient,

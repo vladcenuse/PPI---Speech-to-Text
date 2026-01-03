@@ -5,7 +5,6 @@
       <p>Fill document templates with voice input and export them</p>
     </div>
 
-    <!-- Document Selection -->
     <div class="document-selection">
       <h3>Select Document Template</h3>
       <div class="template-grid">
@@ -26,7 +25,6 @@
       </div>
     </div>
 
-    <!-- Document Form -->
     <div v-if="selectedDocument" class="document-form-section">
       <div class="form-header">
         <div class="form-title-section">
@@ -53,7 +51,6 @@
           <button
             @click="saveDocument"
             class="export-button save-button"
-            :disabled="!hasFormData"
           >
             <svg viewBox="0 0 24 24" fill="currentColor">
               <path d="M15,9H5V5H15M12,19A3,3 0 0,1 9,16A3,3 0 0,1 12,13A3,3 0 0,1 15,16A3,3 0 0,1 12,19M17,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V7L17,3Z"/>
@@ -63,7 +60,6 @@
         </div>
       </div>
 
-      <!-- Patient Selection -->
       <div class="patient-selection-section">
         <div class="patient-selection-header">
           <h4>Select Patient for Document</h4>
@@ -120,21 +116,18 @@
         </div>
       </div>
 
-      <!-- Dynamic Document Component -->
       <div class="document-form">
-        <!-- For New Patient Form, require patient selection first -->
-        <template v-if="selectedDocument.id === 'new-patient-form' && !selectedPatient">
+        <template v-if="!selectedPatient">
           <div class="patient-selection-required">
             <div class="patient-selection-message">
               <svg viewBox="0 0 24 24" fill="currentColor" width="48" height="48">
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15l-5-5 1.41-1.41L11 14.17l7.59-7.59L20 8l-9 9z"/>
               </svg>
               <h3>Patient Selection Required</h3>
-              <p>Please select a patient from the "Select Patient for Document" section above to create a New Patient Form.</p>
+              <p>Please select a patient from the "Select Patient for Document" section above to create a {{ selectedDocument?.name || 'document' }}.</p>
             </div>
           </div>
         </template>
-        <!-- Show form for other documents or when patient is selected -->
         <component 
           v-else
           :is="selectedDocument.component"
@@ -144,7 +137,6 @@
       </div>
     </div>
 
-    <!-- Empty State -->
     <div v-else class="empty-state">
       <div class="empty-icon">
         <svg viewBox="0 0 24 24" fill="currentColor" class="empty-icon-svg">
@@ -168,10 +160,8 @@ import { usePatientViewModel } from '@/viewmodels/PatientViewModel.js'
 import { toastService } from '@/services/ToastService.js'
 import { apiClient } from '@/services/ApiClient.js'
 
-// ViewModels
 const patientVM = usePatientViewModel()
 
-// State
 const selectedDocument = ref(null)
 const selectedPatient = ref(null)
 const showPatientSelector = ref(false)
@@ -180,10 +170,8 @@ const currentFormName = ref('')
 const isEditingTitle = ref(false)
 const titleInputRef = ref(null)
 const patientData = reactive({
-  // Document Information
-  date: new Date().toISOString().split('T')[0], // Today's date in YYYY-MM-DD format
+  date: new Date().toISOString().split('T')[0],
   
-  // Personal Information
   name: '',
   age: '',
   gender: '',
@@ -191,7 +179,6 @@ const patientData = reactive({
   email: '',
   address: '',
   
-  // Medical Information
   bloodType: '',
   insuranceNumber: '',
   medicalHistory: '',
@@ -199,27 +186,23 @@ const patientData = reactive({
   currentMedications: '',
   emergencyContact: '',
   
-  // Consultation specific
   chiefComplaint: '',
   symptoms: '',
   diagnosis: '',
   treatment: '',
   followUp: '',
   
-  // Prescription specific
   medicationName: '',
   dosage: '',
   frequency: '',
   duration: '',
   instructions: '',
   
-  // New patient specific
   occupation: '',
   maritalStatus: '',
   preferredLanguage: '',
   referralSource: '',
   
-  // First Time New Patient Assessment fields
   patientName: '',
   dateOfBirth: '',
   contactInfo: '',
@@ -231,10 +214,17 @@ const patientData = reactive({
   vitalSigns: '',
   physicalExam: '',
   assessment: '',
-  plan: ''
+  plan: '',
+  
+  aorta_la_inel: '',
+  aorta_la_sinusur_levart_sagva: '',
+  aorta_ascendenta: '',
+  as: '',
+  ventricul_drept: '',
+  atriu_stang: '',
+  vd: ''
 })
 
-// Document templates
 const documentTemplates = ref([
   {
     id: 'new-patient-form',
@@ -268,7 +258,6 @@ const documentTemplates = ref([
   }
 ])
 
-// Computed properties
 const hasFormData = computed(() => {
   return Object.values(patientData).some(value => 
     value && value.toString().trim() !== ''
@@ -288,11 +277,8 @@ const filteredPatients = computed(() => {
   )
 })
 
-// Methods
 const selectDocument = (template) => {
-  // Check if this is a unique template (New Patient Form)
   if (template.id === 'new-patient-form' && selectedPatient.value) {
-    // Check if a New Patient Form already exists for this patient
     const allDocuments = JSON.parse(localStorage.getItem('medicalDocuments') || '[]')
     const existingForm = allDocuments.find(doc => 
       doc.documentId === 'new-patient-form' && 
@@ -308,11 +294,9 @@ const selectDocument = (template) => {
     }
   }
   
-  // Clear editing flags when switching to a different document type
   const editingDocumentId = localStorage.getItem('editingDocumentId')
   const editingDocumentType = localStorage.getItem('editingDocumentType')
   
-  // Map document types to template IDs for comparison
   const typeToTemplateId = {
     'New Patient Form': 'new-patient-form',
     'Medical Report': 'medical-report',
@@ -323,7 +307,6 @@ const selectDocument = (template) => {
   
   const editingTemplateId = editingDocumentType ? typeToTemplateId[editingDocumentType] : null
   
-  // If switching to a different document type, clear editing flags
   if (editingDocumentId && editingTemplateId !== template.id) {
     console.log('Switching document type, clearing editing flags')
     localStorage.removeItem('editingDocumentId')
@@ -332,27 +315,22 @@ const selectDocument = (template) => {
     localStorage.removeItem('editingDocumentCustomName')
     clearFormSpecificFields()
   } else if (!editingDocumentId) {
-    // Not editing, clear form fields
     clearFormSpecificFields()
   }
   
-  // Always reset form name to the new template's default name when switching documents
   currentFormName.value = template.name
   
   selectedDocument.value = template
-  // Update date to today's date when selecting a new document
   patientData.date = new Date().toISOString().split('T')[0]
   console.log('Selected document:', template.name)
   console.log('Current form name:', currentFormName.value)
 }
 
 const startEditingTitle = () => {
-  // Ensure we have a value before editing
   if (!currentFormName.value || currentFormName.value.trim() === '') {
     currentFormName.value = selectedDocument.value?.name || 'Untitled Form'
   }
   isEditingTitle.value = true
-  // Focus the input after it's rendered
   setTimeout(() => {
     titleInputRef.value?.focus()
   }, 10)
@@ -360,18 +338,15 @@ const startEditingTitle = () => {
 
 const finishEditingTitle = () => {
   isEditingTitle.value = false
-  // Ensure form name is not empty
   if (!currentFormName.value || !currentFormName.value.trim()) {
     currentFormName.value = selectedDocument.value?.name || 'Untitled Form'
   }
 }
 
 const selectPatient = (patient) => {
-  // Clear editing flags when switching to a different patient
   const editingDocumentId = localStorage.getItem('editingDocumentId')
   const editingDocumentData = JSON.parse(localStorage.getItem('editingDocumentData') || '{}')
   
-  // If we're editing a document but switching to a different patient, clear editing flags
   if (editingDocumentId && editingDocumentData.patientId && editingDocumentData.patientId !== patient.id) {
     console.log('Switching patient, clearing editing flags')
     localStorage.removeItem('editingDocumentId')
@@ -384,7 +359,6 @@ const selectPatient = (patient) => {
   selectedPatient.value = patient
   showPatientSelector.value = false
   
-  // Update patient data with selected patient's information
   updatePatientDataFromSelection(patient)
   
   console.log('Selected patient for document:', patient.name)
@@ -392,23 +366,19 @@ const selectPatient = (patient) => {
 
 const clearPatientSelection = () => {
   selectedPatient.value = null
-  // Clear patient-specific data
   clearPatientData()
   console.log('Cleared patient selection')
 }
 
 const updatePatientDataFromSelection = (patient) => {
-  // Clear form-specific fields when selecting a new patient (to avoid showing previous patient's form data)
   clearFormSpecificFields()
   
-  // Only update basic patient info, don't overwrite document-specific data
   patientData.date = new Date().toISOString().split('T')[0]
   patientData.patientId = patient.id
   patientData.hasPatientSelected = true
   
   console.log('updatePatientDataFromSelection - patient:', patient)
   
-  // Only update fields that don't already have values (to preserve user input)
   if (!patientData.name || patientData.name === '') patientData.name = patient.name || ''
   if (!patientData.age || patientData.age === '') patientData.age = patient.age || ''
   if (!patientData.gender || patientData.gender === '') patientData.gender = patient.gender || ''
@@ -419,13 +389,9 @@ const updatePatientDataFromSelection = (patient) => {
   if (!patientData.insuranceNumber || patientData.insuranceNumber === '') patientData.insuranceNumber = patient.insuranceNumber || ''
   if (!patientData.medicalHistory || patientData.medicalHistory === '') patientData.medicalHistory = patient.medicalHistory || ''
   
-  // Don't populate allergies from patient record - it should be entered fresh for each form
-  // patientData.allergies is now handled by clearFormSpecificFields()
-  
   if (!patientData.currentMedications || patientData.currentMedications === '') patientData.currentMedications = patient.currentMedications || ''
   if (!patientData.emergencyContact || patientData.emergencyContact === '') patientData.emergencyContact = patient.emergencyContact || ''
   
-  // For New Patient Form - always update these fields (they get locked)
   patientData.patientName = patient.name || ''
   patientData.dateOfBirth = patient.dateOfBirth || ''
   
@@ -437,9 +403,8 @@ const updatePatientDataFromSelection = (patient) => {
 }
 
 const clearPatientData = () => {
-  // Clear patient-specific fields but keep document-specific fields
   Object.assign(patientData, {
-    date: new Date().toISOString().split('T')[0], // Keep today's date
+     date: new Date().toISOString().split('T')[0],
     name: '',
     age: '',
     gender: '',
@@ -457,15 +422,13 @@ const clearPatientData = () => {
 }
 
 const clearFormSpecificFields = () => {
-  // Clear form-specific fields (document content) but keep basic patient info
   Object.assign(patientData, {
-    // Clear document-specific form fields
     contactInfo: '',
     chiefComplaint: '',
     presentIllness: '',
     pastMedicalHistory: '',
     medications: '',
-    allergies: '', // Clear allergies when switching patients/documents
+    allergies: '',
     familyHistory: '',
     socialHistory: '',
     vitalSigns: '',
@@ -485,7 +448,14 @@ const clearFormSpecificFields = () => {
     maritalStatus: '',
     preferredLanguage: '',
     referralSource: '',
-    recommendations: ''
+    recommendations: '',
+    aorta_la_inel: '',
+    aorta_la_sinusur_levart_sagva: '',
+    aorta_ascendenta: '',
+    as: '',
+    ventricul_drept: '',
+    atriu_stang: '',
+    vd: ''
   })
   console.log('Cleared form-specific fields')
 }
@@ -500,8 +470,6 @@ const getPatientInitials = (name) => {
 }
 
 const navigateToPatients = () => {
-  // This would navigate to the patients section
-  // For now, we'll just show an alert
   alert('Please go to the Patients tab to create a new patient.')
 }
 
@@ -546,17 +514,16 @@ const saveDocument = async () => {
   
   if (!selectedPatient.value) {
     toastService.warning(
-      'No Patient Selected',
-      'Please select a patient before saving the document.'
+      'Patient Selection Required',
+      'Please select a patient from the "Select Patient for Document" section before saving the document.',
+      { position: 'top-center', duration: 5000 }
     )
     return
   }
   
   try {
-    // Check if we're editing an existing document
     const editingDocumentId = localStorage.getItem('editingDocumentId')
     
-    // Only check for duplicates for New Patient Form (it should be unique per patient)
     if (selectedDocument.value.id === 'new-patient-form' && !editingDocumentId) {
       try {
         const forms = await apiClient.get(`/new-patient-forms/patient/${selectedPatient.value.id}`)
@@ -568,18 +535,14 @@ const saveDocument = async () => {
           if (!confirmed) {
             return
           }
-          // If user confirms, we'll update the existing form
           localStorage.setItem('editingDocumentId', existingForm.id.toString())
         }
       } catch (error) {
-        // No existing form found, continue with creation
         console.log('No existing form found, creating new one')
       }
     }
     
-    // Map form data to backend API format based on document type
     let apiData
-    // Ensure patient_id is always an integer (Firestore queries are type-sensitive)
     const patientId = parseInt(selectedPatient.value.id, 10)
     if (isNaN(patientId)) {
       toastService.error('Invalid Patient ID', 'The selected patient has an invalid ID.')
@@ -670,7 +633,6 @@ const saveDocument = async () => {
         return
     }
     
-    // Determine the API endpoint based on document type
     const formTypeEndpoints = {
       'new-patient-form': 'new-patient-forms',
       'medical-report': 'medical-reports',
@@ -685,12 +647,9 @@ const saveDocument = async () => {
       return
     }
   
-    // Save to backend API
-    // Only use PUT if we're editing the same document type and patient
     const editingDocumentType = localStorage.getItem('editingDocumentType')
     const editingDocumentData = JSON.parse(localStorage.getItem('editingDocumentData') || '{}')
     
-    // Map document types to template IDs for comparison
     const typeToTemplateId = {
       'New Patient Form': 'new-patient-form',
       'Medical Report': 'medical-report',
@@ -708,7 +667,6 @@ const saveDocument = async () => {
       console.log('Updating existing document with ID:', editingDocumentId)
       await apiClient.put(`/${endpoint}/${editingDocumentId}`, apiData)
       
-      // Clear editing flags after successful update
       localStorage.removeItem('editingDocumentId')
       localStorage.removeItem('editingDocumentData')
       localStorage.removeItem('editingDocumentType')
@@ -719,12 +677,10 @@ const saveDocument = async () => {
         `"${customName}" has been updated for ${selectedPatient.value.name}.`
       )
       
-      // Show confirmation alert
       setTimeout(() => {
         alert('✓ Document has been successfully updated!')
       }, 100)
     } else {
-      // Clear any stale editing flags if they exist but don't match
       if (editingDocumentId) {
         console.log('Clearing stale editing flags - document type or patient mismatch')
         localStorage.removeItem('editingDocumentId')
@@ -741,7 +697,6 @@ const saveDocument = async () => {
         `"${customName}" has been saved for ${selectedPatient.value.name}.`
       )
       
-      // Show confirmation alert
       setTimeout(() => {
         alert('✓ Document has been successfully saved!')
       }, 100)
@@ -757,13 +712,10 @@ const saveDocument = async () => {
   }
 }
 
-// Lifecycle
 onMounted(async () => {
   console.log('Document management mounted')
-  // Ensure date is set to today
   patientData.date = new Date().toISOString().split('T')[0]
   
-  // Load patients when component mounts
   try {
     await patientVM.loadPatients()
     console.log('Patients loaded for document management')
@@ -771,7 +723,6 @@ onMounted(async () => {
     console.error('Error loading patients:', error)
   }
   
-  // Check if we're editing an existing document - use setTimeout to ensure DOM is ready
   setTimeout(() => {
     const editingDocumentId = localStorage.getItem('editingDocumentId')
     if (editingDocumentId) {
@@ -782,15 +733,14 @@ onMounted(async () => {
       console.log('Editing data:', editingDocumentData)
       console.log('Document type:', editingDocumentType)
       
-      // Map document types to template IDs
       const typeToTemplateId = {
         'New Patient Form': 'new-patient-form',
         'Medical Report': 'medical-report',
         'Consultation Form': 'consultation-form',
-        'Prescription Form': 'prescription-form'
+        'Prescription Form': 'prescription-form',
+        'Echocardiography': 'echocardiography-form'
       }
       
-      // Find the document template
       const templateId = typeToTemplateId[editingDocumentType]
       const template = documentTemplates.value.find(t => t.id === templateId)
       
@@ -798,13 +748,10 @@ onMounted(async () => {
       console.log('Available templates:', documentTemplates.value.map(t => t.id))
       
       if (template) {
-        // Select the document template
         selectedDocument.value = template
         console.log('Selected template:', template.name)
         
-        // Small delay to ensure the template is selected
   setTimeout(() => {
-          // Load the patient for this document
           if (editingDocumentData.patientId) {
             const patient = patientVM.patients.value.find(p => p.id === editingDocumentData.patientId)
             console.log('Looking for patient with ID:', editingDocumentData.patientId)
@@ -817,15 +764,12 @@ onMounted(async () => {
             }
           }
           
-          // Populate form data with the saved document data
-          // This should happen after patient selection to preserve form data
           Object.keys(editingDocumentData).forEach(key => {
             if (editingDocumentData[key] !== null && editingDocumentData[key] !== undefined && editingDocumentData[key] !== '') {
               patientData[key] = editingDocumentData[key]
             }
           })
           
-          // Load custom form name from localStorage (set when clicking Edit)
           const editingDocumentCustomName = localStorage.getItem('editingDocumentCustomName')
           if (editingDocumentCustomName) {
             currentFormName.value = editingDocumentCustomName
@@ -834,9 +778,6 @@ onMounted(async () => {
           }
           
           console.log('Form data populated:', patientData)
-          
-          // Don't clear editing flags here - they will be cleared when saving
-          // The flags are only for loading the data, not for tracking state
         }, 100)
       } else {
         console.error('Template not found for document type:', editingDocumentType)

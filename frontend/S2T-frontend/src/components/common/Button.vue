@@ -21,7 +21,6 @@
 <script setup>
 import { computed } from 'vue'
 
-// Props
 const props = defineProps({
   variant: {
     type: String,
@@ -59,10 +58,8 @@ const props = defineProps({
   }
 })
 
-// Emits
 const emit = defineEmits(['click'])
 
-// Computed
 const buttonClasses = computed(() => {
   const baseClasses = [
     'button',
@@ -78,7 +75,6 @@ const buttonClasses = computed(() => {
   return baseClasses
 })
 
-// Methods
 const handleClick = (event) => {
   if (!props.disabled && !props.loading) {
     emit('click', event)

@@ -19,7 +19,6 @@ const checkAuth = () => {
 
 onMounted(() => {
   checkAuth()
-  // Listen for auth changes (e.g., after login)
   window.addEventListener('auth-changed', checkAuth)
 })
 </script>

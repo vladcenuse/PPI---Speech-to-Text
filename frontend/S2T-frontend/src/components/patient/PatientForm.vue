@@ -1,7 +1,6 @@
 <template>
   <div class="patient-form">
     <form @submit.prevent="handleSubmit" class="form">
-      <!-- Personal Information -->
       <div class="form-section">
         <h3 class="section-title">Personal Information</h3>
         
@@ -25,15 +24,13 @@
             <label for="age" class="form-label">Age *</label>
             <input
               id="age"
-              v-model.number="formData.age"
+              :value="computedAge"
               type="number"
               class="form-input"
-              :class="{ 'form-input--error': errors.age, 'form-input--disabled': isViewMode }"
-              :disabled="isViewMode"
-              placeholder="Age"
-              min="0"
-              max="150"
-              required
+              :class="{ 'form-input--error': errors.age, 'form-input--disabled': true }"
+              disabled
+              placeholder="Auto-calculated"
+              readonly
             />
             <span v-if="errors.age" class="form-error">{{ errors.age }}</span>
           </div>
@@ -73,7 +70,6 @@
         </div>
       </div>
 
-      <!-- Contact Information -->
       <div class="form-section">
         <h3 class="section-title">Contact Information</h3>
         
@@ -119,7 +115,6 @@
         </div>
       </div>
 
-      <!-- Medical Information -->
       <div class="form-section">
         <h3 class="section-title">Medical Information</h3>
         
@@ -212,13 +207,11 @@
         </div>
       </div>
 
-      <!-- General Error Display -->
       <div v-if="errors.general" class="form-error-general">
         <span class="error-icon">✕</span>
         <span>{{ errors.general }}</span>
       </div>
 
-      <!-- Form Actions -->
       <div class="form-actions">
         <Button
           type="button"
@@ -239,11 +232,10 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch } from 'vue'
+import { ref, reactive, watch, computed } from 'vue'
 import Button from '@/components/common/Button.vue'
 import { PatientForm as PatientFormModel } from '@/models/PatientForm.js'
 
-// Props
 const props = defineProps({
   patient: {
     type: Object,
@@ -255,14 +247,11 @@ const props = defineProps({
   }
 })
 
-// Emits
 const emit = defineEmits(['save', 'cancel'])
 
-// State
 const isSubmitting = ref(false)
 const errors = reactive({})
 
-// Form data
 const formData = reactive({
   name: '',
   age: null,
@@ -279,7 +268,38 @@ const formData = reactive({
   emergencyContact: ''
 })
 
-// Initialize form data
+const calculateAge = (dateOfBirth) => {
+  if (!dateOfBirth || !dateOfBirth.trim()) {
+    return null
+  }
+  const birthDate = new Date(dateOfBirth)
+  if (isNaN(birthDate.getTime())) {
+    return null
+  }
+  const today = new Date()
+  let age = today.getFullYear() - birthDate.getFullYear()
+  const monthDiff = today.getMonth() - birthDate.getMonth()
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--
+  }
+  return age >= 0 ? age : null
+}
+
+const computedAge = computed(() => {
+  return calculateAge(formData.dateOfBirth)
+})
+
+watch(() => formData.dateOfBirth, (newDateOfBirth) => {
+  if (newDateOfBirth && newDateOfBirth.trim()) {
+    const calculatedAge = calculateAge(newDateOfBirth)
+    if (calculatedAge !== null) {
+      formData.age = calculatedAge
+    }
+  } else {
+    formData.age = null
+  }
+})
+
 const initializeFormData = () => {
   try {
     const patientData = props.patient?.value || props.patient
@@ -287,7 +307,6 @@ const initializeFormData = () => {
     
     if (patientData && typeof patientData === 'object') {
       console.log('Patient data found, populating form')
-      // Safely assign form data with proper type checking and fallbacks
       Object.assign(formData, {
         name: (typeof patientData.name === 'string') ? patientData.name.trim() : '',
         age: (typeof patientData.age === 'number' && !isNaN(patientData.age)) ? patientData.age : null,
@@ -303,10 +322,15 @@ const initializeFormData = () => {
         currentMedications: (typeof patientData.currentMedications === 'string') ? patientData.currentMedications.trim() : '',
         emergencyContact: (typeof patientData.emergencyContact === 'string') ? patientData.emergencyContact.trim() : ''
       })
+      if (formData.dateOfBirth && formData.dateOfBirth.trim()) {
+        const calculatedAge = calculateAge(formData.dateOfBirth)
+        if (calculatedAge !== null) {
+          formData.age = calculatedAge
+        }
+      }
       console.log('Form data after assignment:', formData)
     } else {
       console.log('No patient data, initializing form for new patient')
-      // Reset form for new patient with safe defaults
       Object.assign(formData, {
         name: '',
         age: null,
@@ -325,7 +349,6 @@ const initializeFormData = () => {
     }
   } catch (error) {
     console.error('Error initializing form data:', error)
-    // Reset to safe defaults if initialization fails
     Object.assign(formData, {
       name: '',
       age: null,
@@ -344,10 +367,8 @@ const initializeFormData = () => {
   }
 }
 
-// Initialize form data
 initializeFormData()
 
-// Watch for changes in patient prop
 watch(() => props.patient, (newPatient) => {
   console.log('Patient prop changed:', newPatient)
   console.log('Patient prop type:', typeof newPatient)
@@ -355,22 +376,17 @@ watch(() => props.patient, (newPatient) => {
   initializeFormData()
 }, { immediate: true, deep: false })
 
-// Watch for changes in view mode
 watch(() => props.isViewMode, (newViewMode) => {
   console.log('View mode changed:', newViewMode)
-  // Reinitialize form data when view mode changes
   initializeFormData()
 }, { immediate: false })
 
-// Methods
 const validateForm = () => {
-  // Clear previous errors
   Object.keys(errors).forEach(key => delete errors[key])
   
   let isValid = true
 
   try {
-    // Validate required fields with better error handling
     if (!formData.name || typeof formData.name !== 'string' || !formData.name.trim()) {
       errors.name = 'Name is required'
       isValid = false
@@ -379,41 +395,6 @@ const validateForm = () => {
       isValid = false
     }
 
-    // Validate age with better error handling
-    if (formData.age === null || formData.age === undefined || formData.age === '') {
-      errors.age = 'Age is required'
-      isValid = false
-    } else {
-      const age = Number(formData.age)
-      if (isNaN(age) || age < 0 || age > 150) {
-        errors.age = 'Age must be a number between 0 and 150 years'
-        isValid = false
-      }
-    }
-
-    // Validate gender
-    if (!formData.gender || typeof formData.gender !== 'string' || !formData.gender.trim()) {
-      errors.gender = 'Gender is required'
-      isValid = false
-    }
-
-    // Validate email if provided
-    if (formData.email && formData.email.trim()) {
-      if (!isValidEmail(formData.email.trim())) {
-        errors.email = 'Email address is not valid'
-        isValid = false
-      }
-    }
-
-    // Validate phone if provided
-    if (formData.phone && formData.phone.trim()) {
-      if (!isValidPhone(formData.phone.trim())) {
-        errors.phone = 'Phone number is not valid'
-        isValid = false
-      }
-    }
-
-    // Validate date of birth - now required
     if (!formData.dateOfBirth || !formData.dateOfBirth.trim()) {
       errors.dateOfBirth = 'Date of birth is required'
       isValid = false
@@ -429,10 +410,37 @@ const validateForm = () => {
       } else if (birthDate.getFullYear() < 1900) {
         errors.dateOfBirth = 'Date of birth cannot be before 1900'
         isValid = false
+      } else {
+        const calculatedAge = calculateAge(formData.dateOfBirth)
+        if (calculatedAge === null || calculatedAge < 0 || calculatedAge > 150) {
+          errors.age = 'Invalid age calculated from date of birth'
+          isValid = false
+        } else {
+          formData.age = calculatedAge
+        }
       }
     }
 
-    // Show general error if validation fails
+    if (!formData.gender || typeof formData.gender !== 'string' || !formData.gender.trim()) {
+      errors.gender = 'Gender is required'
+      isValid = false
+    }
+
+    if (formData.email && formData.email.trim()) {
+      if (!isValidEmail(formData.email.trim())) {
+        errors.email = 'Email address is not valid'
+        isValid = false
+      }
+    }
+
+    if (formData.phone && formData.phone.trim()) {
+      if (!isValidPhone(formData.phone.trim())) {
+        errors.phone = 'Phone number is not valid'
+        isValid = false
+      }
+    }
+
+
     if (!isValid) {
       errors.general = 'Please fill in all required fields and correct the displayed errors.'
     }
@@ -461,7 +469,6 @@ const handleSubmit = async () => {
   console.log('Form data:', formData)
   console.log('Props patient:', props.patient)
   
-  // Prevent multiple submissions
   if (isSubmitting.value) {
     console.log('Already submitting, ignoring duplicate submission')
     return
@@ -476,13 +483,11 @@ const handleSubmit = async () => {
   isSubmitting.value = true
 
   try {
-    // Get the actual patient data from the computed property
     const currentPatient = props.patient?.value || props.patient
     console.log('Current patient data for ID extraction:', currentPatient)
     console.log('Patient ID:', currentPatient?.id)
     console.log('Patient createdAt:', currentPatient?.createdAt)
     
-    // Sanitize form data before creating patient model
     const sanitizedFormData = {
       name: (formData.name || '').trim(),
       age: Number(formData.age) || null,
@@ -499,12 +504,9 @@ const handleSubmit = async () => {
       emergencyContact: (formData.emergencyContact || '').trim()
     }
     
-    // Create patient model with sanitized form data
     const patientData = new PatientFormModel({
       ...sanitizedFormData,
-      // Preserve existing ID if editing
       id: currentPatient?.id || null,
-      // Preserve existing timestamps if editing
       createdAt: currentPatient?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString()
     })
@@ -512,11 +514,9 @@ const handleSubmit = async () => {
     console.log('Created patient model:', patientData)
     console.log('Emitting save event with:', patientData.toJSON())
     
-    // Emit save event with the patient data
     emit('save', patientData.toJSON())
   } catch (error) {
     console.error('Error saving patient:', error)
-    // Show error to user with more specific error message
     if (error.message) {
       errors.general = `Error: ${error.message}`
     } else {
@@ -530,9 +530,6 @@ const handleSubmit = async () => {
 const handleCancel = () => {
   emit('cancel')
 }
-
-// Watch for form changes to clear errors - removed to prevent crashes
-// The form data updates are already reactive and don't need excessive watching
 </script>
 
 <style scoped>

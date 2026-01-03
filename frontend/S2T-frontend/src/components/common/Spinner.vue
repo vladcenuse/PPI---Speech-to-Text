@@ -12,7 +12,6 @@
 <script setup>
 import { computed } from 'vue'
 
-// Props
 const props = defineProps({
   size: {
     type: String,
@@ -37,7 +36,6 @@ const props = defineProps({
   }
 })
 
-// Computed
 const spinnerClasses = computed(() => {
   return [
     'spinner',

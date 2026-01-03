@@ -65,7 +65,6 @@
 import { defineProps, defineEmits, ref, onMounted } from 'vue'
 import { authService } from '@/services/AuthService.js'
 
-// Props
 const props = defineProps({
   currentSection: {
     type: String,
@@ -73,20 +72,16 @@ const props = defineProps({
   }
 })
 
-// Emits
 const emit = defineEmits(['section-change'])
 
-// State
 const currentDoctor = ref(authService.getDoctorInfo())
 
-// Methods
 const navigateToSection = (section) => {
   emit('section-change', section)
 }
 
 const handleLogout = async () => {
   await authService.logout()
-  // Clear saved section so login always starts at home
   localStorage.removeItem('s2t-current-section')
   window.dispatchEvent(new Event('auth-changed'))
 }

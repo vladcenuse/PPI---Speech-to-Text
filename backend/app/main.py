@@ -2,13 +2,11 @@ import os
 import json
 import re
 import httpx
-from rapidfuzz import fuzz
-from fastapi import FastAPI, UploadFile, File, HTTPException, Form, APIRouter
+from fastapi import FastAPI, UploadFile, File, HTTPException, Form
 from pydantic import BaseModel
 from deepgram import DeepgramClient
 from fastapi.middleware.cors import CORSMiddleware
-from openai import OpenAI
-from app.routers import patients, documents, new_patient_forms, medical_reports, consultation_forms, prescription_forms, echocardiography_forms, auth
+from app.routers import patients, new_patient_forms, medical_reports, consultation_forms, prescription_forms, echocardiography_forms, auth
 from app.database import check_and_init_db
 
 MODEL_ID = "google/gemma-2-2b-it"
@@ -91,7 +89,6 @@ class ParsedRecordingResponse(BaseModel):
     parsed_json: dict
 
 def safe_encode_str(s):
-    """Safely encode a string to ASCII, replacing problematic characters"""
     try:
         if isinstance(s, bytes):
             s = s.decode('utf-8', errors='replace')
@@ -100,54 +97,41 @@ def safe_encode_str(s):
         return repr(s)
 
 def safe_print(msg):
-    """Safely print a message, handling Unicode encoding"""
     try:
         safe_msg = safe_encode_str(msg)
         print(safe_msg)
     except:
         print(repr(msg))
 
-# Helper to safely extract exception info without calling str() or repr() on exception object
 def extract_exception_info(exc):
-    """Extract exception information without calling str() or repr() on exception to avoid encoding issues"""
     exc_type = type(exc).__name__
     exc_args = []
     
     try:
-        # Try to get args safely - NEVER call str() or repr() on the exception object itself
         if hasattr(exc, 'args') and exc.args:
             for arg in exc.args:
                 try:
-                    # Try to encode each arg
                     if isinstance(arg, str):
                         exc_args.append(safe_encode_str(arg))
                     elif isinstance(arg, bytes):
                         exc_args.append(safe_encode_str(arg.decode('utf-8', errors='replace')))
                     else:
-                        # For non-string args, try to convert safely
-                        # But wrap in try-except to catch encoding errors
                         try:
-                            # Try str() but catch encoding errors
                             arg_str = str(arg)
                             exc_args.append(safe_encode_str(arg_str))
                         except UnicodeEncodeError:
-                            # If str() fails due to encoding, try repr() on the arg (not the exception)
                             try:
                                 arg_repr = repr(arg)
                                 exc_args.append(safe_encode_str(arg_repr))
                             except:
                                 exc_args.append("(unable to encode arg)")
                         except Exception:
-                            # Any other error converting arg
                             exc_args.append("(unable to convert arg)")
                 except Exception:
-                    # If anything fails, just skip this arg
                     exc_args.append("(error encoding arg)")
     except Exception:
-        # If we can't even access args, that's okay
         pass
     
-    # Build message from parts - NEVER use repr(exc) as it might call str(exc) internally
     if exc_args:
         msg = ' '.join(exc_args)
     else:
@@ -162,13 +146,11 @@ def transcribe_audio_bytes_ro(
     
     DEEPGRAM_API_KEY = "4700b39b6fffa69b829bc2510b31859a60081fe3"
     
-    # Initialize DeepgramClient
     safe_print(f"Initializing DeepgramClient with API key (length: {len(DEEPGRAM_API_KEY)})")
     safe_print(f"API key starts with: {DEEPGRAM_API_KEY[:10]}...")
     
     deepgram_client = None
     try:
-        # Initialize with explicit keyword argument
         deepgram_client = DeepgramClient(api_key=DEEPGRAM_API_KEY)
         safe_print("[SUCCESS] DeepgramClient initialized successfully")
     except Exception as init_error:
@@ -176,7 +158,6 @@ def transcribe_audio_bytes_ro(
         safe_print(f"[ERROR] Failed to initialize DeepgramClient: {error_type}")
         raise RuntimeError(f"Failed to initialize Deepgram client: {error_msg}")
 
-    # Call Deepgram API
     try:
         safe_print("Calling Deepgram API...")
         response = deepgram_client.listen.v1.media.transcribe_file(
@@ -188,25 +169,21 @@ def transcribe_audio_bytes_ro(
         
         safe_print("Deepgram API call successful, extracting transcript...")
         
-        # Safely extract transcript, handling potential None values
         try:
             transcript_text = response.results.channels[0].alternatives[0].transcript
         except (AttributeError, IndexError, KeyError) as e:
             safe_print("Warning: Could not extract transcript from Deepgram response")
             raise RuntimeError("Nu s-a putut extrage transcrierea din răspunsul API. Vă rugăm să încercați din nou.")
         
-        # Handle None or missing transcript
         if transcript_text is None:
             safe_print("Warning: None transcript received from Deepgram")
             raise RuntimeError("Nu s-a detectat niciun vorbire în înregistrare. Vă rugăm să înregistrați din nou.")
         
-        # Validate transcript - check if it's empty or contains generic placeholder text
         transcript_text = str(transcript_text).strip()
         if not transcript_text:
             safe_print("Warning: Empty transcript received from Deepgram")
             raise RuntimeError("Nu s-a detectat niciun vorbire în înregistrare. Vă rugăm să înregistrați din nou.")
         
-        # Check for common generic/placeholder phrases that indicate unclear or no speech
         transcript_lower = transcript_text.lower()
         generic_phrases = [
             "vă mulțumesc",
@@ -220,12 +197,10 @@ def transcribe_audio_bytes_ro(
             "mulțumesc frumos"
         ]
         
-        # If transcript only contains generic phrases and is short, it's likely invalid
         if any(phrase in transcript_lower for phrase in generic_phrases) and len(transcript_text) < 50:
             safe_print(f"Warning: Generic placeholder transcript detected: {transcript_text[:100]}")
             raise RuntimeError("Vorbirea nu a putut fi recunoscută clar sau înregistrarea conține doar zgomot. Vă rugăm să vorbiți clar despre măsurătorile ecocardiografice și să înregistrați din nou.")
         
-        # Check if transcript is too short (likely noise or unclear)
         if len(transcript_text) < 10:
             safe_print(f"Warning: Very short transcript: {transcript_text}")
             raise RuntimeError("Înregistrarea este prea scurtă sau neclară. Vă rugăm să înregistrați din nou.")
@@ -234,35 +209,26 @@ def transcribe_audio_bytes_ro(
         return TranscriptionResponse(text=transcript_text)
         
     except RuntimeError as e:
-        # If it's already a RuntimeError (like our validation errors), preserve it with UTF-8
-        # Only encode to ASCII for console printing
         if hasattr(e, 'args') and e.args and isinstance(e.args[0], str):
             error_msg_utf8 = e.args[0]
             error_msg_ascii = safe_encode_str(error_msg_utf8)
             safe_print(f"RuntimeError: {error_msg_ascii}")
-            raise  # Re-raise the original RuntimeError with UTF-8 message
+            raise
         else:
-            # Fallback if structure is different
             error_type, error_msg = extract_exception_info(e)
             safe_print(f"RuntimeError: {error_msg}")
             raise RuntimeError(error_msg)
     except Exception as e:
-        # Extract exception info safely without calling str()
         error_type, error_msg = extract_exception_info(e)
         
         safe_print(f"Deepgram API Error - Type: {error_type}")
         
-        # Check if it's a Deepgram-related error
         if "deepgram" in error_msg.lower() or "api" in error_msg.lower() or "deepgram" in error_type.lower():
             raise RuntimeError(f"Deepgram API Error during transcription: {error_msg}")
         else:
             raise RuntimeError(f"An unexpected error occurred during transcription: {error_msg}")
 
 def extract_value_after_field(transcript: str, field_end_pos: int, all_field_names: list) -> str:
-    """
-    Extract the value (number + unit) immediately after a field name.
-    Stops when it finds another field name or extracts a complete value.
-    """
     number_words = {
         'zero': '0', 'unu': '1', 'una': '1', 'doi': '2', 'două': '2',
         'trei': '3', 'patru': '4', 'cinci': '5', 'șase': '6', 'sase': '6',
@@ -346,7 +312,6 @@ def extract_value_after_field(transcript: str, field_end_pos: int, all_field_nam
     return ""
 
 def extract_strict_json(response_text):
-    """Extract JSON from response text, handling cases where JSON is wrapped in text"""
     if not response_text:
         return None
     try:
@@ -456,7 +421,6 @@ app.include_router(medical_reports.router, prefix="/api/medical-reports", tags=[
 app.include_router(consultation_forms.router, prefix="/api/consultation-forms", tags=["consultation-forms"])
 app.include_router(prescription_forms.router, prefix="/api/prescription-forms", tags=["prescription-forms"])
 app.include_router(echocardiography_forms.router, prefix="/api/echocardiography-forms", tags=["echocardiography-forms"])
-app.include_router(documents.router, prefix="/api/documents", tags=["documents"])
 
 @app.post("/api/process-recording", response_model=ParsedRecordingResponse, tags=["transcription"])
 async def process_recording_endpoint(
@@ -566,21 +530,15 @@ async def process_recording_endpoint(
         )
     
     except RuntimeError as e:
-        # For RuntimeError, extract the message directly (it's already in Romanian and safe)
-        # RuntimeError messages are user-facing, so preserve UTF-8 encoding for HTTP responses
-        # Only encode to ASCII for console printing
         if hasattr(e, 'args') and e.args and isinstance(e.args[0], str):
-            # Preserve original UTF-8 string for HTTP response
             error_msg_utf8 = e.args[0]
-            # Use ASCII-encoded version only for console
             error_msg_ascii = safe_encode_str(error_msg_utf8)
             safe_print(f"Processing failed: {error_msg_ascii}")
             raise HTTPException(
                 status_code=500,
-                detail=error_msg_utf8  # Use UTF-8 version for HTTP response
+                detail=error_msg_utf8
             )
         else:
-            # Fallback to extract_exception_info if structure is different
             error_type, error_msg = extract_exception_info(e)
             safe_print(f"Processing failed: {error_type}")
             raise HTTPException(
@@ -588,12 +546,11 @@ async def process_recording_endpoint(
                 detail=error_msg
             )
     except Exception as e:
-        # Extract exception info safely without calling str()
         error_type, error_msg = extract_exception_info(e)
         safe_print(f"An unexpected error occurred: {error_type}")
         raise HTTPException(
             status_code=500,
-            detail=f"An unexpected error occurred: {error_msg}"  # Use message directly
+            detail=f"An unexpected error occurred: {error_msg}"
         )
 
 

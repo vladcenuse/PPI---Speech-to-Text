@@ -1,6 +1,3 @@
-"""
-Doctor authentication endpoints
-"""
 from fastapi import APIRouter, HTTPException, Depends, Request, Header
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from datetime import datetime, timedelta
@@ -14,26 +11,20 @@ router = APIRouter()
 security = HTTPBearer()
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 
-# Session timeout: 24 hours (can be changed)
 SESSION_TIMEOUT_HOURS = 24
 
-# In-memory session store (in production, use Redis or database)
-# Format: {token: {"doctor_id": int, "created_at": datetime}}
 active_sessions = {}
 
 
 def hash_password(password: str) -> str:
-    """Hash a password using pbkdf2_sha256"""
     return pwd_context.hash(password)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a password against its hash"""
     return pwd_context.verify(plain_password, hashed_password)
 
 
 def cleanup_expired_sessions():
-    """Remove expired sessions from active_sessions"""
     now = datetime.now()
     expired_tokens = []
     for token, session_data in active_sessions.items():
@@ -41,9 +32,7 @@ def cleanup_expired_sessions():
             created_at = session_data.get("created_at")
             if created_at and (now - created_at) > timedelta(hours=SESSION_TIMEOUT_HOURS):
                 expired_tokens.append(token)
-        # Handle old format (just doctor_id) - migrate to new format
         elif isinstance(session_data, int):
-            # Old format, remove it (will be recreated on next login)
             expired_tokens.append(token)
     
     for token in expired_tokens:
@@ -54,8 +43,6 @@ def cleanup_expired_sessions():
 
 
 def get_current_doctor_id(request: Request) -> int:
-    """Get current doctor ID from session token"""
-    # Clean up expired sessions first
     cleanup_expired_sessions()
     
     authorization = request.headers.get("Authorization") or request.headers.get("authorization")
@@ -66,7 +53,6 @@ def get_current_doctor_id(request: Request) -> int:
     
     print(f"[AUTH] Received authorization header: {authorization[:30]}...")
     
-    # Extract token from "Bearer <token>" format
     try:
         if authorization.startswith("Bearer "):
             token = authorization.replace("Bearer ", "").strip()
@@ -85,7 +71,6 @@ def get_current_doctor_id(request: Request) -> int:
     
     session_data = active_sessions[token]
     
-    # Handle both old format (int) and new format (dict)
     if isinstance(session_data, dict):
         created_at = session_data.get("created_at")
         if created_at and (datetime.now() - created_at) > timedelta(hours=SESSION_TIMEOUT_HOURS):
@@ -94,7 +79,6 @@ def get_current_doctor_id(request: Request) -> int:
             raise HTTPException(status_code=401, detail="Session expired or invalid")
         doctor_id = session_data.get("doctor_id")
     else:
-        # Old format - just doctor_id
         doctor_id = session_data
     
     print(f"[AUTH] Found doctor_id: {doctor_id}")
@@ -103,8 +87,6 @@ def get_current_doctor_id(request: Request) -> int:
 
 @router.post("/register", response_model=LoginResponse)
 async def register_doctor(doctor: DoctorCreate):
-    """Register a new doctor account"""
-    # Validate passwords match
     if doctor.password != doctor.confirm_password:
         raise HTTPException(status_code=400, detail="Passwords do not match")
     
@@ -114,19 +96,15 @@ async def register_doctor(doctor: DoctorCreate):
     db = get_firestore_db()
     doctors_ref = db.collection('doctors')
     
-    # Check if username already exists
     existing = doctors_ref.where('username', '==', doctor.username).limit(1).stream()
     if list(existing):
         raise HTTPException(status_code=400, detail="Username already exists")
     
-    # Hash password and create doctor
     password_hash = hash_password(doctor.password)
     current_time = datetime.now().isoformat()
     
-    # Get next ID from counter
     doctor_id = get_next_id('doctors')
     
-    # Create doctor document with ID as document ID
     doc_ref = doctors_ref.document(str(doctor_id))
     doc_ref.set({
         'id': doctor_id,
@@ -146,11 +124,9 @@ async def register_doctor(doctor: DoctorCreate):
 
 @router.post("/login", response_model=LoginResponse)
 async def login_doctor(doctor: DoctorLogin):
-    """Login doctor and create session"""
     db = get_firestore_db()
     doctors_ref = db.collection('doctors')
     
-    # Find doctor by username
     docs = doctors_ref.where('username', '==', doctor.username).limit(1).stream()
     doc_list = list(docs)
     
@@ -161,27 +137,22 @@ async def login_doctor(doctor: DoctorLogin):
     doc_data = doc.to_dict()
     doctor_id = doc_data.get('id')
     if doctor_id is None:
-        # Fallback: try to parse document ID as integer
         doctor_id = int(doc.id) if doc.id.isdigit() else None
     if doctor_id is None:
         raise HTTPException(status_code=500, detail="Invalid doctor record")
     username = doc_data.get('username', '')
     password_hash = doc_data.get('password_hash', '')
     
-    # Verify password
     if not verify_password(doctor.password, password_hash):
         raise HTTPException(status_code=401, detail="Invalid username or password")
     
-    # Create session token (simple UUID-like token)
     import uuid
     session_token = str(uuid.uuid4())
-    # Store session with creation time for timeout checking
     active_sessions[session_token] = {
         "doctor_id": doctor_id,
         "created_at": datetime.now()
     }
     
-    # Return token in response (client will use it in Authorization header)
     bearer_token = f"Bearer {session_token}"
     response_data = LoginResponse(
         success=True,
@@ -195,7 +166,6 @@ async def login_doctor(doctor: DoctorLogin):
 
 @router.post("/logout")
 async def logout_doctor(request: Request):
-    """Logout doctor and invalidate session"""
     authorization = request.headers.get("Authorization") or request.headers.get("authorization")
     
     if not authorization:
@@ -216,11 +186,9 @@ async def logout_doctor(request: Request):
 
 @router.get("/me", response_model=DoctorResponse)
 async def get_current_doctor(doctor_id: int = Depends(get_current_doctor_id)):
-    """Get current logged-in doctor info"""
     db = get_firestore_db()
     doctors_ref = db.collection('doctors')
     
-    # Find doctor by ID
     docs = doctors_ref.where('id', '==', doctor_id).limit(1).stream()
     doc_list = list(docs)
     

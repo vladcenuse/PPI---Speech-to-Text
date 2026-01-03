@@ -33,7 +33,6 @@
 <script setup>
 import { computed, watch } from 'vue'
 
-// Props
 const props = defineProps({
   isOpen: {
     type: Boolean,
@@ -66,10 +65,8 @@ const props = defineProps({
   }
 })
 
-// Emits
 const emit = defineEmits(['close', 'open'])
 
-// Computed
 const modalClasses = computed(() => {
   return [
     `modal-container--${props.size}`,
@@ -79,7 +76,6 @@ const modalClasses = computed(() => {
   ]
 })
 
-// Methods
 const closeModal = () => {
   emit('close')
 }
@@ -96,7 +92,6 @@ const handleEscapeKey = (event) => {
   }
 }
 
-// Watch for escape key
 watch(() => props.isOpen, (isOpen) => {
   if (isOpen) {
     document.addEventListener('keydown', handleEscapeKey)
@@ -107,7 +102,6 @@ watch(() => props.isOpen, (isOpen) => {
   }
 })
 
-// Cleanup on unmount
 import { onUnmounted } from 'vue'
 onUnmounted(() => {
   document.removeEventListener('keydown', handleEscapeKey)

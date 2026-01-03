@@ -3,7 +3,6 @@
     <transition name="modal">
       <div v-if="isOpen" class="modal-overlay" @click="handleOverlayClick">
         <div class="modal-container" @click.stop>
-          <!-- Header with Icon -->
           <div class="modal-header">
             <div class="warning-icon-container">
               <svg viewBox="0 0 24 24" fill="currentColor" class="warning-icon">
@@ -13,7 +12,6 @@
             <h3 class="modal-title">{{ title }}</h3>
           </div>
           
-          <!-- Content -->
           <div class="modal-content">
             <p class="modal-message">{{ message }}</p>
             <div v-if="details" class="modal-details">
@@ -22,7 +20,6 @@
             </div>
           </div>
           
-          <!-- Actions -->
           <div class="modal-actions">
             <button 
               class="action-btn cancel-btn" 
@@ -49,7 +46,6 @@
 <script setup>
 import { watch } from 'vue'
 
-// Props
 const props = defineProps({
   isOpen: {
     type: Boolean,
@@ -89,10 +85,8 @@ const props = defineProps({
   }
 })
 
-// Emits
 const emit = defineEmits(['confirm', 'cancel', 'close'])
 
-// Methods
 const handleConfirm = () => {
   emit('confirm')
 }
@@ -114,7 +108,6 @@ const handleEscapeKey = (event) => {
   }
 }
 
-// Watch for escape key
 watch(() => props.isOpen, (isOpen) => {
   if (isOpen) {
     document.addEventListener('keydown', handleEscapeKey)

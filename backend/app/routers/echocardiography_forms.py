@@ -1,6 +1,3 @@
-"""
-Echocardiography form management endpoints
-"""
 from fastapi import APIRouter, HTTPException
 from datetime import datetime
 from typing import List, Optional
@@ -36,7 +33,6 @@ class EchocardiographyFormResponse(EchocardiographyFormBase):
 
 @router.get("/patient/{patient_id}", response_model=List[EchocardiographyFormResponse])
 async def get_echocardiography_forms(patient_id: int):
-    """Get all echocardiography forms for a specific patient"""
     db = get_firestore_db()
     forms_ref = db.collection('echocardiography_forms')
     
@@ -48,7 +44,6 @@ async def get_echocardiography_forms(patient_id: int):
         if form_data:
             forms.append(form_data)
     
-    # Sort by created_at descending in memory
     forms.sort(key=lambda x: x.get('created_at', ''), reverse=True)
     
     return forms
@@ -56,7 +51,6 @@ async def get_echocardiography_forms(patient_id: int):
 
 @router.get("/{form_id}", response_model=EchocardiographyFormResponse)
 async def get_echocardiography_form(form_id: int):
-    """Get a single echocardiography form by ID"""
     db = get_firestore_db()
     forms_ref = db.collection('echocardiography_forms')
     
@@ -71,12 +65,10 @@ async def get_echocardiography_form(form_id: int):
 
 @router.post("/", response_model=EchocardiographyFormResponse)
 async def create_echocardiography_form(form_data: EchocardiographyFormBase):
-    """Create a new echocardiography form"""
     db = get_firestore_db()
     forms_ref = db.collection('echocardiography_forms')
     patients_ref = db.collection('patients')
     
-    # Verify patient exists
     patient_doc = patients_ref.document(str(form_data.patient_id)).get()
     if not patient_doc.exists:
         raise HTTPException(status_code=404, detail="Patient not found")
@@ -85,7 +77,6 @@ async def create_echocardiography_form(form_data: EchocardiographyFormBase):
     form_id = get_next_id('echocardiography_forms')
     
     form_dict = form_data.model_dump(by_alias=True)
-    # Ensure patient_id is an integer (Firestore queries are type-sensitive)
     form_dict['patient_id'] = int(form_dict['patient_id'])
     form_dict['id'] = form_id
     form_dict['created_at'] = current_time
@@ -99,11 +90,9 @@ async def create_echocardiography_form(form_data: EchocardiographyFormBase):
 
 @router.put("/{form_id}", response_model=EchocardiographyFormResponse)
 async def update_echocardiography_form(form_id: int, form_data: EchocardiographyFormBase):
-    """Update an existing echocardiography form"""
     db = get_firestore_db()
     forms_ref = db.collection('echocardiography_forms')
     
-    # Fetch existing record to get created_at
     doc_ref = forms_ref.document(str(form_id))
     doc = doc_ref.get()
     
@@ -114,7 +103,6 @@ async def update_echocardiography_form(form_id: int, form_data: Echocardiography
     created_at = doc.to_dict().get('created_at', current_time)
     
     update_data = form_data.model_dump(by_alias=True)
-    # Ensure patient_id is an integer (Firestore queries are type-sensitive)
     update_data['patient_id'] = int(update_data['patient_id'])
     update_data['updated_at'] = current_time
     doc_ref.update(update_data)
@@ -128,7 +116,6 @@ async def update_echocardiography_form(form_id: int, form_data: Echocardiography
 
 @router.delete("/{form_id}")
 async def delete_echocardiography_form(form_id: int):
-    """Delete an echocardiography form"""
     db = get_firestore_db()
     forms_ref = db.collection('echocardiography_forms')
     

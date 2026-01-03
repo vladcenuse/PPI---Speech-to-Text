@@ -1,10 +1,11 @@
+import { reactive } from 'vue'
+
 class ToastService {
   constructor() {
-    this.toasts = []
+    this.toasts = reactive([])
     this.nextId = 1
   }
 
-  // Add a new toast
   add(toast) {
     const id = this.nextId++
     const newToast = {
@@ -19,7 +20,6 @@ class ToastService {
 
     this.toasts.push(newToast)
 
-    // Auto-remove if not persistent
     if (!newToast.persistent && newToast.duration > 0) {
       setTimeout(() => {
         this.remove(id)
@@ -29,22 +29,21 @@ class ToastService {
     return id
   }
 
-  // Remove a toast by ID
   remove(toastId) {
-    this.toasts = this.toasts.filter(toast => toast.id !== toastId)
+    const index = this.toasts.findIndex(toast => toast.id === toastId)
+    if (index > -1) {
+      this.toasts.splice(index, 1)
+    }
   }
 
-  // Get toasts by position
   getToastsByPosition(position) {
     return this.toasts.filter(toast => toast.position === position)
   }
 
-  // Clear all toasts
   clear() {
-    this.toasts = []
+    this.toasts.splice(0, this.toasts.length)
   }
 
-  // Convenience methods
   success(title, message = '', options = {}) {
     return this.add({
       type: 'success',
@@ -98,7 +97,6 @@ class ToastService {
   }
 }
 
-// Create singleton instance
 const toastService = new ToastService()
 
 export { toastService }

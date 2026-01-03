@@ -1,8 +1,3 @@
-/**
- * Export Service
- * Handles export functionality for Word and PDF documents
- */
-
 import { PatientForm } from '@/models/PatientForm.js'
 
 class ExportService {
@@ -11,18 +6,12 @@ class ExportService {
     this.defaultFormat = 'docx'
   }
 
-  /**
-   * Export patient data to Word document
-   */
   async exportPatientToWord(patient, recordings = []) {
     try {
-      // Generate proper HTML content for Word
       const htmlContent = this.generatePatientDocumentHTML(patient, recordings)
       
-      // Create proper Word-compatible HTML with correct MIME type
       const wordHtml = this.wrapForWordDocument(htmlContent)
       
-      // Use text/html MIME type for HTML documents that Word can open
       const blob = new Blob([wordHtml], { type: 'text/html;charset=utf-8' })
       const url = URL.createObjectURL(blob)
       
@@ -42,26 +31,19 @@ class ExportService {
     }
   }
 
-  /**
-   * Export patient data to PDF
-   */
   async exportPatientToPDF(patient, recordings = []) {
     try {
-      // Generate HTML content optimized for PDF printing
       const htmlContent = this.generatePatientDocumentHTML(patient, recordings)
       
-      // Create a new window for PDF generation
       const printWindow = window.open('', '_blank', 'width=800,height=600')
       
       if (!printWindow) {
         throw new Error('Popup blocked. Please allow popups for this site.')
       }
       
-      // Write HTML content to the new window
       printWindow.document.write(htmlContent)
       printWindow.document.close()
       
-      // Add PDF-optimized styles
       const style = printWindow.document.createElement('style')
       style.textContent = `
         @media print {
@@ -118,12 +100,10 @@ class ExportService {
       `
       printWindow.document.head.appendChild(style)
       
-      // Wait for content to load, then trigger print
       setTimeout(() => {
         printWindow.focus()
         printWindow.print()
         
-        // Close the window after printing
         setTimeout(() => {
           printWindow.close()
         }, 1000)
@@ -136,9 +116,6 @@ class ExportService {
     }
   }
 
-  /**
-   * Wrap HTML content for Word document compatibility
-   */
   wrapForWordDocument(htmlContent) {
     return `
       <html xmlns:o="urn:schemas-microsoft-com:office:office"
@@ -219,9 +196,6 @@ class ExportService {
     `
   }
 
-  /**
-   * Generate HTML content for patient document
-   */
   generatePatientDocumentHTML(patient, recordings = []) {
     const currentDate = this.formatDate(new Date())
     
@@ -319,9 +293,6 @@ class ExportService {
     `
   }
 
-  /**
-   * Export multiple patients to batch document
-   */
   async exportBatchPatients(patients, format = 'docx') {
     try {
       const htmlContent = this.generateBatchDocumentHTML(patients)
@@ -347,9 +318,6 @@ class ExportService {
     }
   }
 
-  /**
-   * Generate batch document HTML
-   */
   generateBatchDocumentHTML(patients) {
     const currentDate = this.formatDate(new Date())
     
@@ -396,9 +364,6 @@ class ExportService {
     `
   }
 
-  /**
-   * Format date for display
-   */
   formatDate(date) {
     const d = new Date(date)
     return d.toLocaleDateString('ro-RO', {
@@ -410,16 +375,10 @@ class ExportService {
     })
   }
 
-  /**
-   * Get supported export formats
-   */
   getSupportedFormats() {
     return this.supportedFormats
   }
 
-  /**
-   * Validate export data
-   */
   validateExportData(patient, recordings = []) {
     const errors = []
     
@@ -438,7 +397,6 @@ class ExportService {
   }
 }
 
-// Create and export singleton instance
 export const exportService = new ExportService()
 export default exportService
 

@@ -6,7 +6,6 @@
         <p>Doctor Authentication</p>
       </div>
 
-      <!-- Login Form -->
       <div v-if="!showRegister" class="login-form">
         <h2>Login</h2>
         <form @submit.prevent="handleLogin">
@@ -42,7 +41,6 @@
         </div>
       </div>
 
-      <!-- Registration Form -->
       <div v-else class="register-form">
         <h2>Create Account</h2>
         <form @submit.prevent="handleRegister">
@@ -89,7 +87,6 @@
         </div>
       </div>
 
-      <!-- Success Modal -->
       <div v-if="showSuccessModal" class="modal-overlay" @click="showSuccessModal = false">
         <div class="modal-content" @click.stop>
           <div class="success-icon">✓</div>
@@ -129,7 +126,6 @@ const handleLogin = async () => {
   
   try {
     await authService.login(loginForm.value.username, loginForm.value.password)
-    // Notify App.vue that auth state changed
     window.dispatchEvent(new Event('auth-changed'))
   } catch (error) {
     loginError.value = error.message || 'Login failed. Please try again.'
@@ -182,7 +178,6 @@ const switchToLogin = () => {
 const handleSuccessClose = () => {
   showSuccessModal.value = false
   switchToLogin()
-  // Clear registration form
   registerForm.value = {
     username: '',
     password: '',

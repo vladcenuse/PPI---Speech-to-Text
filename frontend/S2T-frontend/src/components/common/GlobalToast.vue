@@ -17,7 +17,6 @@
             <div v-if="toast.title" class="toast-title">{{ toast.title }}</div>
             <div class="toast-message">{{ toast.message }}</div>
             
-            <!-- Toast Actions -->
             <div v-if="toast.actions && toast.actions.length > 0" class="toast-actions">
               <button
                 v-for="action in toast.actions"
@@ -48,7 +47,6 @@
 import { computed, onMounted, onUnmounted } from 'vue'
 import { toastService } from '@/services/ToastService.js'
 
-// Props
 const props = defineProps({
   position: {
     type: String,
@@ -57,10 +55,8 @@ const props = defineProps({
   }
 })
 
-// Data
 const toasts = computed(() => toastService.getToastsByPosition(props.position))
 
-// Methods
 const getToastClasses = (toast) => {
   return [
     'toast',
@@ -98,13 +94,10 @@ const removeToast = (toastId) => {
   toastService.remove(toastId)
 }
 
-// Lifecycle
 onMounted(() => {
-  // Initialize toast service if needed
 })
 
 onUnmounted(() => {
-  // Cleanup if needed
 })
 </script>
 
@@ -147,6 +140,8 @@ onUnmounted(() => {
   top: 1rem;
   left: 50%;
   transform: translateX(-50%);
+  max-width: 500px;
+  width: auto;
 }
 
 .toast-container--bottom-center {
