@@ -3,12 +3,15 @@ import json
 import re
 import httpx
 import base64
+from dotenv import load_dotenv
 from fastapi import FastAPI, UploadFile, File, HTTPException, Form
 from pydantic import BaseModel
 from deepgram import DeepgramClient
 from fastapi.middleware.cors import CORSMiddleware
 from app.routers import patients, new_patient_forms, medical_reports, consultation_forms, prescription_forms, echocardiography_forms, auth
 from app.database import check_and_init_db
+
+load_dotenv()
 
 HF_TOKEN = os.getenv("HF_TOKEN", "")
 DEEPGRAM_API_KEY = os.getenv("DEEPGRAM_API_KEY", "")
@@ -106,6 +109,16 @@ def safe_print(msg):
         print(safe_msg)
     except:
         print(repr(msg))
+
+if not HF_TOKEN:
+    safe_print("WARNING: HF_TOKEN is not set! Check your .env file or environment variables.")
+else:
+    safe_print(f"HF_TOKEN loaded (length: {len(HF_TOKEN)}, starts with: {HF_TOKEN[:10]}...)")
+
+if not DEEPGRAM_API_KEY:
+    safe_print("WARNING: DEEPGRAM_API_KEY is not set! Check your .env file or environment variables.")
+else:
+    safe_print(f"DEEPGRAM_API_KEY loaded (length: {len(DEEPGRAM_API_KEY)}, starts with: {DEEPGRAM_API_KEY[:10]}...)")
 
 def extract_exception_info(exc):
     exc_type = type(exc).__name__
@@ -394,7 +407,9 @@ JSON OUTPUT (doar JSON, fără text suplimentar):
             return response_text
     
     except Exception as e:
-        return f"Extraction failed due to API error: {e}"
+        error_msg = f"Extraction failed due to API error: {e}"
+        safe_print(f"ERROR in extract_data_with_api: {error_msg}")
+        return error_msg
 
 
 
