@@ -124,7 +124,20 @@ yarn-error.log*
 .DS_Store
 Thumbs.db
 .env
+.env.local
+.env.production
+.env.development
 #uv.lock
+
+# Firebase credentials
+firebase-credentials.json
+backend/firebase-credentials.json
+**/firebase-credentials.json
+
+# API Keys and secrets
+*.key
+*.pem
+secrets/
 
 # poetry
 #   Similar to Pipfile.lock, it is generally recommended to include poetry.lock in version control.

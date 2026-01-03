@@ -1,6 +1,6 @@
 import { authService } from './AuthService.js'
 
-const API_BASE_URL = 'http://127.0.0.1:8000/api'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api'
 
 class ApiClient {
   constructor() {
@@ -91,8 +91,9 @@ class ApiClient {
 
   async testConnection() {
     try {
-      console.log('🔍 Testing connection to:', this.baseURL)
-      const response = await fetch('http://127.0.0.1:8000/health')
+      const healthUrl = this.baseURL.replace('/api', '/health')
+      console.log('Testing connection to:', healthUrl)
+      const response = await fetch(healthUrl)
       const data = await response.json()
       console.log('✅ Backend is reachable:', data)
       return { success: true, data }
