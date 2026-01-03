@@ -141,6 +141,8 @@ onUnmounted(() => {
   top: 1rem;
   left: 50%;
   transform: translateX(-50%);
+  max-width: 500px;
+  width: auto;
 }
 
 .toast-container--bottom-center {

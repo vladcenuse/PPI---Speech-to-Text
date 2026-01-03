@@ -2,13 +2,11 @@ import os
 import json
 import re
 import httpx
-from rapidfuzz import fuzz
-from fastapi import FastAPI, UploadFile, File, HTTPException, Form, APIRouter
+from fastapi import FastAPI, UploadFile, File, HTTPException, Form
 from pydantic import BaseModel
 from deepgram import DeepgramClient
 from fastapi.middleware.cors import CORSMiddleware
-from openai import OpenAI
-from app.routers import patients, documents, new_patient_forms, medical_reports, consultation_forms, prescription_forms, echocardiography_forms, auth
+from app.routers import patients, new_patient_forms, medical_reports, consultation_forms, prescription_forms, echocardiography_forms, auth
 from app.database import check_and_init_db
 
 MODEL_ID = "google/gemma-2-2b-it"
@@ -423,7 +421,6 @@ app.include_router(medical_reports.router, prefix="/api/medical-reports", tags=[
 app.include_router(consultation_forms.router, prefix="/api/consultation-forms", tags=["consultation-forms"])
 app.include_router(prescription_forms.router, prefix="/api/prescription-forms", tags=["prescription-forms"])
 app.include_router(echocardiography_forms.router, prefix="/api/echocardiography-forms", tags=["echocardiography-forms"])
-app.include_router(documents.router, prefix="/api/documents", tags=["documents"])
 
 @app.post("/api/process-recording", response_model=ParsedRecordingResponse, tags=["transcription"])
 async def process_recording_endpoint(

@@ -1,6 +1,8 @@
+import { reactive } from 'vue'
+
 class ToastService {
   constructor() {
-    this.toasts = []
+    this.toasts = reactive([])
     this.nextId = 1
   }
 
@@ -28,7 +30,10 @@ class ToastService {
   }
 
   remove(toastId) {
-    this.toasts = this.toasts.filter(toast => toast.id !== toastId)
+    const index = this.toasts.findIndex(toast => toast.id === toastId)
+    if (index > -1) {
+      this.toasts.splice(index, 1)
+    }
   }
 
   getToastsByPosition(position) {
@@ -36,7 +41,7 @@ class ToastService {
   }
 
   clear() {
-    this.toasts = []
+    this.toasts.splice(0, this.toasts.length)
   }
 
   success(title, message = '', options = {}) {

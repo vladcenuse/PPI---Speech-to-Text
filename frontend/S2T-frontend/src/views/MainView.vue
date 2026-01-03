@@ -61,6 +61,7 @@
 
     <!-- Global Toast Notifications -->
     <GlobalToast position="top-left" />
+    <GlobalToast position="top-center" />
   </div>
 </template>
 

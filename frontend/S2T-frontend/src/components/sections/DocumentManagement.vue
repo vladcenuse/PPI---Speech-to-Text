@@ -53,7 +53,6 @@
           <button
             @click="saveDocument"
             class="export-button save-button"
-            :disabled="!hasFormData"
           >
             <svg viewBox="0 0 24 24" fill="currentColor">
               <path d="M15,9H5V5H15M12,19A3,3 0 0,1 9,16A3,3 0 0,1 12,13A3,3 0 0,1 15,16A3,3 0 0,1 12,19M17,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V7L17,3Z"/>
@@ -122,19 +121,19 @@
 
       <!-- Dynamic Document Component -->
       <div class="document-form">
-        <!-- For New Patient Form, require patient selection first -->
-        <template v-if="selectedDocument.id === 'new-patient-form' && !selectedPatient">
+        <!-- Require patient selection for all document types -->
+        <template v-if="!selectedPatient">
           <div class="patient-selection-required">
             <div class="patient-selection-message">
               <svg viewBox="0 0 24 24" fill="currentColor" width="48" height="48">
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15l-5-5 1.41-1.41L11 14.17l7.59-7.59L20 8l-9 9z"/>
               </svg>
               <h3>Patient Selection Required</h3>
-              <p>Please select a patient from the "Select Patient for Document" section above to create a New Patient Form.</p>
+              <p>Please select a patient from the "Select Patient for Document" section above to create a {{ selectedDocument?.name || 'document' }}.</p>
             </div>
           </div>
         </template>
-        <!-- Show form for other documents or when patient is selected -->
+        <!-- Show form when patient is selected -->
         <component 
           v-else
           :is="selectedDocument.component"
@@ -507,8 +506,9 @@ const saveDocument = async () => {
   
   if (!selectedPatient.value) {
     toastService.warning(
-      'No Patient Selected',
-      'Please select a patient before saving the document.'
+      'Patient Selection Required',
+      'Please select a patient from the "Select Patient for Document" section before saving the document.',
+      { position: 'top-center', duration: 5000 }
     )
     return
   }

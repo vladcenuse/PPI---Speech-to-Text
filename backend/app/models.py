@@ -36,33 +36,6 @@ class PatientResponse(PatientBase):
         from_attributes = True
 
 
-class MedicalDocumentBase(BaseModel):
-    patient_id: int
-    patient_name: str
-    document_type: str
-    document_id: str
-    custom_name: Optional[str] = None
-    date: str
-    data: Dict[str, Any]
-
-
-class MedicalDocumentCreate(MedicalDocumentBase):
-    pass
-
-
-class MedicalDocumentUpdate(MedicalDocumentBase):
-    pass
-
-
-class MedicalDocumentResponse(MedicalDocumentBase):
-    id: int
-    created_at: str
-    updated_at: str
-    
-    class Config:
-        from_attributes = True
-
-
 class TranscriptionRequest(BaseModel):
     audio_file: bytes
 

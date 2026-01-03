@@ -89,47 +89,6 @@ class ApiClient {
     return this.delete(`/patients/${id}`)
   }
 
-  async getDocuments() {
-    return this.get('/documents')
-  }
-
-  async getDocumentsByPatient(patientId) {
-    return this.get(`/documents/patient/${patientId}`)
-  }
-
-  async getDocument(id) {
-    return this.get(`/documents/${id}`)
-  }
-
-  async createDocument(document) {
-    return this.post('/documents', document)
-  }
-
-  async updateDocument(id, document) {
-    return this.put(`/documents/${id}`, document)
-  }
-
-  async deleteDocument(id) {
-    return this.delete(`/documents/${id}`)
-  }
-
-  async transcribeAudio(audioFile) {
-    const formData = new FormData()
-    formData.append('audio_file', audioFile)
-
-    const response = await fetch(`${this.baseURL}/transcribe`, {
-      method: 'POST',
-      body: formData,
-    })
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }))
-      throw new Error(errorData.detail || `HTTP error! status: ${response.status}`)
-    }
-
-    return await response.json()
-  }
-
   async testConnection() {
     try {
       console.log('🔍 Testing connection to:', this.baseURL)

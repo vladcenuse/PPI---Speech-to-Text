@@ -25,15 +25,13 @@
             <label for="age" class="form-label">Age *</label>
             <input
               id="age"
-              v-model.number="formData.age"
+              :value="computedAge"
               type="number"
               class="form-input"
-              :class="{ 'form-input--error': errors.age, 'form-input--disabled': isViewMode }"
-              :disabled="isViewMode"
-              placeholder="Age"
-              min="0"
-              max="150"
-              required
+              :class="{ 'form-input--error': errors.age, 'form-input--disabled': true }"
+              disabled
+              placeholder="Auto-calculated"
+              readonly
             />
             <span v-if="errors.age" class="form-error">{{ errors.age }}</span>
           </div>
@@ -239,7 +237,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch } from 'vue'
+import { ref, reactive, watch, computed } from 'vue'
 import Button from '@/components/common/Button.vue'
 import { PatientForm as PatientFormModel } from '@/models/PatientForm.js'
 
@@ -275,6 +273,38 @@ const formData = reactive({
   emergencyContact: ''
 })
 
+const calculateAge = (dateOfBirth) => {
+  if (!dateOfBirth || !dateOfBirth.trim()) {
+    return null
+  }
+  const birthDate = new Date(dateOfBirth)
+  if (isNaN(birthDate.getTime())) {
+    return null
+  }
+  const today = new Date()
+  let age = today.getFullYear() - birthDate.getFullYear()
+  const monthDiff = today.getMonth() - birthDate.getMonth()
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--
+  }
+  return age >= 0 ? age : null
+}
+
+const computedAge = computed(() => {
+  return calculateAge(formData.dateOfBirth)
+})
+
+watch(() => formData.dateOfBirth, (newDateOfBirth) => {
+  if (newDateOfBirth && newDateOfBirth.trim()) {
+    const calculatedAge = calculateAge(newDateOfBirth)
+    if (calculatedAge !== null) {
+      formData.age = calculatedAge
+    }
+  } else {
+    formData.age = null
+  }
+})
+
 const initializeFormData = () => {
   try {
     const patientData = props.patient?.value || props.patient
@@ -297,6 +327,12 @@ const initializeFormData = () => {
         currentMedications: (typeof patientData.currentMedications === 'string') ? patientData.currentMedications.trim() : '',
         emergencyContact: (typeof patientData.emergencyContact === 'string') ? patientData.emergencyContact.trim() : ''
       })
+      if (formData.dateOfBirth && formData.dateOfBirth.trim()) {
+        const calculatedAge = calculateAge(formData.dateOfBirth)
+        if (calculatedAge !== null) {
+          formData.age = calculatedAge
+        }
+      }
       console.log('Form data after assignment:', formData)
     } else {
       console.log('No patient data, initializing form for new patient')
@@ -364,14 +400,29 @@ const validateForm = () => {
       isValid = false
     }
 
-    if (formData.age === null || formData.age === undefined || formData.age === '') {
-      errors.age = 'Age is required'
+    if (!formData.dateOfBirth || !formData.dateOfBirth.trim()) {
+      errors.dateOfBirth = 'Date of birth is required'
       isValid = false
     } else {
-      const age = Number(formData.age)
-      if (isNaN(age) || age < 0 || age > 150) {
-        errors.age = 'Age must be a number between 0 and 150 years'
+      const birthDate = new Date(formData.dateOfBirth)
+      const today = new Date()
+      if (isNaN(birthDate.getTime())) {
+        errors.dateOfBirth = 'Date of birth is not valid'
         isValid = false
+      } else if (birthDate > today) {
+        errors.dateOfBirth = 'Date of birth cannot be in the future'
+        isValid = false
+      } else if (birthDate.getFullYear() < 1900) {
+        errors.dateOfBirth = 'Date of birth cannot be before 1900'
+        isValid = false
+      } else {
+        const calculatedAge = calculateAge(formData.dateOfBirth)
+        if (calculatedAge === null || calculatedAge < 0 || calculatedAge > 150) {
+          errors.age = 'Invalid age calculated from date of birth'
+          isValid = false
+        } else {
+          formData.age = calculatedAge
+        }
       }
     }
 
@@ -394,23 +445,6 @@ const validateForm = () => {
       }
     }
 
-    if (!formData.dateOfBirth || !formData.dateOfBirth.trim()) {
-      errors.dateOfBirth = 'Date of birth is required'
-      isValid = false
-    } else {
-      const birthDate = new Date(formData.dateOfBirth)
-      const today = new Date()
-      if (isNaN(birthDate.getTime())) {
-        errors.dateOfBirth = 'Date of birth is not valid'
-        isValid = false
-      } else if (birthDate > today) {
-        errors.dateOfBirth = 'Date of birth cannot be in the future'
-        isValid = false
-      } else if (birthDate.getFullYear() < 1900) {
-        errors.dateOfBirth = 'Date of birth cannot be before 1900'
-        isValid = false
-      }
-    }
 
     if (!isValid) {
       errors.general = 'Please fill in all required fields and correct the displayed errors.'

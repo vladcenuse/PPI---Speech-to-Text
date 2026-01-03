@@ -1,5 +1,4 @@
 import { ref } from 'vue';
-import { appConfig } from '../config/app.config.js';
 
 const API_BASE_URL = 'http://127.0.0.1:8000';
 const API_ENDPOINT = `${API_BASE_URL}/api/process-recording`;
