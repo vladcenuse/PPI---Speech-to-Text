@@ -1,13 +1,7 @@
-/**
- * Search ViewModel
- * Business logic for search and filtering functionality
- */
-
 import { reactive, ref, computed } from 'vue'
 import { filterService } from '@/services/FilterService.js'
 
 export function useSearchViewModel() {
-  // Reactive state
   const state = reactive({
     searchQuery: '',
     searchResults: [],
@@ -49,19 +43,16 @@ export function useSearchViewModel() {
     recentSearches: []
   })
 
-  // Computed properties
   const hasSearchResults = computed(() => state.searchResults.length > 0)
 
   const searchResultsCount = computed(() => state.searchResults.length)
 
   const filteredResults = computed(() => {
     return state.searchResults.filter(result => {
-      // Apply additional filtering logic here if needed
       return true
     })
   })
 
-  // Methods
   const searchPatients = async (patients, query) => {
     state.isSearching = true
     state.searchQuery = query
@@ -123,12 +114,10 @@ export function useSearchViewModel() {
         total: 0
       }
 
-      // Search patients
       if (allData.patients) {
         results.patients = filterService.searchPatients(allData.patients, query)
       }
 
-      // Search recordings
       if (allData.recordings) {
         results.recordings = filterService.searchRecordings(allData.recordings, query)
       }
@@ -162,7 +151,6 @@ export function useSearchViewModel() {
   const clearFilters = (category = null) => {
     if (category) {
       if (state.filters[category]) {
-        // Reset category-specific filters
         const defaultFilters = {
           patients: {
             name: '',
@@ -182,7 +170,6 @@ export function useSearchViewModel() {
         state.filters[category] = defaultFilters[category]
       }
     } else {
-      // Clear all filters
       filterService.clearFilters()
       state.filters = {
         patients: {
@@ -217,15 +204,13 @@ export function useSearchViewModel() {
         timestamp: new Date().toISOString()
       }
 
-      state.searchHistory.unshift(searchEntry)
-      
-      // Keep only last 20 searches
-      if (state.searchHistory.length > 20) {
-        state.searchHistory = state.searchHistory.slice(0, 20)
-      }
+    state.searchHistory.unshift(searchEntry)
+    
+    if (state.searchHistory.length > 20) {
+      state.searchHistory = state.searchHistory.slice(0, 20)
+    }
 
-      // Update recent searches (last 5)
-      state.recentSearches = state.searchHistory.slice(0, 5)
+    state.recentSearches = state.searchHistory.slice(0, 5)
     }
   }
 
@@ -235,7 +220,6 @@ export function useSearchViewModel() {
     const suggestions = []
     const lowerQuery = query.toLowerCase()
 
-    // Patient name suggestions
     if (data.patients) {
       data.patients.forEach(patient => {
         if (patient.name.toLowerCase().includes(lowerQuery)) {
@@ -249,7 +233,6 @@ export function useSearchViewModel() {
       })
     }
 
-    // Medical term suggestions
     const medicalTerms = [
       'dureri', 'durere', 'febra', 'temperatura', 'presiune', 'tensiune',
       'inima', 'puls', 'respiratie', 'oxigen', 'sange', 'test', 'analiza',
@@ -266,7 +249,6 @@ export function useSearchViewModel() {
       }
     })
 
-    // Remove duplicates and limit results
     const uniqueSuggestions = suggestions.filter((suggestion, index, self) =>
       index === self.findIndex(s => s.text === suggestion.text)
     )
@@ -322,7 +304,6 @@ export function useSearchViewModel() {
   }
 
   return {
-    // State
     searchQuery: computed(() => state.searchQuery),
     searchResults: computed(() => state.searchResults),
     filters: computed(() => state.filters),
@@ -332,12 +313,10 @@ export function useSearchViewModel() {
     searchHistory: computed(() => state.searchHistory),
     recentSearches: computed(() => state.recentSearches),
 
-    // Computed
     hasSearchResults,
     searchResultsCount,
     filteredResults,
 
-    // Methods
     searchPatients,
     searchRecordings,
     searchGlobal,

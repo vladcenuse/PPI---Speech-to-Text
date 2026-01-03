@@ -48,7 +48,6 @@
 import { computed, onMounted, onUnmounted } from 'vue'
 import { toastService } from '@/services/ToastService.js'
 
-// Props
 const props = defineProps({
   position: {
     type: String,
@@ -57,10 +56,8 @@ const props = defineProps({
   }
 })
 
-// Data
 const toasts = computed(() => toastService.getToastsByPosition(props.position))
 
-// Methods
 const getToastClasses = (toast) => {
   return [
     'toast',
@@ -98,13 +95,10 @@ const removeToast = (toastId) => {
   toastService.remove(toastId)
 }
 
-// Lifecycle
 onMounted(() => {
-  // Initialize toast service if needed
 })
 
 onUnmounted(() => {
-  // Cleanup if needed
 })
 </script>
 

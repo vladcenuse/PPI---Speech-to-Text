@@ -129,7 +129,6 @@ const handleLogin = async () => {
   
   try {
     await authService.login(loginForm.value.username, loginForm.value.password)
-    // Notify App.vue that auth state changed
     window.dispatchEvent(new Event('auth-changed'))
   } catch (error) {
     loginError.value = error.message || 'Login failed. Please try again.'
@@ -182,7 +181,6 @@ const switchToLogin = () => {
 const handleSuccessClose = () => {
   showSuccessModal.value = false
   switchToLogin()
-  // Clear registration form
   registerForm.value = {
     username: '',
     password: '',

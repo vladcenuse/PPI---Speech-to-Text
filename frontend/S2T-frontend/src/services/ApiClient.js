@@ -1,7 +1,3 @@
-/**
- * API Client for backend communication
- */
-
 import { authService } from './AuthService.js'
 
 const API_BASE_URL = 'http://127.0.0.1:8000/api'
@@ -23,7 +19,6 @@ class ApiClient {
       },
     }
 
-    // Debug: log auth header
     if (authHeaders.Authorization) {
       console.log(' Sending Authorization header:', authHeaders.Authorization.substring(0, 20) + '...')
     } else {
@@ -34,7 +29,6 @@ class ApiClient {
       const response = await fetch(url, config)
       
       if (!response.ok) {
-        // Handle 401 Unauthorized - session expired or invalid
         if (response.status === 401) {
           console.warn('Session expired or invalid. Clearing auth and redirecting to login...')
           authService.clearAuth()
@@ -75,9 +69,7 @@ class ApiClient {
     return this.request(endpoint, { method: 'DELETE' })
   }
 
-  // Patient endpoints
   async getPatients() {
-    // Use trailing slash to avoid redirect that may drop Authorization header
     return this.get('/patients/')
   }
 
@@ -97,7 +89,6 @@ class ApiClient {
     return this.delete(`/patients/${id}`)
   }
 
-  // Document endpoints
   async getDocuments() {
     return this.get('/documents')
   }
@@ -122,7 +113,6 @@ class ApiClient {
     return this.delete(`/documents/${id}`)
   }
 
-  // Transcription endpoint
   async transcribeAudio(audioFile) {
     const formData = new FormData()
     formData.append('audio_file', audioFile)
@@ -140,9 +130,6 @@ class ApiClient {
     return await response.json()
   }
 
-  /**
-   * Test API connection
-   */
   async testConnection() {
     try {
       console.log('🔍 Testing connection to:', this.baseURL)
@@ -159,5 +146,4 @@ class ApiClient {
 
 export const apiClient = new ApiClient()
 
-// Test connection on module load
 apiClient.testConnection()

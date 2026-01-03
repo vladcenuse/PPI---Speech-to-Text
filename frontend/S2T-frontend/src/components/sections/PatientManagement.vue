@@ -232,10 +232,8 @@ import { toastService } from '@/services/ToastService.js'
 import Spinner from '@/components/common/Spinner.vue'
 import { apiClient } from '@/services/ApiClient.js'
 
-// ViewModels
 const patientVM = usePatientViewModel()
 
-// Local state
 const showCreateModal = ref(false)
 const showDeleteModal = ref(false)
 const showMedicalRecordsModal = ref(false)
@@ -248,7 +246,6 @@ const localFilters = reactive({
   gender: ''
 })
 
-// Computed properties from ViewModels
 const {
   patients,
   isLoading,
@@ -265,7 +262,6 @@ const {
   clearFilters
 } = patientVM
 
-// Computed properties for delete modal
 const deleteMessage = computed(() => {
   if (patientToDelete.value) {
     return `Are you sure you want to delete patient "${patientToDelete.value.name}"?`
@@ -280,7 +276,6 @@ const deleteDetails = computed(() => {
   return ''
 })
 
-// Debug computed property for patient data
 const debugPatientData = computed(() => {
   console.log('Debug: currentPatient computed value:', patientVM.currentPatient)
   console.log('Debug: currentPatient type:', typeof patientVM.currentPatient)
@@ -288,7 +283,6 @@ const debugPatientData = computed(() => {
   return patientVM.currentPatient
 })
 
-// Methods
 const refreshPatients = async () => {
   await loadPatients()
 }
@@ -366,7 +360,6 @@ const loadMedicalRecords = async (patientId) => {
   try {
     console.log('Loading medical records for patient:', patientId)
     
-    // Fetch all document types from backend API
     const [newPatientForms, medicalReports, consultationForms, prescriptionForms, echocardiographyForms] = await Promise.all([
       apiClient.get(`/new-patient-forms/patient/${patientId}`).catch(() => []),
       apiClient.get(`/medical-reports/patient/${patientId}`).catch(() => []),
@@ -375,10 +368,8 @@ const loadMedicalRecords = async (patientId) => {
       apiClient.get(`/echocardiography-forms/patient/${patientId}`).catch(() => [])
     ])
     
-    // Combine and transform all documents to a unified format
     const allDocuments = []
     
-    // Transform new patient forms
     if (Array.isArray(newPatientForms)) {
       newPatientForms.forEach(form => {
         allDocuments.push({
@@ -412,7 +403,6 @@ const loadMedicalRecords = async (patientId) => {
       })
     }
     
-    // Transform medical reports
     if (Array.isArray(medicalReports)) {
       medicalReports.forEach(form => {
         allDocuments.push({
@@ -436,7 +426,6 @@ const loadMedicalRecords = async (patientId) => {
       })
     }
     
-    // Transform consultation forms
     if (Array.isArray(consultationForms)) {
       consultationForms.forEach(form => {
         allDocuments.push({
@@ -458,7 +447,6 @@ const loadMedicalRecords = async (patientId) => {
       })
     }
     
-    // Transform prescription forms
     if (Array.isArray(prescriptionForms)) {
       prescriptionForms.forEach(form => {
         allDocuments.push({
@@ -480,7 +468,6 @@ const loadMedicalRecords = async (patientId) => {
       })
     }
     
-    // Transform echocardiography forms
     if (Array.isArray(echocardiographyForms)) {
       echocardiographyForms.forEach(form => {
         allDocuments.push({
@@ -495,7 +482,7 @@ const loadMedicalRecords = async (patientId) => {
             aorta_la_inel: form.aorta_la_inel,
             aorta_la_sinusur_levart_sagva: form.aorta_la_sinusur_levart_sagva,
             aorta_ascendenta: form.aorta_ascendenta,
-            as: form.as || form.as_value, // Handle both field name and alias
+            as: form.as || form.as_value,
             ventricul_drept: form.ventricul_drept,
             atriu_stang: form.atriu_stang,
             vd: form.vd,
@@ -519,23 +506,18 @@ const loadMedicalRecords = async (patientId) => {
 const editMedicalRecord = (record) => {
   console.log('Edit medical record:', record)
   
-  // Store the record to edit globally
   localStorage.setItem('editingDocumentId', record.id.toString())
   
-  // Include patientId, customName, and other metadata in the data
   const documentData = { ...record.data, patientId: record.patientId }
   localStorage.setItem('editingDocumentData', JSON.stringify(documentData))
   localStorage.setItem('editingDocumentType', record.documentType)
   localStorage.setItem('editingDocumentCustomName', record.customName || '')
   
-  // Trigger navigation to documents tab by emitting an event
-  // The event will be handled in the MainView to switch sections
   const event = new CustomEvent('navigate-to-documents', { 
     detail: { documentId: record.id, documentData: documentData, documentType: record.documentType } 
   })
   window.dispatchEvent(event)
   
-  // Close the medical records modal
   closeMedicalRecordsModal()
   
   toastService.info(
@@ -547,7 +529,6 @@ const editMedicalRecord = (record) => {
 const deleteMedicalRecord = async (record) => {
   if (confirm(`Are you sure you want to delete this ${record.documentType}?`)) {
     try {
-      // Determine the API endpoint based on document type
       const formTypeEndpoints = {
         'new-patient-form': 'new-patient-forms',
         'medical-report': 'medical-reports',
@@ -564,7 +545,6 @@ const deleteMedicalRecord = async (record) => {
       
       await apiClient.delete(`/${endpoint}/${record.id}`)
       
-      // Reload medical records to reflect the deletion
       await loadMedicalRecords(selectedPatientForRecords.value.id)
       
       toastService.success(
@@ -691,20 +671,16 @@ const exportRecordToWord = (record) => {
     </html>
   `
   
-  // Create blob with Word MIME type
   const blob = new Blob([content], { type: 'application/msword' })
   
-  // Create download link
   const link = document.createElement('a')
   link.href = URL.createObjectURL(blob)
   link.download = `${documentName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.doc`
   
-  // Trigger download
   document.body.appendChild(link)
   link.click()
   document.body.removeChild(link)
   
-  // Clean up
   URL.revokeObjectURL(link.href)
   
   toastService.success(
@@ -771,12 +747,10 @@ const getPatientAvatarClass = (patient) => {
   return colors[index]
 }
 
-// Watch for search and filter changes
 watch(localSearchQuery, (newQuery) => {
   setSearchQuery(newQuery)
 })
 
-// Debounce filter changes to prevent excessive updates
 let filterDebounceTimer = null
 watch(localFilters, (newFilters) => {
   if (filterDebounceTimer) {
@@ -784,7 +758,6 @@ watch(localFilters, (newFilters) => {
   }
   
   filterDebounceTimer = setTimeout(() => {
-    // Process filters
     const processedFilters = {
       ...newFilters,
       gender: newFilters.gender === '' ? '' : newFilters.gender
@@ -793,7 +766,6 @@ watch(localFilters, (newFilters) => {
   }, 150)
 }, { deep: true })
 
-// Lifecycle
 onMounted(async () => {
   await loadPatients()
 })

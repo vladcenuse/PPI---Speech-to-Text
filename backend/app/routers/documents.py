@@ -1,6 +1,3 @@
-"""
-Medical document management endpoints
-"""
 from fastapi import APIRouter, HTTPException
 from datetime import datetime
 from typing import List
@@ -15,7 +12,6 @@ router = APIRouter()
 
 @router.get("/", response_model=List[MedicalDocumentResponse])
 async def get_documents():
-    """Get all medical documents"""
     db = get_firestore_db()
     docs_ref = db.collection('medical_documents')
     
@@ -25,7 +21,6 @@ async def get_documents():
     for doc in docs:
         doc_data = doc_to_dict(doc)
         if doc_data:
-            # Ensure data is a dict, not a string
             if isinstance(doc_data.get('data'), str):
                 try:
                     doc_data['data'] = json.loads(doc_data['data'])
@@ -38,7 +33,6 @@ async def get_documents():
 
 @router.get("/patient/{patient_id}", response_model=List[MedicalDocumentResponse])
 async def get_documents_by_patient(patient_id: int):
-    """Get all medical documents for a specific patient"""
     db = get_firestore_db()
     docs_ref = db.collection('medical_documents')
     
@@ -48,7 +42,6 @@ async def get_documents_by_patient(patient_id: int):
     for doc in docs:
         doc_data = doc_to_dict(doc)
         if doc_data:
-            # Ensure data is a dict, not a string
             if isinstance(doc_data.get('data'), str):
                 try:
                     doc_data['data'] = json.loads(doc_data['data'])
@@ -56,7 +49,6 @@ async def get_documents_by_patient(patient_id: int):
                     doc_data['data'] = {}
             documents.append(doc_data)
     
-    # Sort by created_at descending in memory
     documents.sort(key=lambda x: x.get('created_at', ''), reverse=True)
     
     return documents
@@ -64,7 +56,6 @@ async def get_documents_by_patient(patient_id: int):
 
 @router.get("/{document_id}", response_model=MedicalDocumentResponse)
 async def get_document(document_id: int):
-    """Get a single medical document by ID"""
     db = get_firestore_db()
     docs_ref = db.collection('medical_documents')
     
@@ -75,7 +66,6 @@ async def get_document(document_id: int):
         raise HTTPException(status_code=404, detail="Document not found")
     
     doc_data = doc_to_dict(doc)
-    # Ensure data is a dict, not a string
     if isinstance(doc_data.get('data'), str):
         try:
             doc_data['data'] = json.loads(doc_data['data'])
@@ -87,12 +77,10 @@ async def get_document(document_id: int):
 
 @router.post("/", response_model=MedicalDocumentResponse)
 async def create_document(document: MedicalDocumentCreate):
-    """Create a new medical document"""
     db = get_firestore_db()
     docs_ref = db.collection('medical_documents')
     patients_ref = db.collection('patients')
     
-    # Verify patient exists
     patient_doc = patients_ref.document(str(document.patient_id)).get()
     if not patient_doc.exists:
         raise HTTPException(status_code=404, detail="Patient not found")
@@ -116,11 +104,9 @@ async def create_document(document: MedicalDocumentCreate):
 
 @router.put("/{document_id}", response_model=MedicalDocumentResponse)
 async def update_document(document_id: int, document: MedicalDocumentUpdate):
-    """Update an existing medical document"""
     db = get_firestore_db()
     docs_ref = db.collection('medical_documents')
     
-    # Check if document exists
     doc_ref = docs_ref.document(str(document_id))
     doc = doc_ref.get()
     
@@ -146,7 +132,6 @@ async def update_document(document_id: int, document: MedicalDocumentUpdate):
 
 @router.delete("/{document_id}")
 async def delete_document(document_id: int):
-    """Delete a medical document"""
     db = get_firestore_db()
     docs_ref = db.collection('medical_documents')
     

@@ -49,7 +49,6 @@
 <script setup>
 import { watch } from 'vue'
 
-// Props
 const props = defineProps({
   isOpen: {
     type: Boolean,
@@ -89,10 +88,8 @@ const props = defineProps({
   }
 })
 
-// Emits
 const emit = defineEmits(['confirm', 'cancel', 'close'])
 
-// Methods
 const handleConfirm = () => {
   emit('confirm')
 }
@@ -114,7 +111,6 @@ const handleEscapeKey = (event) => {
   }
 }
 
-// Watch for escape key
 watch(() => props.isOpen, (isOpen) => {
   if (isOpen) {
     document.addEventListener('keydown', handleEscapeKey)

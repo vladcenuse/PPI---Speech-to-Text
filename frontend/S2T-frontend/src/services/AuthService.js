@@ -1,8 +1,3 @@
-/**
- * Authentication Service
- * Handles doctor login, registration, and session management
- */
-
 const API_BASE_URL = 'http://127.0.0.1:8000';
 const AUTH_ENDPOINT = `${API_BASE_URL}/api/auth`;
 
@@ -12,47 +7,29 @@ class AuthService {
     this.doctorKey = 's2t_doctor_info';
   }
 
-  /**
-   * Get stored auth token
-   */
   getToken() {
     return localStorage.getItem(this.tokenKey);
   }
 
-  /**
-   * Get stored doctor info
-   */
   getDoctorInfo() {
     const info = localStorage.getItem(this.doctorKey);
     return info ? JSON.parse(info) : null;
   }
 
-  /**
-   * Set auth token and doctor info
-   */
   setAuth(token, doctorInfo) {
     localStorage.setItem(this.tokenKey, token);
     localStorage.setItem(this.doctorKey, JSON.stringify(doctorInfo));
   }
 
-  /**
-   * Clear auth data
-   */
   clearAuth() {
     localStorage.removeItem(this.tokenKey);
     localStorage.removeItem(this.doctorKey);
   }
 
-  /**
-   * Check if user is authenticated
-   */
   isAuthenticated() {
     return !!this.getToken();
   }
 
-  /**
-   * Register a new doctor account
-   */
   async register(username, password, confirmPassword) {
     try {
       const response = await fetch(`${AUTH_ENDPOINT}/register`, {
@@ -79,9 +56,6 @@ class AuthService {
     }
   }
 
-  /**
-   * Login doctor
-   */
   async login(username, password) {
     try {
       const response = await fetch(`${AUTH_ENDPOINT}/login`, {
@@ -101,7 +75,6 @@ class AuthService {
         throw new Error(data.detail || 'Login failed');
       }
 
-      // Store token and doctor info
       const token = data.token || `Bearer ${data.doctor_id}_${Date.now()}`;
       console.log(' Login successful, storing token:', token.substring(0, 30) + '...');
       this.setAuth(token, {
@@ -116,9 +89,6 @@ class AuthService {
     }
   }
 
-  /**
-   * Logout doctor
-   */
   async logout() {
     try {
       const token = this.getToken();
@@ -137,9 +107,6 @@ class AuthService {
     }
   }
 
-  /**
-   * Get authorization header for API requests
-   */
   getAuthHeader() {
     const token = this.getToken();
     if (!token) {
@@ -151,7 +118,6 @@ class AuthService {
   }
 }
 
-// Create and export singleton instance
 export const authService = new AuthService();
 export default authService;
 

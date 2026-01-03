@@ -5,7 +5,6 @@ const API_BASE_URL = 'http://127.0.0.1:8000';
 const API_ENDPOINT = `${API_BASE_URL}/api/process-recording`;
 
 export function useAudioProcessor() {
-    // State
     const isRecording = ref(false);
     const isProcessing = ref(false);
     const audioBlob = ref(null);
@@ -13,12 +12,10 @@ export function useAudioProcessor() {
     const parsedData = ref(null);
     const error = ref(null);
 
-    // Internal Refs
     const mediaRecorderRef = ref(null);
     const audioChunks = ref([]);
     let streamRef = null;
 
-    // Recording Logic
     const startRecording = async () => {
         error.value = null;
         rawTranscript.value = null;
@@ -60,7 +57,6 @@ export function useAudioProcessor() {
         }
     };
 
-    // API Submission Handler (receives fields array and form type)
     const processAudio = async (fieldList, formType = null) => {
         if (!audioBlob.value) {
             error.value = "Please record audio before processing.";
@@ -110,7 +106,6 @@ export function useAudioProcessor() {
         }
     };
     
-    // Cleanup function for unmount hook
     const cleanup = () => {
         if (streamRef) {
             streamRef.getTracks().forEach(track => track.stop());
@@ -118,7 +113,6 @@ export function useAudioProcessor() {
     };
 
     return {
-        // State
         isRecording,
         isProcessing,
         audioBlob,
@@ -126,7 +120,6 @@ export function useAudioProcessor() {
         parsedData,
         error,
 
-        // Actions
         startRecording,
         stopRecording,
         processAudio,

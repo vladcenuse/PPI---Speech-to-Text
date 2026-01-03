@@ -1,19 +1,11 @@
-/**
- * UI State ViewModel
- * Manages application-wide UI state and user interface logic
- */
-
 import { reactive, ref, computed } from 'vue'
 
 export function useUIStateViewModel() {
-  // Reactive state
   const state = reactive({
-    // Navigation
     currentRoute: '',
     sidebarCollapsed: false,
     breadcrumbs: [],
 
-    // Modals and dialogs
     modals: {
       patientForm: false,
       exportModal: false,
@@ -21,25 +13,21 @@ export function useUIStateViewModel() {
       confirmationDialog: false
     },
 
-    // Notifications
     notifications: [],
     toastMessages: [],
 
-    // Loading states
     loading: {
       global: false,
       patients: false,
       export: false
     },
 
-    // Theme and appearance
     theme: {
-      mode: 'light', // light, dark
+      mode: 'light',
       primaryColor: '#667eea',
       accentColor: '#764ba2'
     },
 
-    // User preferences
     preferences: {
       language: 'ro',
       autoSave: true,
@@ -47,7 +35,6 @@ export function useUIStateViewModel() {
       compactMode: false
     },
 
-    // Form states
     forms: {
       patientForm: {
         isDirty: false,
@@ -56,7 +43,6 @@ export function useUIStateViewModel() {
       }
     },
 
-    // Error handling
     errors: {
       global: null,
       forms: {},
@@ -64,7 +50,6 @@ export function useUIStateViewModel() {
     }
   })
 
-  // Computed properties
   const hasNotifications = computed(() => state.notifications.length > 0)
 
   const hasUnreadNotifications = computed(() => 
@@ -83,7 +68,6 @@ export function useUIStateViewModel() {
       .map(([key]) => key)
   )
 
-  // Methods
   const setCurrentRoute = (route) => {
     state.currentRoute = route
     updateBreadcrumbs(route)
@@ -113,7 +97,6 @@ export function useUIStateViewModel() {
     state.sidebarCollapsed = collapsed
   }
 
-  // Modal management
   const openModal = (modalName) => {
     if (state.modals[modalName] !== undefined) {
       state.modals[modalName] = true
@@ -132,7 +115,6 @@ export function useUIStateViewModel() {
     })
   }
 
-  // Notification management
   const addNotification = (notification) => {
     const id = Date.now()
     const newNotification = {
@@ -147,7 +129,6 @@ export function useUIStateViewModel() {
 
     state.notifications.unshift(newNotification)
 
-    // Keep only last 50 notifications
     if (state.notifications.length > 50) {
       state.notifications = state.notifications.slice(0, 50)
     }
@@ -176,7 +157,6 @@ export function useUIStateViewModel() {
     state.notifications = []
   }
 
-  // Toast messages
   const showToast = (message, type = 'info', duration = 5000) => {
     const id = Date.now()
     const toast = {
@@ -189,7 +169,6 @@ export function useUIStateViewModel() {
 
     state.toastMessages.push(toast)
 
-    // Auto remove after duration
     setTimeout(() => {
       removeToast(id)
     }, duration)
@@ -205,7 +184,6 @@ export function useUIStateViewModel() {
     state.toastMessages = []
   }
 
-  // Loading states
   const setLoading = (key, loading) => {
     if (state.loading[key] !== undefined) {
       state.loading[key] = loading
@@ -216,7 +194,6 @@ export function useUIStateViewModel() {
     state.loading.global = loading
   }
 
-  // Theme management
   const setTheme = (theme) => {
     state.theme = { ...state.theme, ...theme }
     applyTheme(state.theme)
@@ -228,13 +205,11 @@ export function useUIStateViewModel() {
   }
 
   const applyTheme = (theme) => {
-    // Apply theme to document root
     document.documentElement.setAttribute('data-theme', theme.mode)
     document.documentElement.style.setProperty('--primary-color', theme.primaryColor)
     document.documentElement.style.setProperty('--accent-color', theme.accentColor)
   }
 
-  // Preferences management
   const updatePreferences = (preferences) => {
     state.preferences = { ...state.preferences, ...preferences }
     savePreferencesToStorage()
@@ -260,7 +235,6 @@ export function useUIStateViewModel() {
     }
   }
 
-  // Form state management
   const setFormState = (formName, state) => {
     if (state.forms[formName]) {
       state.forms[formName] = { ...state.forms[formName], ...state }
@@ -277,7 +251,6 @@ export function useUIStateViewModel() {
     }
   }
 
-  // Error management
   const setError = (category, key, error) => {
     if (!state.errors[category]) {
       state.errors[category] = {}
@@ -299,7 +272,6 @@ export function useUIStateViewModel() {
     }
   }
 
-  // Utility methods
   const showSuccess = (message) => {
     showToast(message, 'success')
     addNotification({
@@ -336,14 +308,12 @@ export function useUIStateViewModel() {
     })
   }
 
-  // Initialize
   const initialize = () => {
     loadPreferencesFromStorage()
     applyTheme(state.theme)
   }
 
   return {
-    // State
     currentRoute: computed(() => state.currentRoute),
     sidebarCollapsed: computed(() => state.sidebarCollapsed),
     breadcrumbs: computed(() => state.breadcrumbs),
@@ -356,14 +326,12 @@ export function useUIStateViewModel() {
     forms: computed(() => state.forms),
     errors: computed(() => state.errors),
 
-    // Computed
     hasNotifications,
     hasUnreadNotifications,
     isAnyLoading,
     isDarkMode,
     activeModals,
 
-    // Methods
     setCurrentRoute,
     toggleSidebar,
     setSidebarCollapsed,

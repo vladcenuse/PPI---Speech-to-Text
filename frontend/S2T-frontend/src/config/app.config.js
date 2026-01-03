@@ -1,10 +1,4 @@
-/**
- * Application Configuration
- * Centralized configuration for the Speech-to-Text Medical Application
- */
-
 export const appConfig = {
-  // Application Info
   app: {
     name: 'Speech-to-Text Medical System',
     version: '1.0.0',
@@ -12,7 +6,6 @@ export const appConfig = {
     author: 'Vladutz Simion, Buhaitu Andrei, Chisu Grasu',
   },
 
-  // API Configuration
   api: {
     baseUrl: process.env.NODE_ENV === 'production' 
       ? 'https://your-production-api.com' 
@@ -26,25 +19,22 @@ export const appConfig = {
     }
   },
 
-  // Recording Configuration
   recording: {
-    maxDuration: 300000, // 5 minutes in milliseconds
+    maxDuration: 300000,
     audioFormat: 'audio/webm;codecs=opus' ,
     sampleRate: 44100,
     channels: 1,
     bitRate: 128000
   },
 
-  // Speech-to-Text Configuration
   speechToText: {
-    language: 'ro-RO', // Romanian language
+    language: 'ro-RO',
     maxAlternatives: 1,
     confidenceThreshold: 0.8,
     enablePunctuation: true,
     enableWordTimeOffsets: true
   },
 
-  // UI Configuration
   ui: {
     theme: {
       primaryColor: '#667eea',
@@ -65,22 +55,19 @@ export const appConfig = {
     }
   },
 
-  // Export Configuration
   export: {
     supportedFormats: ['docx', 'pdf'],
     defaultFormat: 'docx',
     templatePath: '/templates/patient-form-template.docx'
   },
 
-  // Storage Configuration
   storage: {
     localStorageKey: 's2t-medical-app',
     sessionStorageKey: 's2t-medical-session',
-    maxCacheSize: 50 * 1024 * 1024, // 50MB
-    cacheExpiration: 24 * 60 * 60 * 1000 // 24 hours
+    maxCacheSize: 50 * 1024 * 1024,
+    cacheExpiration: 24 * 60 * 60 * 1000
   },
 
-  // Development Configuration
   development: {
     enableDevTools: process.env.NODE_ENV === 'development',
     mockApiResponses: true,

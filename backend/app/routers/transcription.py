@@ -1,6 +1,3 @@
-"""
-OpenAI Speech-to-Text transcription endpoints
-"""
 from fastapi import APIRouter, UploadFile, File, HTTPException, Form
 from openai import OpenAI
 import os
@@ -14,7 +11,6 @@ load_dotenv()
 router = APIRouter()
 
 def get_openai_client():
-    """Get OpenAI client, initializing it only when needed"""
     api_key = os.getenv('OPENAI_API_KEY')
     if not api_key:
         return None
@@ -23,9 +19,6 @@ def get_openai_client():
 
 @router.post("/transcribe", response_model=TranscriptionResponse)
 async def transcribe_audio(audio_file: UploadFile = File(...)):
-    """
-    Transcribe audio file using OpenAI Whisper
-    """
     openai_client = get_openai_client()
     if not openai_client:
         raise HTTPException(
@@ -77,10 +70,6 @@ async def process_recording(
     audio_file: UploadFile = File(...),
     fields_json: str = Form(...)
 ):
-    """
-    Process audio recording with field list and return parsed data.
-    Accepts audio file and a JSON string with field names to extract.
-    """
     openai_client = get_openai_client()
     if not openai_client:
         raise HTTPException(
@@ -151,10 +140,6 @@ async def process_recording(
 
 
 def parse_transcript_with_openai(openai_client: OpenAI, transcript: str, field_list: list[str]) -> dict:
-    """
-    Parse transcript using OpenAI to extract structured field values.
-    Falls back to regex-based parsing if OpenAI fails.
-    """
     try:
         field_names_str = ', '.join([f'"{field}"' for field in field_list])
         prompt = f"""Extrage valorile pentru următoarele câmpuri din acest text transcrit în română.
@@ -200,14 +185,10 @@ Format JSON: {{"câmp1": "valoare1", "câmp2": "valoare2", ...}}
 
 
 def parse_transcript_for_fields_fallback(transcript: str, field_list: list[str]) -> dict:
-    """
-    Fallback parser using regex patterns.
-    """
     parsed = {}
     transcript_lower = transcript.lower()
     
     def normalize_romanian(text: str) -> str:
-        """Normalize Romanian text for matching"""
         replacements = {
             'ă': 'a', 'â': 'a', 'î': 'i', 'ș': 's', 'ț': 't',
             'Ă': 'A', 'Â': 'A', 'Î': 'I', 'Ș': 'S', 'Ț': 'T'
@@ -257,7 +238,6 @@ def parse_transcript_for_fields_fallback(transcript: str, field_list: list[str])
 
 @router.get("/health")
 async def transcription_health():
-    """Check if transcription service is available"""
     openai_client = get_openai_client()
     if not openai_client:
         return {

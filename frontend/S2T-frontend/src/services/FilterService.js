@@ -1,8 +1,3 @@
-/**
- * Filter Service
- * Handles data filtering and search functionality
- */
-
 class FilterService {
   constructor() {
     this.filters = {
@@ -23,19 +18,14 @@ class FilterService {
     }
   }
 
-  /**
-   * Filter patients based on criteria
-   */
   filterPatients(patients, criteria = {}) {
     if (!Array.isArray(patients)) return []
 
     return patients.filter(patient => {
-      // Name filter
       if (criteria.name && !patient.name.toLowerCase().includes(criteria.name.toLowerCase())) {
         return false
       }
 
-      // Age range filter
       if (criteria.ageRange) {
         if (criteria.ageRange.min !== null && patient.age < criteria.ageRange.min) {
           return false
@@ -45,12 +35,10 @@ class FilterService {
         }
       }
 
-      // Gender filter - only apply if gender is specified (non-empty string)
       if (criteria.gender && criteria.gender.trim() !== '' && patient.gender !== criteria.gender) {
         return false
       }
 
-      // Date range filter
       if (criteria.dateRange) {
         const patientDate = new Date(patient.updatedAt || patient.createdAt)
         if (criteria.dateRange.start && patientDate < new Date(criteria.dateRange.start)) {
@@ -61,7 +49,6 @@ class FilterService {
         }
       }
 
-      // Has recordings filter
       if (criteria.hasRecordings !== null) {
         const hasRecordings = patient.observations && patient.observations.length > 0
         if (criteria.hasRecordings && !hasRecordings) {
@@ -76,19 +63,14 @@ class FilterService {
     })
   }
 
-  /**
-   * Filter recordings based on criteria
-   */
   filterRecordings(recordings, criteria = {}) {
     if (!Array.isArray(recordings)) return []
 
     return recordings.filter(recording => {
-      // Patient ID filter
       if (criteria.patientId && recording.patientId !== criteria.patientId) {
         return false
       }
 
-      // Date range filter
       if (criteria.dateRange) {
         const recordingDate = new Date(recording.timestamp)
         if (criteria.dateRange.start && recordingDate < new Date(criteria.dateRange.start)) {
@@ -99,7 +81,6 @@ class FilterService {
         }
       }
 
-      // Duration filter
       if (criteria.duration) {
         if (criteria.duration.min !== null && recording.duration < criteria.duration.min) {
           return false
@@ -109,7 +90,6 @@ class FilterService {
         }
       }
 
-      // Has transcription filter
       if (criteria.hasTranscription !== null) {
         const hasTranscription = recording.transcription && recording.transcription.text
         if (criteria.hasTranscription && !hasTranscription) {
@@ -120,7 +100,6 @@ class FilterService {
         }
       }
 
-      // Confidence filter
       if (criteria.confidence) {
         if (criteria.confidence.min !== null && recording.transcription?.confidence < criteria.confidence.min) {
           return false
@@ -134,9 +113,6 @@ class FilterService {
     })
   }
 
-  /**
-   * Search patients by text query
-   */
   searchPatients(patients, query) {
     if (!query || !query.trim()) return patients
 
@@ -154,9 +130,6 @@ class FilterService {
     })
   }
 
-  /**
-   * Search recordings by text query
-   */
   searchRecordings(recordings, query) {
     if (!query || !query.trim()) return recordings
 
@@ -170,21 +143,16 @@ class FilterService {
     })
   }
 
-  /**
-   * Sort patients by criteria
-   */
   sortPatients(patients, sortBy = 'name', sortOrder = 'asc') {
     return [...patients].sort((a, b) => {
       let aValue = a[sortBy]
       let bValue = b[sortBy]
 
-      // Handle date sorting
       if (sortBy === 'createdAt' || sortBy === 'updatedAt') {
         aValue = new Date(aValue)
         bValue = new Date(bValue)
       }
 
-      // Handle string sorting
       if (typeof aValue === 'string') {
         aValue = aValue.toLowerCase()
         bValue = bValue.toLowerCase()
@@ -198,21 +166,16 @@ class FilterService {
     })
   }
 
-  /**
-   * Sort recordings by criteria
-   */
   sortRecordings(recordings, sortBy = 'timestamp', sortOrder = 'desc') {
     return [...recordings].sort((a, b) => {
       let aValue = a[sortBy]
       let bValue = b[sortBy]
 
-      // Handle date sorting
       if (sortBy === 'timestamp' || sortBy === 'startTime') {
         aValue = new Date(aValue)
         bValue = new Date(bValue)
       }
 
-      // Handle nested properties
       if (sortBy === 'confidence') {
         aValue = a.transcription?.confidence || 0
         bValue = b.transcription?.confidence || 0
@@ -226,9 +189,6 @@ class FilterService {
     })
   }
 
-  /**
-   * Get filter options for patients
-   */
   getPatientFilterOptions(patients) {
     const genders = [...new Set(patients.map(p => p.gender).filter(Boolean))]
     const ageGroups = this.getAgeGroups(patients)
@@ -244,9 +204,6 @@ class FilterService {
     }
   }
 
-  /**
-   * Get age groups from patients
-   */
   getAgeGroups(patients) {
     const ages = patients.map(p => p.age).filter(age => age > 0)
     const minAge = Math.min(...ages)
@@ -263,9 +220,6 @@ class FilterService {
     return groups
   }
 
-  /**
-   * Clear all filters
-   */
   clearFilters() {
     this.filters = {
       patients: {
@@ -285,16 +239,10 @@ class FilterService {
     }
   }
 
-  /**
-   * Get current filters
-   */
   getFilters() {
     return this.filters
   }
 
-  /**
-   * Set filter value
-   */
   setFilter(category, key, value) {
     if (this.filters[category]) {
       this.filters[category][key] = value
@@ -302,7 +250,6 @@ class FilterService {
   }
 }
 
-// Create and export singleton instance
 export const filterService = new FilterService()
 export default filterService
 

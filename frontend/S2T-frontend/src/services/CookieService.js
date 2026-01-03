@@ -1,42 +1,27 @@
-/**
- * Cookie Service
- * Comprehensive cookie management system
- */
-
 import Cookies from 'js-cookie'
 
 class CookieService {
   constructor() {
     this.defaultOptions = {
-      expires: 365, // 1 year
+      expires: 365,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax'
     }
     
     this.cookieKeys = {
-      // User preferences
       theme: 's2t_theme',
       language: 's2t_language',
       sidebarCollapsed: 's2t_sidebar_collapsed',
       compactMode: 's2t_compact_mode',
-      
-      // Application state
       lastRoute: 's2t_last_route',
       searchFilters: 's2t_search_filters',
       userPreferences: 's2t_user_preferences',
-      
-      // Session data
       sessionId: 's2t_session_id',
       lastActivity: 's2t_last_activity',
-      
-      // Feature flags
       featureFlags: 's2t_feature_flags'
     }
   }
 
-  /**
-   * Set a cookie with default options
-   */
   set(name, value, options = {}) {
     const cookieOptions = { ...this.defaultOptions, ...options }
     
@@ -49,9 +34,6 @@ class CookieService {
     }
   }
 
-  /**
-   * Get a cookie value
-   */
   get(name, defaultValue = null) {
     try {
       const value = Cookies.get(name)
@@ -62,9 +44,6 @@ class CookieService {
     }
   }
 
-  /**
-   * Remove a cookie
-   */
   remove(name) {
     try {
       Cookies.remove(name)
@@ -75,16 +54,10 @@ class CookieService {
     }
   }
 
-  /**
-   * Check if a cookie exists
-   */
   exists(name) {
     return Cookies.get(name) !== undefined
   }
 
-  /**
-   * Get all cookies
-   */
   getAll() {
     try {
       return Cookies.get()
@@ -94,9 +67,6 @@ class CookieService {
     }
   }
 
-  /**
-   * Clear all application cookies
-   */
   clearAll() {
     try {
       Object.values(this.cookieKeys).forEach(key => {
@@ -109,7 +79,6 @@ class CookieService {
     }
   }
 
-  // Theme management
   setTheme(theme) {
     return this.set(this.cookieKeys.theme, theme)
   }
@@ -118,7 +87,6 @@ class CookieService {
     return this.get(this.cookieKeys.theme, 'light')
   }
 
-  // Language management
   setLanguage(language) {
     return this.set(this.cookieKeys.language, language)
   }
@@ -127,7 +95,6 @@ class CookieService {
     return this.get(this.cookieKeys.language, 'ro')
   }
 
-  // Sidebar state
   setSidebarCollapsed(collapsed) {
     return this.set(this.cookieKeys.sidebarCollapsed, collapsed.toString())
   }
@@ -136,7 +103,6 @@ class CookieService {
     return this.get(this.cookieKeys.sidebarCollapsed, 'false') === 'true'
   }
 
-  // Compact mode
   setCompactMode(enabled) {
     return this.set(this.cookieKeys.compactMode, enabled.toString())
   }
@@ -145,7 +111,6 @@ class CookieService {
     return this.get(this.cookieKeys.compactMode, 'false') === 'true'
   }
 
-  // Last route
   setLastRoute(route) {
     return this.set(this.cookieKeys.lastRoute, route)
   }
@@ -154,7 +119,6 @@ class CookieService {
     return this.get(this.cookieKeys.lastRoute, '/')
   }
 
-  // Search filters
   setSearchFilters(filters) {
     try {
       const filtersJson = JSON.stringify(filters)
@@ -175,7 +139,6 @@ class CookieService {
     }
   }
 
-  // User preferences
   setUserPreferences(preferences) {
     try {
       const preferencesJson = JSON.stringify(preferences)
@@ -196,10 +159,9 @@ class CookieService {
     }
   }
 
-  // Session management
   setSessionId(sessionId) {
     return this.set(this.cookieKeys.sessionId, sessionId, {
-      expires: 1 // 1 day for session
+      expires: 1
     })
   }
 
@@ -209,7 +171,7 @@ class CookieService {
 
   setLastActivity() {
     return this.set(this.cookieKeys.lastActivity, Date.now().toString(), {
-      expires: 1 // 1 day
+      expires: 1
     })
   }
 
@@ -218,7 +180,6 @@ class CookieService {
     return lastActivity ? parseInt(lastActivity) : null
   }
 
-  // Feature flags
   setFeatureFlags(flags) {
     try {
       const flagsJson = JSON.stringify(flags)
@@ -239,7 +200,6 @@ class CookieService {
     }
   }
 
-  // Utility methods
   setJSON(name, value, options = {}) {
     try {
       const jsonValue = JSON.stringify(value)
@@ -260,10 +220,9 @@ class CookieService {
     }
   }
 
-  // Cookie consent management
   setCookieConsent(given) {
     return this.set('cookie_consent', given.toString(), {
-      expires: 365 * 10 // 10 years
+      expires: 365 * 10
     })
   }
 
@@ -275,7 +234,6 @@ class CookieService {
     return this.exists('cookie_consent')
   }
 
-  // Data export/import
   exportCookies() {
     const cookies = this.getAll()
     return {
@@ -300,7 +258,6 @@ class CookieService {
     }
   }
 
-  // Cookie analytics
   getCookieStats() {
     const allCookies = this.getAll()
     const appCookies = Object.values(this.cookieKeys).reduce((acc, key) => {
@@ -318,19 +275,15 @@ class CookieService {
     }
   }
 
-  // Cleanup expired cookies
   cleanup() {
-    // This is handled automatically by the browser
-    // But we can remove any cookies we know are expired
     const lastActivity = this.getLastActivity()
-    if (lastActivity && Date.now() - lastActivity > 24 * 60 * 60 * 1000) { // 24 hours
+    if (lastActivity && Date.now() - lastActivity > 24 * 60 * 60 * 1000) {
       this.remove(this.cookieKeys.sessionId)
       this.remove(this.cookieKeys.lastActivity)
     }
   }
 }
 
-// Create and export singleton instance
 export const cookieService = new CookieService()
 export default cookieService
 

@@ -114,7 +114,6 @@ const props = defineProps({
 
 const emit = defineEmits(['field-update'])
 
-// Use the composable
 const {
   isRecording,
   isProcessing,
@@ -128,11 +127,9 @@ const {
   cleanup
 } = useAudioProcessor()
 
-// Recording duration tracking
 const recordingDuration = ref(0)
 let recordingInterval = null
 
-// Watch isRecording to start/stop duration timer
 watch(isRecording, (recording) => {
   if (recording) {
     recordingDuration.value = 0
@@ -147,7 +144,6 @@ watch(isRecording, (recording) => {
   }
 })
 
-// Form fields based on mock data structure
 const formFields = [
   {
     key: 'aorta_la_inel',
@@ -193,7 +189,6 @@ const formFields = [
   }
 ]
 
-// Form data
 const formData = reactive({
   aorta_la_inel: '',
   aorta_la_sinusur_levart_sagva: '',
@@ -236,7 +231,6 @@ watch([audioBlob, isRecording], async ([newBlob, recording]) => {
   }
 })
 
-// Clear recording
 const clearRecording = () => {
   audioBlob.value = null
   rawTranscript.value = null
@@ -245,14 +239,12 @@ const clearRecording = () => {
   recordingDuration.value = 0
 }
 
-// Format duration (seconds to MM:SS)
 const formatDuration = (seconds) => {
   const mins = Math.floor(seconds / 60)
   const secs = seconds % 60
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
 }
 
-// Format file size
 const formatFileSize = (bytes) => {
   if (!bytes) return '0 B'
   if (bytes < 1024) return bytes + ' B'
@@ -260,7 +252,6 @@ const formatFileSize = (bytes) => {
   return (bytes / (1024 * 1024)).toFixed(2) + ' MB'
 }
 
-// Handle audio processing
 const handleProcessAudio = async () => {
   const fieldList = getRomanianFieldNames()
   try {
@@ -284,14 +275,12 @@ watch(parsedData, (newParsedData) => {
   })
 }, { deep: true, immediate: true })
 
-// Watch formData changes and emit updates
 watch(formData, (newData) => {
   Object.keys(newData).forEach(key => {
     emit('field-update', key, newData[key])
   })
 }, { deep: true })
 
-// Cleanup on unmount
 onUnmounted(() => {
   if (recordingInterval) {
     clearInterval(recordingInterval)

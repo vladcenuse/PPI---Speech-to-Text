@@ -73,36 +73,26 @@ import DocumentManagement from '@/components/sections/DocumentManagement.vue'
 import { cookieService } from '@/services/CookieService.js'
 import { errorService } from '@/services/ErrorService.js'
 
-// State
 const currentSection = ref('home')
 
-// Methods
 const changeSection = (section) => {
   currentSection.value = section
-  // Save current section to localStorage for persistence
   localStorage.setItem('s2t-current-section', section)
 }
 
-// Listen for navigation events
 const handleNavigateToDocuments = (event) => {
-  // Switch to documents section
   changeSection('documents')
 }
 
-// Listen for auth changes to reset to home on login
 const handleAuthChanged = () => {
-  // When user logs in, always start at home page
   currentSection.value = 'home'
   localStorage.setItem('s2t-current-section', 'home')
 }
 
-// Lifecycle
 onMounted(() => {
-  // Initialize services
   cookieService.cleanup()
   console.log('Error service initialized')
   
-  // Set up global error handler
   window.addEventListener('unhandledrejection', (event) => {
     errorService.handleError(event.reason, 'unhandledPromiseRejection')
   })
@@ -111,18 +101,14 @@ onMounted(() => {
     errorService.handleError(event.error, 'globalError')
   })
   
-  // Set up navigation to documents event listener
   window.addEventListener('navigate-to-documents', handleNavigateToDocuments)
   
-  // Listen for auth changes to reset to home on login
   window.addEventListener('auth-changed', handleAuthChanged)
   
-  // Restore last section from localStorage (only if it exists)
   const savedSection = localStorage.getItem('s2t-current-section')
   if (savedSection && ['home', 'patients', 'documents'].includes(savedSection)) {
     currentSection.value = savedSection
   } else {
-    // Default to home if no saved section
     currentSection.value = 'home'
     localStorage.setItem('s2t-current-section', 'home')
   }

@@ -1,8 +1,3 @@
-/**
- * Patient Form Model
- * Data structure for patient information
- */
-
 export class PatientForm {
   constructor(data = {}) {
     this.id = data.id || null
@@ -24,9 +19,6 @@ export class PatientForm {
     this.observations = data.observations || []
   }
 
-  /**
-   * Validate patient form data
-   */
   validate() {
     const errors = []
     
@@ -48,9 +40,6 @@ export class PatientForm {
     }
   }
 
-  /**
-   * Convert to JSON for API calls
-   */
   toJSON() {
     return {
       id: this.id,
@@ -73,32 +62,20 @@ export class PatientForm {
     }
   }
 
-  /**
-   * Create from JSON data
-   */
   static fromJSON(data) {
     return new PatientForm(data)
   }
 
-  /**
-   * Get display name for the patient
-   */
   getDisplayName() {
     return this.name || 'Unknown Patient'
   }
 
-  /**
-   * Get age category
-   */
   getAgeCategory() {
     if (this.age < 18) return 'Minor'
     if (this.age < 65) return 'Adult'
     return 'Senior'
   }
 
-  /**
-   * Add observation to patient
-   */
   addObservation(observation) {
     this.observations.push({
       id: Date.now(),
@@ -109,9 +86,6 @@ export class PatientForm {
     this.updatedAt = new Date().toISOString()
   }
 
-  /**
-   * Add transcription observation
-   */
   addTranscriptionObservation(transcription) {
     this.observations.push({
       id: Date.now(),
