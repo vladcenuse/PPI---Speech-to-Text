@@ -1,7 +1,6 @@
 <template>
   <div class="patient-form">
     <form @submit.prevent="handleSubmit" class="form">
-      <!-- Personal Information -->
       <div class="form-section">
         <h3 class="section-title">Personal Information</h3>
         
@@ -71,7 +70,6 @@
         </div>
       </div>
 
-      <!-- Contact Information -->
       <div class="form-section">
         <h3 class="section-title">Contact Information</h3>
         
@@ -117,7 +115,6 @@
         </div>
       </div>
 
-      <!-- Medical Information -->
       <div class="form-section">
         <h3 class="section-title">Medical Information</h3>
         
@@ -210,13 +207,11 @@
         </div>
       </div>
 
-      <!-- General Error Display -->
       <div v-if="errors.general" class="form-error-general">
         <span class="error-icon">✕</span>
         <span>{{ errors.general }}</span>
       </div>
 
-      <!-- Form Actions -->
       <div class="form-actions">
         <Button
           type="button"

@@ -14,7 +14,6 @@
       </div>
     </div>
 
-    <!-- Audio Recording Controls -->
     <div class="recording-section">
       <div class="recording-controls">
         <button
@@ -34,7 +33,6 @@
         </button>
       </div>
 
-      <!-- Recording Status -->
       <div v-if="isRecording" class="recording-status">
         <div class="recording-indicator">
           <span class="recording-dot"></span>
@@ -45,7 +43,6 @@
         </div>
       </div>
 
-      <!-- Audio Status -->
       <div v-if="audioBlob && !isRecording" class="audio-status">
         <div class="audio-info">
           <span class="audio-icon">🎵</span>
@@ -56,7 +53,6 @@
         </button>
       </div>
 
-      <!-- Status Messages -->
       <div v-if="error" class="error-message">
         <strong>Eroare:</strong> {{ error }}
         <div v-if="error.includes('microphone')" class="error-help">
@@ -77,7 +73,6 @@
     </div>
 
     <div class="form-sections">
-      <!-- Medications -->
       <div class="form-section">
         <h3>Medicamente Prescrise</h3>
         <div class="field-container">
@@ -97,7 +92,6 @@
         </div>
       </div>
 
-      <!-- Dosage -->
       <div class="form-section">
         <h3>Instrucțiuni de Dozaj</h3>
         <div class="field-container">
@@ -117,7 +111,6 @@
         </div>
       </div>
 
-      <!-- Instructions -->
       <div class="form-section">
         <h3>Instrucțiuni Speciale</h3>
         <div class="field-container">
@@ -137,7 +130,6 @@
         </div>
       </div>
 
-      <!-- Follow-up -->
       <div class="form-section">
         <h3>Instrucțiuni de Urmărire</h3>
         <div class="field-container">

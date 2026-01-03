@@ -1,14 +1,11 @@
 <template>
   <div class="main-view">
-    <!-- Header with Navigation -->
     <HeaderBar 
       :current-section="currentSection"
       @section-change="changeSection"
     />
     
-    <!-- Main Content Area -->
     <main class="main-content">
-      <!-- Home Section -->
       <div v-if="currentSection === 'home'" class="section-content">
         <div class="welcome-section">
           <h2>Welcome to Speech-to-Text Medical System</h2>
@@ -48,18 +45,15 @@
         </div>
       </div>
 
-      <!-- Patients Section -->
       <div v-if="currentSection === 'patients'" class="section-content">
         <PatientManagement />
       </div>
 
-      <!-- Documents Section -->
       <div v-if="currentSection === 'documents'" class="section-content">
         <DocumentManagement />
       </div>
     </main>
 
-    <!-- Global Toast Notifications -->
     <GlobalToast position="top-left" />
     <GlobalToast position="top-center" />
   </div>

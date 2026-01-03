@@ -5,7 +5,6 @@
       <p>Fill document templates with voice input and export them</p>
     </div>
 
-    <!-- Document Selection -->
     <div class="document-selection">
       <h3>Select Document Template</h3>
       <div class="template-grid">
@@ -26,7 +25,6 @@
       </div>
     </div>
 
-    <!-- Document Form -->
     <div v-if="selectedDocument" class="document-form-section">
       <div class="form-header">
         <div class="form-title-section">
@@ -62,7 +60,6 @@
         </div>
       </div>
 
-      <!-- Patient Selection -->
       <div class="patient-selection-section">
         <div class="patient-selection-header">
           <h4>Select Patient for Document</h4>
@@ -119,9 +116,7 @@
         </div>
       </div>
 
-      <!-- Dynamic Document Component -->
       <div class="document-form">
-        <!-- Require patient selection for all document types -->
         <template v-if="!selectedPatient">
           <div class="patient-selection-required">
             <div class="patient-selection-message">
@@ -133,7 +128,6 @@
             </div>
           </div>
         </template>
-        <!-- Show form when patient is selected -->
         <component 
           v-else
           :is="selectedDocument.component"
@@ -143,7 +137,6 @@
       </div>
     </div>
 
-    <!-- Empty State -->
     <div v-else class="empty-state">
       <div class="empty-icon">
         <svg viewBox="0 0 24 24" fill="currentColor" class="empty-icon-svg">
@@ -221,7 +214,15 @@ const patientData = reactive({
   vitalSigns: '',
   physicalExam: '',
   assessment: '',
-  plan: ''
+  plan: '',
+  
+  aorta_la_inel: '',
+  aorta_la_sinusur_levart_sagva: '',
+  aorta_ascendenta: '',
+  as: '',
+  ventricul_drept: '',
+  atriu_stang: '',
+  vd: ''
 })
 
 const documentTemplates = ref([
@@ -403,7 +404,7 @@ const updatePatientDataFromSelection = (patient) => {
 
 const clearPatientData = () => {
   Object.assign(patientData, {
-    date: new Date().toISOString().split('T')[0], // Keep today's date
+     date: new Date().toISOString().split('T')[0],
     name: '',
     age: '',
     gender: '',
@@ -447,7 +448,14 @@ const clearFormSpecificFields = () => {
     maritalStatus: '',
     preferredLanguage: '',
     referralSource: '',
-    recommendations: ''
+    recommendations: '',
+    aorta_la_inel: '',
+    aorta_la_sinusur_levart_sagva: '',
+    aorta_ascendenta: '',
+    as: '',
+    ventricul_drept: '',
+    atriu_stang: '',
+    vd: ''
   })
   console.log('Cleared form-specific fields')
 }
@@ -729,7 +737,8 @@ onMounted(async () => {
         'New Patient Form': 'new-patient-form',
         'Medical Report': 'medical-report',
         'Consultation Form': 'consultation-form',
-        'Prescription Form': 'prescription-form'
+        'Prescription Form': 'prescription-form',
+        'Echocardiography': 'echocardiography-form'
       }
       
       const templateId = typeToTemplateId[editingDocumentType]

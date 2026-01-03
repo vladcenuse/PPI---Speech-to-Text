@@ -14,7 +14,6 @@
       </div>
     </div>
 
-    <!-- Audio Recording Controls -->
     <div class="recording-section">
       <div class="recording-controls">
         <button
@@ -34,7 +33,6 @@
         </button>
       </div>
 
-      <!-- Recording Status -->
       <div v-if="isRecording" class="recording-status">
         <div class="recording-indicator">
           <span class="recording-dot"></span>
@@ -45,7 +43,6 @@
         </div>
       </div>
 
-      <!-- Audio Status -->
       <div v-if="audioBlob && !isRecording" class="audio-status">
         <div class="audio-info">
           <span class="audio-icon">🎵</span>
@@ -56,7 +53,6 @@
         </button>
       </div>
 
-      <!-- Status Messages -->
       <div v-if="error" class="error-message">
         <strong>Eroare:</strong> {{ error }}
         <div v-if="error.includes('microphone')" class="error-help">
@@ -76,7 +72,6 @@
       </div>
     </div>
 
-    <!-- Form Fields -->
     <div class="form-sections">
       <div class="form-section">
         <h3>Măsurători Ecocardiografice</h3>
@@ -260,6 +255,17 @@ const handleProcessAudio = async () => {
     console.error('Error processing audio:', err)
   }
 }
+
+watch(() => props.patientData, (newData) => {
+  if (newData) {
+    formFields.forEach(field => {
+      const value = newData[field.key]
+      if (value !== undefined && value !== null && value !== '') {
+        formData[field.key] = value
+      }
+    })
+  }
+}, { deep: true, immediate: true })
 
 watch(parsedData, (newParsedData) => {
   if (!newParsedData) return

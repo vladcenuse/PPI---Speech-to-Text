@@ -19,7 +19,6 @@
       </div>
     </div>
 
-    <!-- Search and Filters -->
     <div class="search-section">
       <div class="search-bar">
         <input
@@ -44,7 +43,6 @@
       </div>
     </div>
 
-    <!-- Patient Stats -->
     <div class="patient-stats">
       <div class="stat-card">
         <div class="stat-number">{{ patientsCount }}</div>
@@ -56,12 +54,10 @@
       </div>
     </div>
 
-    <!-- Loading State -->
     <div v-if="isLoading" class="loading-container">
       <Spinner size="large" text="Loading patients..." />
     </div>
 
-    <!-- Error State -->
     <div v-else-if="error" class="error-container">
       <div class="error-message">
         <span class="error-icon">
@@ -74,7 +70,6 @@
       <Button variant="secondary" @click="refreshPatients" text="Try Again" />
     </div>
 
-    <!-- Patient List -->
     <div v-else-if="patients.length > 0" class="patient-list">
       <div v-for="patient in patients" :key="patient.id" class="patient-card">
         <div class="patient-avatar">
@@ -127,7 +122,6 @@
       </div>
     </div>
 
-    <!-- Empty State -->
     <div v-else class="empty-state">
       <div class="empty-icon">
         <svg viewBox="0 0 24 24" fill="currentColor" class="empty-icon-svg">
@@ -140,7 +134,6 @@
       <Button variant="primary" @click="openCreatePatientModal" text="Create First Patient" />
     </div>
 
-    <!-- Create/Edit Patient Modal -->
         <Modal
           :is-open="showCreateModal"
           :title="isViewMode ? 'View Patient' : (patientVM.currentPatient ? 'Edit Patient' : 'New Patient')"
@@ -155,7 +148,6 @@
       />
     </Modal>
 
-    <!-- Medical Records Modal -->
     <Modal 
       :is-open="showMedicalRecordsModal" 
       @close="closeMedicalRecordsModal"
@@ -205,7 +197,6 @@
       </div>
     </Modal>
 
-    <!-- Delete Confirmation Modal -->
     <ConfirmModal
       :is-open="showDeleteModal"
       title="Delete Patient"

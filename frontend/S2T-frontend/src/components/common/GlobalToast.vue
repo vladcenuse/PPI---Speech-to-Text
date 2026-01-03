@@ -17,7 +17,6 @@
             <div v-if="toast.title" class="toast-title">{{ toast.title }}</div>
             <div class="toast-message">{{ toast.message }}</div>
             
-            <!-- Toast Actions -->
             <div v-if="toast.actions && toast.actions.length > 0" class="toast-actions">
               <button
                 v-for="action in toast.actions"

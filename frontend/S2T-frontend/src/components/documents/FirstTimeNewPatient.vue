@@ -14,7 +14,6 @@
       </div>
     </div>
 
-    <!-- Audio Recording Controls -->
     <div class="recording-section">
       <div class="recording-controls">
         <button
@@ -34,7 +33,6 @@
         </button>
       </div>
 
-      <!-- Recording Status -->
       <div v-if="isRecording" class="recording-status">
         <div class="recording-indicator">
           <span class="recording-dot"></span>
@@ -45,7 +43,6 @@
         </div>
       </div>
 
-      <!-- Audio Status -->
       <div v-if="audioBlob && !isRecording" class="audio-status">
         <div class="audio-info">
           <span class="audio-icon">🎵</span>
@@ -56,7 +53,6 @@
         </button>
       </div>
 
-      <!-- Status Messages -->
       <div v-if="error" class="error-message">
         <strong>Eroare:</strong> {{ error }}
         <div v-if="error.includes('microphone')" class="error-help">
@@ -77,7 +73,6 @@
     </div>
 
     <div class="form-section">
-      <!-- Patient Information -->
       <div class="form-group">
         <label for="patientName">Numele Complet al Pacientului</label>
         <div class="input-group">
@@ -152,7 +147,6 @@
         </div>
       </div>
 
-      <!-- Medical History -->
       <div class="form-group">
         <label for="chiefComplaint">Plângere Principală</label>
         <div class="input-group">
@@ -258,7 +252,6 @@
         </div>
       </div>
 
-      <!-- Physical Examination -->
       <div class="form-group">
         <label for="vitalSigns">Semne Vitale</label>
         <div class="input-group">
@@ -289,7 +282,6 @@
         </div>
       </div>
 
-      <!-- Assessment and Plan -->
       <div class="form-group">
         <label for="assessment">Evaluare</label>
         <div class="input-group">

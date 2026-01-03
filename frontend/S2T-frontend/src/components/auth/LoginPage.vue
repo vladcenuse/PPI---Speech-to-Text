@@ -6,7 +6,6 @@
         <p>Doctor Authentication</p>
       </div>
 
-      <!-- Login Form -->
       <div v-if="!showRegister" class="login-form">
         <h2>Login</h2>
         <form @submit.prevent="handleLogin">
@@ -42,7 +41,6 @@
         </div>
       </div>
 
-      <!-- Registration Form -->
       <div v-else class="register-form">
         <h2>Create Account</h2>
         <form @submit.prevent="handleRegister">
@@ -89,7 +87,6 @@
         </div>
       </div>
 
-      <!-- Success Modal -->
       <div v-if="showSuccessModal" class="modal-overlay" @click="showSuccessModal = false">
         <div class="modal-content" @click.stop>
           <div class="success-icon">✓</div>
