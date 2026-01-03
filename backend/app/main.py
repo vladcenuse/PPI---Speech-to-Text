@@ -2,12 +2,19 @@ import os
 import json
 import re
 import httpx
+import base64
+from dotenv import load_dotenv
 from fastapi import FastAPI, UploadFile, File, HTTPException, Form
 from pydantic import BaseModel
 from deepgram import DeepgramClient
 from fastapi.middleware.cors import CORSMiddleware
 from app.routers import patients, new_patient_forms, medical_reports, consultation_forms, prescription_forms, echocardiography_forms, auth
 from app.database import check_and_init_db
+
+load_dotenv()
+
+HF_TOKEN = os.getenv("HF_TOKEN", "")
+DEEPGRAM_API_KEY = os.getenv("DEEPGRAM_API_KEY", "")
 
 MODEL_ID = "google/gemma-2-2b-it"
 SYSTEM_PROMPT = (
@@ -103,6 +110,16 @@ def safe_print(msg):
     except:
         print(repr(msg))
 
+if not HF_TOKEN:
+    safe_print("WARNING: HF_TOKEN is not set! Check your .env file or environment variables.")
+else:
+    safe_print(f"HF_TOKEN loaded (length: {len(HF_TOKEN)}, starts with: {HF_TOKEN[:10]}...)")
+
+if not DEEPGRAM_API_KEY:
+    safe_print("WARNING: DEEPGRAM_API_KEY is not set! Check your .env file or environment variables.")
+else:
+    safe_print(f"DEEPGRAM_API_KEY loaded (length: {len(DEEPGRAM_API_KEY)}, starts with: {DEEPGRAM_API_KEY[:10]}...)")
+
 def extract_exception_info(exc):
     exc_type = type(exc).__name__
     exc_args = []
@@ -144,7 +161,8 @@ def transcribe_audio_bytes_ro(
     content_type: str
 ) -> TranscriptionResponse:
     
-    DEEPGRAM_API_KEY = "4700b39b6fffa69b829bc2510b31859a60081fe3"
+    if not DEEPGRAM_API_KEY:
+        raise RuntimeError("DEEPGRAM_API_KEY environment variable is not set")
     
     safe_print(f"Initializing DeepgramClient with API key (length: {len(DEEPGRAM_API_KEY)})")
     safe_print(f"API key starts with: {DEEPGRAM_API_KEY[:10]}...")
@@ -389,7 +407,9 @@ JSON OUTPUT (doar JSON, fără text suplimentar):
             return response_text
     
     except Exception as e:
-        return f"Extraction failed due to API error: {e}"
+        error_msg = f"Extraction failed due to API error: {e}"
+        safe_print(f"ERROR in extract_data_with_api: {error_msg}")
+        return error_msg
 
 
 
@@ -401,14 +421,11 @@ app = FastAPI(
     version="1.0.0"
 )
 
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173,http://127.0.0.1:5174").split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",  
-        "http://localhost:5174",
-        "http://127.0.0.1:5173",  
-        "http://127.0.0.1:5174"
-    ],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

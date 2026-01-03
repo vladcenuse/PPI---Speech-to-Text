@@ -1,6 +1,7 @@
 import { ref } from 'vue';
+import { authService } from '@/services/AuthService.js';
 
-const API_BASE_URL = 'http://127.0.0.1:8000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'http://127.0.0.1:8000';
 const API_ENDPOINT = `${API_BASE_URL}/api/process-recording`;
 
 export function useAudioProcessor() {
@@ -82,8 +83,15 @@ export function useAudioProcessor() {
                 formData.append('form_type', formType);
             }
 
+            const authHeaders = authService.getAuthHeader();
+            const headers = {};
+            if (authHeaders.Authorization) {
+                headers['Authorization'] = authHeaders.Authorization;
+            }
+
             const response = await fetch(API_ENDPOINT, {
                 method: 'POST',
+                headers: headers,
                 body: formData,
             });
 

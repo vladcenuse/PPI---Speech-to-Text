@@ -1,4 +1,6 @@
 import os
+import json
+import base64
 from datetime import datetime
 from firebase_admin import credentials, firestore, initialize_app
 from typing import Optional
@@ -13,13 +15,26 @@ def get_db_connection():
 def get_firestore_db():
     global _db
     if _db is None:
-        if not os.path.exists(FIREBASE_CREDENTIALS_PATH):
+        firebase_creds_json = os.getenv("FIREBASE_CREDENTIALS_JSON")
+        
+        if firebase_creds_json:
+            try:
+                if firebase_creds_json.startswith('{'):
+                    cred_dict = json.loads(firebase_creds_json)
+                else:
+                    decoded = base64.b64decode(firebase_creds_json).decode('utf-8')
+                    cred_dict = json.loads(decoded)
+                cred = credentials.Certificate(cred_dict)
+            except Exception as e:
+                raise ValueError(f"Failed to parse Firebase credentials from environment variable: {str(e)}")
+        elif os.path.exists(FIREBASE_CREDENTIALS_PATH):
+            cred = credentials.Certificate(FIREBASE_CREDENTIALS_PATH)
+        else:
             raise FileNotFoundError(
-                f"Firebase credentials file not found at {FIREBASE_CREDENTIALS_PATH}\n"
-                "Please download your service account key from Firebase Console and save it as 'firebase-credentials.json'"
+                f"Firebase credentials not found. Either set FIREBASE_CREDENTIALS_JSON environment variable "
+                f"or place credentials file at {FIREBASE_CREDENTIALS_PATH}"
             )
         
-        cred = credentials.Certificate(FIREBASE_CREDENTIALS_PATH)
         try:
             initialize_app(cred)
         except ValueError:
