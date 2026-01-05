@@ -10,6 +10,7 @@ from deepgram import DeepgramClient
 from fastapi.middleware.cors import CORSMiddleware
 from app.routers import patients, new_patient_forms, medical_reports, consultation_forms, prescription_forms, echocardiography_forms, auth
 from app.database import check_and_init_db
+from app.transcription import transcribe_audio
 
 load_dotenv()
 
@@ -88,9 +89,6 @@ FORM_SCHEMAS = {
     }
 }
 
-class TranscriptionResponse(BaseModel):
-    text: str
-
 class ParsedRecordingResponse(BaseModel):
     raw_transcript: str
     parsed_json: dict
@@ -155,96 +153,6 @@ def extract_exception_info(exc):
         msg = exc_type
     
     return exc_type, msg
-
-def transcribe_audio_bytes_ro(
-    audio_content: bytes, 
-    content_type: str
-) -> TranscriptionResponse:
-    
-    if not DEEPGRAM_API_KEY:
-        raise RuntimeError("DEEPGRAM_API_KEY environment variable is not set")
-    
-    safe_print(f"Initializing DeepgramClient with API key (length: {len(DEEPGRAM_API_KEY)})")
-    safe_print(f"API key starts with: {DEEPGRAM_API_KEY[:10]}...")
-    
-    deepgram_client = None
-    try:
-        deepgram_client = DeepgramClient(api_key=DEEPGRAM_API_KEY)
-        safe_print("[SUCCESS] DeepgramClient initialized successfully")
-    except Exception as init_error:
-        error_type, error_msg = extract_exception_info(init_error)
-        safe_print(f"[ERROR] Failed to initialize DeepgramClient: {error_type}")
-        raise RuntimeError(f"Failed to initialize Deepgram client: {error_msg}")
-
-    try:
-        safe_print("Calling Deepgram API...")
-        response = deepgram_client.listen.v1.media.transcribe_file(
-            request=audio_content,
-            smart_format=True,
-            model="whisper",
-            language="ro"
-        )
-        
-        safe_print("Deepgram API call successful, extracting transcript...")
-        
-        try:
-            transcript_text = response.results.channels[0].alternatives[0].transcript
-        except (AttributeError, IndexError, KeyError) as e:
-            safe_print("Warning: Could not extract transcript from Deepgram response")
-            raise RuntimeError("Nu s-a putut extrage transcrierea din răspunsul API. Vă rugăm să încercați din nou.")
-        
-        if transcript_text is None:
-            safe_print("Warning: None transcript received from Deepgram")
-            raise RuntimeError("Nu s-a detectat niciun vorbire în înregistrare. Vă rugăm să înregistrați din nou.")
-        
-        transcript_text = str(transcript_text).strip()
-        if not transcript_text:
-            safe_print("Warning: Empty transcript received from Deepgram")
-            raise RuntimeError("Nu s-a detectat niciun vorbire în înregistrare. Vă rugăm să înregistrați din nou.")
-        
-        transcript_lower = transcript_text.lower()
-        generic_phrases = [
-            "vă mulțumesc",
-            "mulțumesc pentru",
-            "thank you",
-            "thanks for",
-            "pentru vizionare",
-            "for watching",
-            "pentru atenție",
-            "for your attention",
-            "mulțumesc frumos"
-        ]
-        
-        if any(phrase in transcript_lower for phrase in generic_phrases) and len(transcript_text) < 50:
-            safe_print(f"Warning: Generic placeholder transcript detected: {transcript_text[:100]}")
-            raise RuntimeError("Vorbirea nu a putut fi recunoscută clar sau înregistrarea conține doar zgomot. Vă rugăm să vorbiți clar despre măsurătorile ecocardiografice și să înregistrați din nou.")
-        
-        if len(transcript_text) < 10:
-            safe_print(f"Warning: Very short transcript: {transcript_text}")
-            raise RuntimeError("Înregistrarea este prea scurtă sau neclară. Vă rugăm să înregistrați din nou.")
-        
-        safe_print(f"Transcript validated successfully: {len(transcript_text)} characters")
-        return TranscriptionResponse(text=transcript_text)
-        
-    except RuntimeError as e:
-        if hasattr(e, 'args') and e.args and isinstance(e.args[0], str):
-            error_msg_utf8 = e.args[0]
-            error_msg_ascii = safe_encode_str(error_msg_utf8)
-            safe_print(f"RuntimeError: {error_msg_ascii}")
-            raise
-        else:
-            error_type, error_msg = extract_exception_info(e)
-            safe_print(f"RuntimeError: {error_msg}")
-            raise RuntimeError(error_msg)
-    except Exception as e:
-        error_type, error_msg = extract_exception_info(e)
-        
-        safe_print(f"Deepgram API Error - Type: {error_type}")
-        
-        if "deepgram" in error_msg.lower() or "api" in error_msg.lower() or "deepgram" in error_type.lower():
-            raise RuntimeError(f"Deepgram API Error during transcription: {error_msg}")
-        else:
-            raise RuntimeError(f"An unexpected error occurred during transcription: {error_msg}")
 
 def extract_value_after_field(transcript: str, field_end_pos: int, all_field_names: list) -> str:
     number_words = {
@@ -443,7 +351,8 @@ app.include_router(echocardiography_forms.router, prefix="/api/echocardiography-
 async def process_recording_endpoint(
     audio_file: UploadFile = File(...),
     fields_json: str = Form(...),
-    form_type: str = Form(None)
+    form_type: str = Form(None),
+    transcription_provider: str = Form("deepgram_nova-3")
 ):
     
     try:
@@ -468,12 +377,20 @@ async def process_recording_endpoint(
         safe_print(f"Processing audio file: {audio_file.filename}, size: {len(audio_content)} bytes")
         safe_print(f"Content type: {audio_file.content_type}")
         safe_print(f"Form type: {form_type}")
-        
+        """""
         transcript_response = transcribe_audio_bytes_ro(
             audio_content,
             audio_file.content_type
         )
-        raw_transcript = transcript_response.text
+        """
+
+        transcription_response = transcribe_audio(
+            audio_content=audio_content,
+            provider=transcription_provider,
+            language="ro"
+        )
+
+        raw_transcript = transcription_response.text
         safe_print(f"Transcription successful, length: {len(raw_transcript)} chars")
 
         if form_type and form_type in FORM_SCHEMAS:
