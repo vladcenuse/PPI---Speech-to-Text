@@ -74,7 +74,7 @@
 
     <div class="form-sections">
       <div class="form-section">
-        <h3>Simptome Prezente</h3>
+        <h3>Simptome</h3>
         <div class="field-container">
           
           <div class="input-group">
@@ -112,7 +112,7 @@
       </div>
 
       <div class="form-section">
-        <h3>Evaluare Clinică</h3>
+        <h3>Evaluare</h3>
         <div class="field-container">
          
           <div class="input-group">
@@ -131,7 +131,7 @@
       </div>
 
       <div class="form-section">
-        <h3>Plan de Tratament</h3>
+        <h3>Plan</h3>
         <div class="field-container">
           
           <div class="input-group">

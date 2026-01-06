@@ -74,7 +74,7 @@
 
     <div class="form-sections">
       <div class="form-section">
-        <h3>Medicamente Prescrise</h3>
+        <h3>Medicamente</h3>
         <div class="field-container">
           
           <div class="input-group">
@@ -93,7 +93,7 @@
       </div>
 
       <div class="form-section">
-        <h3>Instrucțiuni de Dozaj</h3>
+        <h3>Dozaj</h3>
         <div class="field-container">
           
           <div class="input-group">
@@ -112,7 +112,7 @@
       </div>
 
       <div class="form-section">
-        <h3>Instrucțiuni Speciale</h3>
+        <h3>Instructiuni</h3>
         <div class="field-container">
           
           <div class="input-group">
@@ -131,7 +131,7 @@
       </div>
 
       <div class="form-section">
-        <h3>Instrucțiuni de Urmărire</h3>
+        <h3>Urmarire</h3>
         <div class="field-container">
           
           <div class="input-group">
