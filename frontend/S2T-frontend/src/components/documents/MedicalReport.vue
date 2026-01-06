@@ -74,7 +74,7 @@
 
     <div class="form-sections">
       <div class="form-section">
-        <h3>Plângere Principală</h3>
+        <h3>Plangere Principala</h3>
         <div class="field-container">
           
           <div class="input-group">
@@ -93,7 +93,7 @@
       </div>
 
       <div class="form-section">
-        <h3>Istoricul Bolii Prezente</h3>
+        <h3>Istoricul Prezent</h3>
         <div class="field-container">
           
           <div class="input-group">
@@ -112,7 +112,7 @@
       </div>
 
       <div class="form-section">
-        <h3>Examinare Fizică</h3>
+        <h3>Examinare Fizica</h3>
         <div class="field-container">
           
           <div class="input-group">
@@ -150,9 +150,8 @@
       </div>
 
       <div class="form-section">
-        <h3>Plan de Tratament</h3>
+        <h3>Tratament</h3>
         <div class="field-container">
-          <label>Tratament recomandat:</label>
           <div class="input-group">
             <textarea 
               v-model="localData.treatment"
@@ -169,9 +168,8 @@
       </div>
 
       <div class="form-section">
-        <h3>Recomandări</h3>
+        <h3>Recomandari</h3>
         <div class="field-container">
-          <label>Recomandări pentru urmărire:</label>
           <div class="input-group">
             <textarea 
               v-model="localData.recommendations"

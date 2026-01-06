@@ -74,7 +74,7 @@
 
     <div class="form-section">
       <div class="form-group">
-        <label for="patientName">Numele Complet al Pacientului</label>
+        <label for="patientName">Nume Pacient</label>
         <div class="input-group">
           <input 
             type="text" 
@@ -92,7 +92,7 @@
       </div>
 
       <div class="form-group">
-        <label for="dateOfBirth">Data Nașterii *</label>
+        <label for="dateOfBirth">Data Nasterii *</label>
         <div class="input-group">
           <input 
             type="date" 
@@ -133,7 +133,7 @@
       </div>
 
       <div class="form-group">
-        <label for="contactInfo">Informații de Contact</label>
+        <label for="contactInfo">Informatii Contact</label>
         <div class="input-group">
           <textarea 
             id="contactInfo" 
@@ -148,7 +148,7 @@
       </div>
 
       <div class="form-group">
-        <label for="chiefComplaint">Plângere Principală</label>
+        <label for="chiefComplaint">Plangere Principala</label>
         <div class="input-group">
           <textarea 
             id="chiefComplaint" 
@@ -163,7 +163,7 @@
       </div>
 
       <div class="form-group">
-        <label for="presentIllness">Istoricul Bolii Prezente</label>
+        <label for="presentIllness">Istoricul Prezent</label>
         <div class="input-group">
           <textarea 
             id="presentIllness" 
@@ -193,7 +193,7 @@
       </div>
 
       <div class="form-group">
-        <label for="medications">Medicație Curentă</label>
+        <label for="medications">Medicamente</label>
         <div class="input-group">
           <textarea 
             id="medications" 
@@ -268,7 +268,7 @@
       </div>
 
       <div class="form-group">
-        <label for="physicalExam">Găsiri la Examinare Fizică</label>
+        <label for="physicalExam">Examinare Fizica</label>
         <div class="input-group">
           <textarea 
             id="physicalExam" 
@@ -298,7 +298,7 @@
       </div>
 
       <div class="form-group">
-        <label for="plan">Plan de Tratament</label>
+        <label for="plan">Plan</label>
         <div class="input-group">
           <textarea 
             id="plan" 
@@ -313,7 +313,7 @@
       </div>
 
       <div class="form-group">
-        <label for="followUp">Instrucțiuni de Urmărire</label>
+        <label for="followUp">Urmarire</label>
         <div class="input-group">
           <textarea 
             id="followUp" 

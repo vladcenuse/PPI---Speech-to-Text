@@ -154,15 +154,9 @@ const formFields = [
   },
   {
     key: 'aorta_ascendenta',
-    label: 'Aorta Ascendentă',
+    label: 'Aorta Ascendenta',
     placeholder: 'ex: 14 milimetri',
     romanianName: 'aorta ascendenta'
-  },
-  {
-    key: 'as',
-    label: 'AS (Aorta Ascendentă)',
-    placeholder: 'ex: 14 milimetri',
-    romanianName: 'as'
   },
   {
     key: 'ventricul_drept',
@@ -172,13 +166,19 @@ const formFields = [
   },
   {
     key: 'atriu_stang',
-    label: 'Atriu Stâng',
+    label: 'Atriu Stang',
     placeholder: 'ex: 12 milimetri',
     romanianName: 'atriu stang'
   },
   {
+    key: 'as',
+    label: 'As',
+    placeholder: 'ex: 14 milimetri',
+    romanianName: 'as'
+  },
+  {
     key: 'vd',
-    label: 'VD (Ventricul Drept)',
+    label: 'Vd',
     placeholder: 'ex: 10 milimetri',
     romanianName: 'vd'
   }

@@ -1,15 +1,15 @@
-# Speech-to-Text Web App
+# Speech-to-Text Medical Web App
 
-A full-stack web application built with FastAPI (backend) and Vue 3 + Vite (frontend) for speech-to-text conversion.
+A full-stack web application built with FastAPI (backend) and Vue 3 + Vite (frontend) for medical speech-to-text conversion.
 
 ## Requirements
 
 - Python 3.10+
-- Node.js (v18+ recommended)
-- npm (comes with Node)
+- Node.js 
+- npm 
 - Git
 
-## 🛠️ Setup Instructions
+##  Setup Instructions
 
 ### Backend Setup
 
@@ -89,11 +89,4 @@ PPI---Speech-to-Text/
 - The frontend runs on port 5173 by default
 - Make sure both servers are running simultaneously for the application to work
 - Check the FastAPI documentation at /docs for available API endpoints
-
-##  Contributing
-
-1. Fork the repository
-2. Create your feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a new Pull Request
+- The app is also deployed on https://ppi-frontend.onrender.com
