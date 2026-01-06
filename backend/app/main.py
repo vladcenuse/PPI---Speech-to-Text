@@ -352,7 +352,7 @@ async def process_recording_endpoint(
     audio_file: UploadFile = File(...),
     fields_json: str = Form(...),
     form_type: str = Form(None),
-    transcription_provider: str = Form("deepgram_nova-3")
+    transcription_provider: str = Form("deepgram_whisper")
 ):
     
     try:

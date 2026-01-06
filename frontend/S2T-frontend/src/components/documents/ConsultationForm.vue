@@ -16,6 +16,19 @@
 
     <div class="recording-section">
       <div class="recording-controls">
+        <div class="model-selector">
+          <label for="transcription-model">Model de Transcriere:</label>
+          <select 
+            id="transcription-model"
+            v-model="selectedModel"
+            :disabled="isRecording || isProcessing"
+            class="model-select"
+          >
+            <option value="deepgram_whisper">Whisper Deepgram</option>
+            <option value="deepgram_nova-3">Nova-3 Deepgram</option>
+            <option value="whisper_hosted_api">Whisper Personalizat</option>
+          </select>
+        </div>
         <button
           @click="handleToggleRecording"
           class="record-btn"
@@ -180,6 +193,7 @@ const {
 
 const recordingDuration = ref(0)
 let recordingInterval = null
+const selectedModel = ref('deepgram_whisper')
 
 watch(isRecording, (recording) => {
   if (recording) {
@@ -255,7 +269,7 @@ watch([audioBlob, isRecording], async ([newBlob, recording]) => {
     shouldAutoProcess.value = false
     const fieldList = getRomanianFieldNames()
     try {
-      await processAudio(fieldList, 'consultation-form')
+      await processAudio(fieldList, 'consultation-form', selectedModel.value)
     } catch (err) {
       console.error('Error auto-processing audio:', err)
     }
@@ -365,6 +379,41 @@ onUnmounted(() => {
   gap: 1rem;
   align-items: center;
   flex-wrap: wrap;
+}
+
+.model-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.model-selector label {
+  font-weight: 600;
+  color: #495057;
+  white-space: nowrap;
+}
+
+.model-select {
+  padding: 0.5rem 1rem;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  background: white;
+  color: #495057;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.model-select:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.model-select:disabled {
+  background: #e9ecef;
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .record-btn {

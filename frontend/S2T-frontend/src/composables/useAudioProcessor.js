@@ -57,7 +57,7 @@ export function useAudioProcessor() {
         }
     };
 
-    const processAudio = async (fieldList, formType = null) => {
+    const processAudio = async (fieldList, formType = null, transcriptionProvider = 'deepgram_whisper') => {
         if (!audioBlob.value) {
             error.value = "Please record audio before processing.";
             return;
@@ -82,6 +82,8 @@ export function useAudioProcessor() {
             if (formType) {
                 formData.append('form_type', formType);
             }
+            
+            formData.append('transcription_provider', transcriptionProvider);
 
             const authHeaders = authService.getAuthHeader();
             const headers = {};
