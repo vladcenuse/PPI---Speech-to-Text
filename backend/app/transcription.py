@@ -1,6 +1,7 @@
 import os
 import requests
 from pydantic import BaseModel
+from dotenv import load_dotenv
 from deepgram import DeepgramClient
 from huggingface_hub import InferenceClient
 import io
@@ -9,6 +10,9 @@ import numpy as np
 
 class TranscriptionResult(BaseModel):
     text: str
+
+load_dotenv()
+
 
 DEEPGRAM_API_KEY = os.getenv("DEEPGRAM_API_KEY", "")
 HF_TOKEN = os.getenv("HF_TOKEN", "")
