@@ -2,11 +2,11 @@
   <div class="patient-form">
     <form @submit.prevent="handleSubmit" class="form">
       <div class="form-section">
-        <h3 class="section-title">Personal Information</h3>
+        <h3 class="section-title">Informații Personale</h3>
         
         <div class="form-row">
           <div class="form-group">
-            <label for="name" class="form-label">Full Name *</label>
+            <label for="name" class="form-label">Nume Complet *</label>
             <input
               id="name"
               v-model="formData.name"
@@ -14,14 +14,14 @@
               class="form-input"
               :class="{ 'form-input--error': errors.name, 'form-input--disabled': isViewMode }"
               :disabled="isViewMode"
-              placeholder="Enter full name"
+              placeholder="Introduceți numele complet"
               required
             />
             <span v-if="errors.name" class="form-error">{{ errors.name }}</span>
           </div>
           
           <div class="form-group">
-            <label for="age" class="form-label">Age *</label>
+            <label for="age" class="form-label">Vârstă *</label>
             <input
               id="age"
               :value="computedAge"
@@ -29,7 +29,7 @@
               class="form-input"
               :class="{ 'form-input--error': errors.age, 'form-input--disabled': true }"
               disabled
-              placeholder="Auto-calculated"
+              placeholder="Calculat automat"
               readonly
             />
             <span v-if="errors.age" class="form-error">{{ errors.age }}</span>
@@ -38,7 +38,7 @@
         
         <div class="form-row">
           <div class="form-group">
-            <label for="gender" class="form-label">Gender *</label>
+            <label for="gender" class="form-label">Gen *</label>
             <select
               id="gender"
               v-model="formData.gender"
@@ -47,15 +47,15 @@
               :disabled="isViewMode"
               required
             >
-              <option value="">Select gender</option>
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
+              <option value="">Selectați genul</option>
+              <option value="Male">Masculin</option>
+              <option value="Female">Feminin</option>
             </select>
             <span v-if="errors.gender" class="form-error">{{ errors.gender }}</span>
           </div>
           
           <div class="form-group">
-            <label for="dateOfBirth" class="form-label">Date of Birth *</label>
+            <label for="dateOfBirth" class="form-label">Data Nașterii *</label>
             <input
               id="dateOfBirth"
               v-model="formData.dateOfBirth"
@@ -71,11 +71,11 @@
       </div>
 
       <div class="form-section">
-        <h3 class="section-title">Contact Information</h3>
+        <h3 class="section-title">Informații de Contact</h3>
         
         <div class="form-row">
           <div class="form-group">
-            <label for="phone" class="form-label">Phone</label>
+            <label for="phone" class="form-label">Telefon</label>
             <input
               id="phone"
               v-model="formData.phone"
@@ -102,25 +102,25 @@
         </div>
         
         <div class="form-group">
-          <label for="address" class="form-label">Address</label>
+          <label for="address" class="form-label">Adresă</label>
           <textarea
             id="address"
             v-model="formData.address"
             class="form-textarea"
             :class="{ 'form-textarea--disabled': isViewMode }"
             :disabled="isViewMode"
-            placeholder="Enter complete address"
+            placeholder="Introduceți adresa completă"
             rows="3"
           ></textarea>
         </div>
       </div>
 
       <div class="form-section">
-        <h3 class="section-title">Medical Information</h3>
+        <h3 class="section-title">Informații Medicale</h3>
         
         <div class="form-row">
           <div class="form-group">
-            <label for="bloodType" class="form-label">Blood Type</label>
+            <label for="bloodType" class="form-label">Grupa Sanguină</label>
             <select
               id="bloodType"
               v-model="formData.bloodType"
@@ -128,7 +128,7 @@
               :class="{ 'form-select--disabled': isViewMode }"
               :disabled="isViewMode"
             >
-              <option value="">Select blood type</option>
+              <option value="">Selectați grupa sanguină</option>
               <option value="A+">A+</option>
               <option value="A-">A-</option>
               <option value="B+">B+</option>
@@ -141,7 +141,7 @@
           </div>
           
           <div class="form-group">
-            <label for="insuranceNumber" class="form-label">Insurance Number</label>
+            <label for="insuranceNumber" class="form-label">Număr Asigurare</label>
             <input
               id="insuranceNumber"
               v-model="formData.insuranceNumber"
@@ -149,59 +149,59 @@
               class="form-input"
               :class="{ 'form-input--disabled': isViewMode }"
               :disabled="isViewMode"
-              placeholder="Insurance number"
+              placeholder="Număr asigurare"
             />
           </div>
         </div>
         
         <div class="form-group">
-          <label for="medicalHistory" class="form-label">Medical History</label>
+          <label for="medicalHistory" class="form-label">Istoric Medical</label>
           <textarea
             id="medicalHistory"
             v-model="formData.medicalHistory"
             class="form-textarea"
             :class="{ 'form-textarea--disabled': isViewMode }"
             :disabled="isViewMode"
-            placeholder="Describe the patient's medical history"
+            placeholder="Descrieți istoricul medical al pacientului"
             rows="4"
           ></textarea>
         </div>
         
         <div class="form-group">
-          <label for="allergies" class="form-label">Allergies</label>
+          <label for="allergies" class="form-label">Alergii</label>
           <textarea
             id="allergies"
             v-model="formData.allergies"
             class="form-textarea"
             :class="{ 'form-textarea--disabled': isViewMode }"
             :disabled="isViewMode"
-            placeholder="List of known allergies"
+            placeholder="Lista alergiilor cunoscute"
             rows="3"
           ></textarea>
         </div>
         
         <div class="form-group">
-          <label for="currentMedications" class="form-label">Current Medications</label>
+          <label for="currentMedications" class="form-label">Medicamente Curente</label>
           <textarea
             id="currentMedications"
             v-model="formData.currentMedications"
             class="form-textarea"
             :class="{ 'form-textarea--disabled': isViewMode }"
             :disabled="isViewMode"
-            placeholder="List of current medications"
+            placeholder="Lista medicamentelor curente"
             rows="3"
           ></textarea>
         </div>
         
         <div class="form-group">
-          <label for="emergencyContact" class="form-label">Emergency Contact</label>
+          <label for="emergencyContact" class="form-label">Contact Urgență</label>
           <textarea
             id="emergencyContact"
             v-model="formData.emergencyContact"
             class="form-textarea"
             :class="{ 'form-textarea--disabled': isViewMode }"
             :disabled="isViewMode"
-            placeholder="Emergency contact information"
+            placeholder="Informații contact urgență"
             rows="2"
           ></textarea>
         </div>
@@ -217,14 +217,14 @@
           type="button"
           variant="outline"
           @click="handleCancel"
-          :text="isViewMode ? 'Close' : 'Cancel'"
+          :text="isViewMode ? 'Închide' : 'Anulează'"
         />
         <Button
           v-if="!isViewMode"
           type="submit"
           variant="primary"
           :loading="isSubmitting"
-          text="Save"
+          text="Salvează"
         />
       </div>
     </form>
@@ -388,32 +388,32 @@ const validateForm = () => {
 
   try {
     if (!formData.name || typeof formData.name !== 'string' || !formData.name.trim()) {
-      errors.name = 'Name is required'
+      errors.name = 'Numele este obligatoriu'
       isValid = false
     } else if (formData.name.trim().length < 2) {
-      errors.name = 'Name must be at least 2 characters long'
+      errors.name = 'Numele trebuie să aibă cel puțin 2 caractere'
       isValid = false
     }
 
     if (!formData.dateOfBirth || !formData.dateOfBirth.trim()) {
-      errors.dateOfBirth = 'Date of birth is required'
+      errors.dateOfBirth = 'Data nașterii este obligatorie'
       isValid = false
     } else {
       const birthDate = new Date(formData.dateOfBirth)
       const today = new Date()
       if (isNaN(birthDate.getTime())) {
-        errors.dateOfBirth = 'Date of birth is not valid'
+        errors.dateOfBirth = 'Data nașterii nu este validă'
         isValid = false
       } else if (birthDate > today) {
-        errors.dateOfBirth = 'Date of birth cannot be in the future'
+        errors.dateOfBirth = 'Data nașterii nu poate fi în viitor'
         isValid = false
       } else if (birthDate.getFullYear() < 1900) {
-        errors.dateOfBirth = 'Date of birth cannot be before 1900'
+        errors.dateOfBirth = 'Data nașterii nu poate fi înainte de 1900'
         isValid = false
       } else {
         const calculatedAge = calculateAge(formData.dateOfBirth)
         if (calculatedAge === null || calculatedAge < 0 || calculatedAge > 150) {
-          errors.age = 'Invalid age calculated from date of birth'
+          errors.age = 'Vârstă invalidă calculată din data nașterii'
           isValid = false
         } else {
           formData.age = calculatedAge
@@ -422,32 +422,32 @@ const validateForm = () => {
     }
 
     if (!formData.gender || typeof formData.gender !== 'string' || !formData.gender.trim()) {
-      errors.gender = 'Gender is required'
+      errors.gender = 'Genul este obligatoriu'
       isValid = false
     }
 
     if (formData.email && formData.email.trim()) {
       if (!isValidEmail(formData.email.trim())) {
-        errors.email = 'Email address is not valid'
+        errors.email = 'Adresa de email nu este validă'
         isValid = false
       }
     }
 
     if (formData.phone && formData.phone.trim()) {
       if (!isValidPhone(formData.phone.trim())) {
-        errors.phone = 'Phone number is not valid'
+        errors.phone = 'Numărul de telefon nu este valid'
         isValid = false
       }
     }
 
 
     if (!isValid) {
-      errors.general = 'Please fill in all required fields and correct the displayed errors.'
+      errors.general = 'Vă rugăm să completați toate câmpurile obligatorii și să corectați erorile afișate.'
     }
 
   } catch (validationError) {
     console.error('Validation error:', validationError)
-    errors.general = 'An error occurred during validation. Please check your input.'
+    errors.general = 'A apărut o eroare în timpul validării. Vă rugăm să verificați datele introduse.'
     isValid = false
   }
 
@@ -518,9 +518,9 @@ const handleSubmit = async () => {
   } catch (error) {
     console.error('Error saving patient:', error)
     if (error.message) {
-      errors.general = `Error: ${error.message}`
+      errors.general = `Eroare: ${error.message}`
     } else {
-      errors.general = 'An error occurred while saving the patient. Please check your input and try again.'
+      errors.general = 'A apărut o eroare la salvarea pacientului. Vă rugăm să verificați datele introduse și să încercați din nou.'
     }
   } finally {
     isSubmitting.value = false

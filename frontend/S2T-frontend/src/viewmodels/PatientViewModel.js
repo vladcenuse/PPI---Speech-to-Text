@@ -70,11 +70,11 @@ export function usePatientViewModel() {
       }))
       
       console.log(`✅ Loaded ${state.patients.length} patients from database`)
-      toastService.info(`Loaded ${state.patients.length} patients`)
+      toastService.info(`S-au încărcat ${state.patients.length} pacienți`)
     } catch (error) {
       console.error('❌ Error loading patients:', error)
       state.error = error.message
-      toastService.error('Failed to load patients', error.message)
+      toastService.error('Eșec la încărcarea pacienților', error.message)
       errorService.handleError(error, 'loadPatients', {
         userMessage: 'Error loading patients'
       })

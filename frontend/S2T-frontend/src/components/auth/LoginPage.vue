@@ -2,97 +2,97 @@
   <div class="login-page">
     <div class="login-container">
       <div class="login-header">
-        <h1>Speech-to-Text Medical System</h1>
-        <p>Doctor Authentication</p>
+        <h1>MedVoice</h1>
+        <p>Autentificare Medic</p>
       </div>
 
       <div v-if="!showRegister" class="login-form">
-        <h2>Login</h2>
+        <h2>Autentificare</h2>
         <form @submit.prevent="handleLogin">
           <div class="form-group">
-            <label for="login-username">Username</label>
+            <label for="login-username">Nume utilizator</label>
             <input
               id="login-username"
               v-model="loginForm.username"
               type="text"
               required
-              placeholder="Enter your username"
+              placeholder="Introduceți numele de utilizator"
             />
           </div>
           <div class="form-group">
-            <label for="login-password">Password</label>
+            <label for="login-password">Parolă</label>
             <input
               id="login-password"
               v-model="loginForm.password"
               type="password"
               required
-              placeholder="Enter your password"
+              placeholder="Introduceți parola"
             />
           </div>
           <div v-if="loginError" class="error-message">
             {{ loginError }}
           </div>
           <button type="submit" class="btn-primary" :disabled="isLoading">
-            {{ isLoading ? 'Logging in...' : 'Login' }}
+            {{ isLoading ? 'Se autentifică...' : 'Autentificare' }}
           </button>
         </form>
         <div class="form-footer">
-          <p>Don't have an account? <a href="#" @click.prevent="switchToRegister">Register here</a></p>
+          <p>Nu aveți cont? <a href="#" @click.prevent="switchToRegister">Înregistrați-vă aici</a></p>
         </div>
       </div>
 
       <div v-else class="register-form">
-        <h2>Create Account</h2>
+        <h2>Creare Cont</h2>
         <form @submit.prevent="handleRegister">
           <div class="form-group">
-            <label for="register-username">Username</label>
+            <label for="register-username">Nume utilizator</label>
             <input
               id="register-username"
               v-model="registerForm.username"
               type="text"
               required
-              placeholder="Choose a username"
+              placeholder="Alegeți un nume de utilizator"
             />
           </div>
           <div class="form-group">
-            <label for="register-password">Password</label>
+            <label for="register-password">Parolă</label>
             <input
               id="register-password"
               v-model="registerForm.password"
               type="password"
               required
-              placeholder="Create a password (min 6 characters)"
+              placeholder="Creați o parolă (minim 6 caractere)"
               minlength="6"
             />
           </div>
           <div class="form-group">
-            <label for="register-confirm">Confirm Password</label>
+            <label for="register-confirm">Confirmare parolă</label>
             <input
               id="register-confirm"
               v-model="registerForm.confirmPassword"
               type="password"
               required
-              placeholder="Confirm your password"
+              placeholder="Confirmați parola"
             />
           </div>
           <div v-if="registerError" class="error-message">
             {{ registerError }}
           </div>
           <button type="submit" class="btn-primary" :disabled="isLoading">
-            {{ isLoading ? 'Creating account...' : 'Create Account' }}
+            {{ isLoading ? 'Se creează contul...' : 'Creează Cont' }}
           </button>
         </form>
         <div class="form-footer">
-          <p>Already have an account? <a href="#" @click.prevent="switchToLogin">Login here</a></p>
+          <p>Aveți deja cont? <a href="#" @click.prevent="switchToLogin">Autentificați-vă aici</a></p>
         </div>
       </div>
 
       <div v-if="showSuccessModal" class="modal-overlay" @click="showSuccessModal = false">
         <div class="modal-content" @click.stop>
           <div class="success-icon">✓</div>
-          <h3>Account Created Successfully!</h3>
-          <p>Your account has been created. You can now login with your credentials.</p>
-          <button @click="handleSuccessClose" class="btn-primary">Go to Login</button>
+          <h3>Cont Creat cu Succes!</h3>
+          <p>Contul dvs. a fost creat. Vă puteți autentifica acum cu datele dvs.</p>
+          <button @click="handleSuccessClose" class="btn-primary">Mergi la Autentificare</button>
         </div>
       </div>
     </div>
@@ -128,7 +128,7 @@ const handleLogin = async () => {
     await authService.login(loginForm.value.username, loginForm.value.password)
     window.dispatchEvent(new Event('auth-changed'))
   } catch (error) {
-    loginError.value = error.message || 'Login failed. Please try again.'
+    loginError.value = error.message || 'Autentificare eșuată. Vă rugăm să încercați din nou.'
   } finally {
     isLoading.value = false
   }
@@ -139,13 +139,13 @@ const handleRegister = async () => {
   registerError.value = ''
   
   if (registerForm.value.password !== registerForm.value.confirmPassword) {
-    registerError.value = 'Passwords do not match'
+    registerError.value = 'Parolele nu se potrivesc'
     isLoading.value = false
     return
   }
   
   if (registerForm.value.password.length < 6) {
-    registerError.value = 'Password must be at least 6 characters'
+    registerError.value = 'Parola trebuie să aibă cel puțin 6 caractere'
     isLoading.value = false
     return
   }
@@ -158,7 +158,7 @@ const handleRegister = async () => {
     )
     showSuccessModal.value = true
   } catch (error) {
-    registerError.value = error.message || 'Registration failed. Please try again.'
+    registerError.value = error.message || 'Înregistrare eșuată. Vă rugăm să încercați din nou.'
   } finally {
     isLoading.value = false
   }
