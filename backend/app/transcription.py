@@ -6,7 +6,6 @@ from deepgram import DeepgramClient
 from huggingface_hub import InferenceClient
 import io
 import soundfile as sf
-import numpy as np
 
 class TranscriptionResult(BaseModel):
     text: str
