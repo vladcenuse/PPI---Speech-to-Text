@@ -131,7 +131,7 @@
       </div>
 
       <div class="form-section">
-        <h3>Plan de Tratament</h3>
+        <h3>Plan</h3>
         <div class="field-container">
           
           <div class="input-group">

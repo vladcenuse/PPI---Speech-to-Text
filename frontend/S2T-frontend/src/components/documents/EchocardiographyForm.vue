@@ -172,7 +172,7 @@ const formFields = [
   },
   {
     key: 'as',
-    label: 'As',
+    label: 'AS (Aorta Ascendentă)',
     placeholder: 'ex: 14 milimetri',
     romanianName: 'as'
   },

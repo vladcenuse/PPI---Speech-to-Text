@@ -298,7 +298,7 @@
       </div>
 
       <div class="form-group">
-        <label for="plan">Plan de Tratament</label>
+        <label for="plan">Plan</label>
         <div class="input-group">
           <textarea 
             id="plan" 
