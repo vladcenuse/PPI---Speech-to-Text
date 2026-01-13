@@ -193,7 +193,7 @@
       </div>
 
       <div class="form-group">
-        <label for="medications">Medicamente</label>
+        <label for="medications">Medicatie Curenta</label>
         <div class="input-group">
           <textarea 
             id="medications" 
@@ -298,7 +298,7 @@
       </div>
 
       <div class="form-group">
-        <label for="plan">Plan</label>
+        <label for="plan">Plan de Tratament</label>
         <div class="input-group">
           <textarea 
             id="plan" 
@@ -313,7 +313,7 @@
       </div>
 
       <div class="form-group">
-        <label for="followUp">Urmarire</label>
+        <label for="followUp">Instructiuni de Urmarire</label>
         <div class="input-group">
           <textarea 
             id="followUp" 

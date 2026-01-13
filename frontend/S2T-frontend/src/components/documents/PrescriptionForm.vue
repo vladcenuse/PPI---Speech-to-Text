@@ -131,7 +131,7 @@
       </div>
 
       <div class="form-section">
-        <h3>Urmarire</h3>
+        <h3>Instructiuni de Urmarire</h3>
         <div class="field-container">
           
           <div class="input-group">

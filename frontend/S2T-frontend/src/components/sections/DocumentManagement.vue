@@ -2,7 +2,7 @@
   <div class="document-management">
     <div class="page-header">
       <h2>Șabloane Documente</h2>
-      <p>Completați șabloanele de documente cu intrare vocală și exportați-le</p>
+      <p>Completați șabloanele de documente cu înregistrare vocală și exportați-le</p>
     </div>
 
     <div class="document-selection">
@@ -287,7 +287,7 @@ const selectDocument = (template) => {
     
     if (existingForm) {
       toastService.warning(
-        'Formular Există Deja',
+        'Formularul Există Deja',
         `Acest pacient are deja un Formular Pacient Nou. Vă rugăm să editați formularul existent sau să selectați un alt pacient.`
       )
       return
