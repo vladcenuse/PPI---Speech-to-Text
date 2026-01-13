@@ -8,7 +8,7 @@
             <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
           </svg>
         </div>
-        <h1 class="app-title" @click="navigateToSection('home')">Speech-to-Text Medical</h1>
+        <h1 class="app-title" @click="navigateToSection('home')">MedVoice</h1>
       </div>
       <nav class="navigation">
         <button 
@@ -18,7 +18,7 @@
           <svg viewBox="0 0 24 24" fill="currentColor" class="nav-icon">
             <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
           </svg>
-          <span class="nav-text">Home</span>
+          <span class="nav-text">Acasă</span>
         </button>
         <button 
           @click="navigateToSection('patients')"
@@ -27,7 +27,7 @@
           <svg viewBox="0 0 24 24" fill="currentColor" class="nav-icon">
             <path d="M16 4c0-1.11.89-2 2-2s2 .89 2 2-.89 2-2 2-2-.89-2-2zm4 18v-6h2.5l-2.54-7.63A1.5 1.5 0 0 0 18.54 8H17c-.8 0-1.54.37-2.01.99L14 10.5l-1.5-2.01A2.5 2.5 0 0 0 10.5 8H9.46c-.8 0-1.54.37-2.01.99L5 10.5l-1.5-2.01A2.5 2.5 0 0 0 1.5 8H.5v2h1c.28 0 .5.22.5.5s-.22.5-.5.5H.5v2h1c.28 0 .5.22.5.5s-.22.5-.5.5H.5v2h1c.28 0 .5.22.5.5s-.22.5-.5.5H.5V22h2.5v-6H5v6h2v-6h1.5v6H11v-6h1.5v6H15v-6h1.5v6H20z"/>
           </svg>
-          <span class="nav-text">Patients</span>
+          <span class="nav-text">Pacienți</span>
         </button>
         <button 
           @click="navigateToSection('documents')"
@@ -36,7 +36,7 @@
           <svg viewBox="0 0 24 24" fill="currentColor" class="nav-icon">
             <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
           </svg>
-          <span class="nav-text">Documents</span>
+          <span class="nav-text">Documente</span>
         </button>
         <div class="user-section" v-if="currentDoctor">
           <div class="nav-link doctor-name-link">
@@ -48,12 +48,12 @@
           <button 
             @click="handleLogout"
             class="nav-link logout-link"
-            title="Logout"
+            title="Deconectare"
           >
             <svg viewBox="0 0 24 24" fill="currentColor" class="nav-icon">
               <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.59L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
             </svg>
-            <span class="nav-text">Logout</span>
+            <span class="nav-text">Deconectare</span>
           </button>
         </div>
       </nav>

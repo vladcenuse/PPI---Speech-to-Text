@@ -33,11 +33,11 @@ class ApiClient {
           console.warn('Session expired or invalid. Clearing auth and redirecting to login...')
           authService.clearAuth()
           window.dispatchEvent(new Event('auth-changed'))
-          throw new Error('Session expired or invalid. Please login again.')
+          throw new Error('Sesiunea a expirat sau este invalidă. Vă rugăm să vă autentificați din nou.')
         }
         
-        const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }))
-        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`)
+        const errorData = await response.json().catch(() => ({ detail: 'Eroare necunoscută' }))
+        throw new Error(errorData.detail || `Eroare HTTP! status: ${response.status}`)
       }
 
       return await response.json()

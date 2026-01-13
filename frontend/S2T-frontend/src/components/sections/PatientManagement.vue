@@ -1,20 +1,20 @@
 <template>
   <div class="patient-management">
     <div class="page-header">
-      <h2>Patient Management</h2>
+      <h2>Gestionare Pacienți</h2>
       <div class="header-actions">
         <Button 
           variant="outline" 
           @click="refreshPatients"
           :loading="isLoading"
           icon="🔄"
-          text="Refresh"
+          text="Reîncarcă"
         />
         <Button 
           variant="primary" 
           @click="openCreatePatientModal"
           icon="➕"
-          text="New Patient"
+          text="Pacient Nou"
         />
       </div>
     </div>
@@ -24,7 +24,7 @@
         <input
           v-model="localSearchQuery"
           type="text"
-          placeholder="Search patients..."
+          placeholder="Căutare pacienți..."
           class="search-input"
         />
         <span class="search-icon">
@@ -36,9 +36,9 @@
       
       <div class="filters">
         <select v-model="localFilters.gender" class="filter-select">
-          <option value="">All genders</option>
-          <option value="Male">Male</option>
-          <option value="Female">Female</option>
+          <option value="">Toate genurile</option>
+          <option value="Male">Masculin</option>
+          <option value="Female">Feminin</option>
         </select>
       </div>
     </div>
@@ -46,16 +46,16 @@
     <div class="patient-stats">
       <div class="stat-card">
         <div class="stat-number">{{ patientsCount }}</div>
-        <div class="stat-label">Total Patients</div>
+        <div class="stat-label">Total Pacienți</div>
       </div>
       <div class="stat-card">
         <div class="stat-number">{{ filteredPatientsCount }}</div>
-        <div class="stat-label">Filtered Results</div>
+        <div class="stat-label">Rezultate Filtrate</div>
       </div>
     </div>
 
     <div v-if="isLoading" class="loading-container">
-      <Spinner size="large" text="Loading patients..." />
+      <Spinner size="large" text="Se încarcă pacienții..." />
     </div>
 
     <div v-else-if="error" class="error-container">
@@ -67,7 +67,7 @@
         </span>
         <span>{{ error }}</span>
       </div>
-      <Button variant="secondary" @click="refreshPatients" text="Try Again" />
+      <Button variant="secondary" @click="refreshPatients" text="Încearcă Din Nou" />
     </div>
 
     <div v-else-if="patients.length > 0" class="patient-list">
@@ -80,16 +80,16 @@
         <div class="patient-info">
           <h3>{{ patient.name }}</h3>
           <p class="patient-details">
-            {{ patient.age }} years old • {{ patient.gender }}
+            {{ patient.age }} ani • {{ patient.gender }}
           </p>
           <p class="patient-contact">
-            📞 {{ patient.phone || 'No phone number' }}
+            📞 {{ patient.phone || 'Fără număr de telefon' }}
           </p>
           <p class="patient-observations">
-            📝 {{ patient.observations?.length || 0 }} observations
+            📝 {{ patient.observations?.length || 0 }} observații
           </p>
           <p class="patient-updated">
-            Last modified: {{ formatDate(patient.updatedAt) }}
+            Ultima modificare: {{ formatDate(patient.updatedAt) }}
           </p>
         </div>
         
@@ -98,25 +98,25 @@
             variant="secondary" 
             size="small"
             @click="editPatient(patient)"
-            text="Edit Patient Information"
+            text="Editează Informații Pacient"
           />
           <Button 
             variant="outline" 
             size="small"
             @click="viewPatient(patient)"
-            text="View Patient Information"
+            text="Vizualizează Informații Pacient"
           />
           <Button 
             variant="info" 
             size="small"
             @click="viewMedicalRecords(patient)"
-            text="View Medical Records"
+            text="Vizualizează Dosare Medicale"
           />
           <Button 
             variant="error" 
             size="small"
             @click="deletePatient(patient)"
-            text="Delete"
+            text="Șterge"
           />
         </div>
       </div>
@@ -129,14 +129,14 @@
           <path d="M8 21v-2a2 2 0 012-2h4a2 2 0 012 2v2"/>
         </svg>
       </div>
-      <h3>No patients found</h3>
-      <p>Create the first patient to get started.</p>
-      <Button variant="primary" @click="openCreatePatientModal" text="Create First Patient" />
+      <h3>Nu s-au găsit pacienți</h3>
+      <p>Creați primul pacient pentru a începe.</p>
+      <Button variant="primary" @click="openCreatePatientModal" text="Creează Primul Pacient" />
     </div>
 
         <Modal
           :is-open="showCreateModal"
-          :title="isViewMode ? 'View Patient' : (patientVM.currentPatient ? 'Edit Patient' : 'New Patient')"
+          :title="isViewMode ? 'Vizualizează Pacient' : (patientVM.currentPatient ? 'Editează Pacient' : 'Pacient Nou')"
           size="large"
           @close="closeCreatePatientModal"
         >
@@ -151,14 +151,14 @@
     <Modal 
       :is-open="showMedicalRecordsModal" 
       @close="closeMedicalRecordsModal"
-      :title="`Medical Records - ${selectedPatientForRecords?.name || ''}`"
+      :title="`Dosare Medicale - ${selectedPatientForRecords?.name || ''}`"
       size="large"
     >
       <div class="medical-records-content">
           <div v-if="medicalRecords.length === 0" class="no-records">
             <div class="no-records-icon">📋</div>
-            <h4>No Medical Records Found</h4>
-            <p>This patient doesn't have any medical records yet.</p>
+            <h4>Nu S-au Găsit Dosare Medicale</h4>
+            <p>Acest pacient nu are încă dosare medicale.</p>
           </div>
           
           <div v-else class="records-list">
@@ -177,7 +177,7 @@
                   <svg viewBox="0 0 24 24" fill="currentColor">
                     <path d="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"/>
                   </svg>
-                  Edit
+                  Editează
                 </button>
                 <button @click="exportRecordToWord(record)" class="action-btn word-btn">
                   <svg viewBox="0 0 24 24" fill="currentColor">
@@ -189,7 +189,7 @@
                   <svg viewBox="0 0 24 24" fill="currentColor">
                     <path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/>
                   </svg>
-                  Delete
+                  Șterge
                 </button>
               </div>
             </div>
@@ -199,11 +199,11 @@
 
     <ConfirmModal
       :is-open="showDeleteModal"
-      title="Delete Patient"
+      title="Șterge Pacient"
       :message="deleteMessage"
       :details="deleteDetails"
-      confirm-text="Delete"
-      cancel-text="Cancel"
+      confirm-text="Șterge"
+      cancel-text="Anulează"
       :loading="isLoading"
       @confirm="confirmDelete"
       @cancel="cancelDelete"
@@ -255,14 +255,14 @@ const {
 
 const deleteMessage = computed(() => {
   if (patientToDelete.value) {
-    return `Are you sure you want to delete patient "${patientToDelete.value.name}"?`
+    return `Sunteți sigur că doriți să ștergeți pacientul "${patientToDelete.value.name}"?`
   }
   return ''
 })
 
 const deleteDetails = computed(() => {
   if (patientToDelete.value) {
-    return `This action will permanently delete all data for patient ${patientToDelete.value.name}, including observations and associated recordings.`
+    return `Această acțiune va șterge permanent toate datele pentru pacientul ${patientToDelete.value.name}, inclusiv observațiile și înregistrările asociate.`
   }
   return ''
 })
@@ -367,7 +367,7 @@ const loadMedicalRecords = async (patientId) => {
           id: form.id,
           patientId: form.patient_id,
           patientName: selectedPatientForRecords.value?.name || '',
-          documentType: 'New Patient Form',
+          documentType: 'Formular Pacient Nou',
           documentId: 'new-patient-form',
           customName: form.custom_name,
           date: form.date,
@@ -400,7 +400,7 @@ const loadMedicalRecords = async (patientId) => {
           id: form.id,
           patientId: form.patient_id,
           patientName: selectedPatientForRecords.value?.name || '',
-          documentType: 'Medical Report',
+          documentType: 'Raport Medical',
           documentId: 'medical-report',
           customName: form.custom_name,
           date: form.date,
@@ -423,7 +423,7 @@ const loadMedicalRecords = async (patientId) => {
           id: form.id,
           patientId: form.patient_id,
           patientName: selectedPatientForRecords.value?.name || '',
-          documentType: 'Consultation Form',
+          documentType: 'Formular Consultație',
           documentId: 'consultation-form',
           customName: form.custom_name,
           date: form.date,
@@ -444,7 +444,7 @@ const loadMedicalRecords = async (patientId) => {
           id: form.id,
           patientId: form.patient_id,
           patientName: selectedPatientForRecords.value?.name || '',
-          documentType: 'Prescription Form',
+          documentType: 'Formular Prescripție',
           documentId: 'prescription-form',
           customName: form.custom_name,
           date: form.date,
@@ -465,7 +465,7 @@ const loadMedicalRecords = async (patientId) => {
           id: form.id,
           patientId: form.patient_id,
           patientName: selectedPatientForRecords.value?.name || '',
-          documentType: 'Echocardiography',
+          documentType: 'Ecografie Cardiacă',
           documentId: 'echocardiography-form',
           customName: form.custom_name,
           date: form.date,
@@ -489,7 +489,7 @@ const loadMedicalRecords = async (patientId) => {
     
   } catch (error) {
     console.error('Error loading medical records:', error)
-    toastService.error('Failed to load medical records', error.message)
+    toastService.error('Eșec la încărcarea dosarelor medicale', error.message)
     medicalRecords.value = []
   }
 }
@@ -512,13 +512,13 @@ const editMedicalRecord = (record) => {
   closeMedicalRecordsModal()
   
   toastService.info(
-    'Opening Document',
-    `Loading ${record.documentType} for editing...`
+    'Deschidere Document',
+    `Se încarcă ${record.documentType} pentru editare...`
   )
 }
 
 const deleteMedicalRecord = async (record) => {
-  if (confirm(`Are you sure you want to delete this ${record.documentType}?`)) {
+  if (confirm(`Sunteți sigur că doriți să ștergeți acest ${record.documentType}?`)) {
     try {
       const formTypeEndpoints = {
         'new-patient-form': 'new-patient-forms',
@@ -530,7 +530,7 @@ const deleteMedicalRecord = async (record) => {
       
       const endpoint = formTypeEndpoints[record.documentId]
       if (!endpoint) {
-        toastService.error('Unknown document type')
+        toastService.error('Tip de document necunoscut')
         return
       }
       
@@ -539,13 +539,13 @@ const deleteMedicalRecord = async (record) => {
       await loadMedicalRecords(selectedPatientForRecords.value.id)
       
       toastService.success(
-        'Medical Record Deleted',
-        `"${record.documentType}" has been successfully deleted.`
+        'Dosar Medical Șters',
+        `"${record.documentType}" a fost șters cu succes.`
       )
     } catch (error) {
       console.error('Error deleting medical record:', error)
       toastService.error(
-        'Failed to delete medical record',
+        'Eșec la ștergerea dosarului medical',
         error.message
       )
     }

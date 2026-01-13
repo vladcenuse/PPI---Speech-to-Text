@@ -8,17 +8,17 @@
     <main class="main-content">
       <div v-if="currentSection === 'home'" class="section-content">
         <div class="welcome-section">
-          <h2>Welcome to Speech-to-Text Medical System</h2>
-          <p>Transform healthcare documentation with AI-powered voice recognition technology</p>
+          <h2>Bun venit la MedVoice</h2>
+          <p>Transformați documentația medicală cu tehnologia de recunoaștere vocală bazată pe inteligență artificială</p>
           
           <div class="action-buttons">
             <button @click="changeSection('patients')" class="btn btn-primary patient-btn">
               <span class="btn-icon">👥</span>
-              Manage Patients
+              Gestionează Pacienți
             </button>
             <button @click="changeSection('documents')" class="btn btn-secondary document-btn">
               <span class="btn-icon">📄</span>
-              Document Templates
+              Șabloane Documente
             </button>
           </div>
         </div>
@@ -30,8 +30,8 @@
                 <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
               </svg>
             </div>
-            <h3>Smart Document Processing</h3>
-            <p>Intelligently process transcribed audio into structured medical documents with AI-powered data extraction</p>
+            <h3>Procesare Inteligentă a Documentelor</h3>
+            <p>Procesați inteligent audio-ul transpus în documente medicale structurate cu extragere de date bazată pe inteligență artificială</p>
           </div>
           <div class="feature-card patient-card">
             <div class="feature-icon patient-icon">
@@ -39,8 +39,8 @@
                 <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
               </svg>
             </div>
-            <h3>Patient Management</h3>
-            <p>Comprehensive patient record management with secure data storage and easy access to medical history</p>
+            <h3>Gestionare Pacienți</h3>
+            <p>Gestionare completă a dosarelor pacienților cu stocare sigură a datelor și acces ușor la istoricul medical</p>
           </div>
         </div>
       </div>

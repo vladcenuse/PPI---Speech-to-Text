@@ -1,12 +1,12 @@
 <template>
   <div class="document-management">
     <div class="page-header">
-      <h2>Document Templates</h2>
-      <p>Fill document templates with voice input and export them</p>
+      <h2>Șabloane Documente</h2>
+      <p>Completați șabloanele de documente cu înregistrare vocală și exportați-le</p>
     </div>
 
     <div class="document-selection">
-      <h3>Select Document Template</h3>
+      <h3>Selectați Șablon Document</h3>
       <div class="template-grid">
         <div 
           v-for="template in documentTemplates" 
@@ -28,7 +28,7 @@
     <div v-if="selectedDocument" class="document-form-section">
       <div class="form-header">
         <div class="form-title-section">
-          <h3 v-if="!isEditingTitle">{{ currentFormName || selectedDocument?.name || 'Untitled Form' }}</h3>
+          <h3 v-if="!isEditingTitle">{{ currentFormName || selectedDocument?.name || 'Formular Fără Titlu' }}</h3>
           <input 
             v-else
             v-model="currentFormName"
@@ -40,7 +40,7 @@
           <button 
             @click="startEditingTitle" 
             class="edit-title-btn"
-            title="Edit form name"
+            title="Editează numele formularului"
           >
             <svg viewBox="0 0 24 24" fill="currentColor">
               <path d="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"/>
@@ -55,20 +55,20 @@
             <svg viewBox="0 0 24 24" fill="currentColor">
               <path d="M15,9H5V5H15M12,19A3,3 0 0,1 9,16A3,3 0 0,1 12,13A3,3 0 0,1 15,16A3,3 0 0,1 12,19M17,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V7L17,3Z"/>
             </svg>
-            <span>Save Document</span>
+            <span>Salvează Document</span>
           </button>
         </div>
       </div>
 
       <div class="patient-selection-section">
         <div class="patient-selection-header">
-          <h4>Select Patient for Document</h4>
+          <h4>Selectați Pacient pentru Document</h4>
           <button 
             @click="showPatientSelector = !showPatientSelector"
             class="patient-selector-toggle"
             :class="{ 'active': showPatientSelector }"
           >
-            {{ selectedPatient ? 'Change Patient' : 'Select Patient' }}
+            {{ selectedPatient ? 'Schimbă Pacient' : 'Selectează Pacient' }}
             <span class="toggle-icon">{{ showPatientSelector ? '▲' : '▼' }}</span>
           </button>
         </div>
@@ -78,7 +78,7 @@
             <input 
               v-model="patientSearchQuery"
               type="text" 
-              placeholder="Search patients..."
+              placeholder="Căutare pacienți..."
               class="patient-search-input"
             />
           </div>
@@ -95,11 +95,11 @@
               </div>
               <div class="patient-info">
                 <div class="patient-name">{{ patient.name }}</div>
-                <div class="patient-details">{{ patient.age }} years old • {{ patient.gender }}</div>
+                <div class="patient-details">{{ patient.age }} ani • {{ patient.gender }}</div>
               </div>
             </div>
             <div v-if="filteredPatients.length === 0" class="no-patients">
-              <p>No patients found. <a href="#" @click.prevent="navigateToPatients">Create a new patient</a></p>
+              <p>Nu s-au găsit pacienți. <a href="#" @click.prevent="navigateToPatients">Creați un pacient nou</a></p>
             </div>
           </div>
         </div>
@@ -110,7 +110,7 @@
           </div>
           <div class="selected-patient-details">
             <div class="selected-patient-name">{{ selectedPatient.name }}</div>
-            <div class="selected-patient-meta">{{ selectedPatient.age }} years old • {{ selectedPatient.gender }}</div>
+            <div class="selected-patient-meta">{{ selectedPatient.age }} ani • {{ selectedPatient.gender }}</div>
           </div>
           <button @click="clearPatientSelection" class="clear-patient-btn">✕</button>
         </div>
@@ -123,8 +123,8 @@
               <svg viewBox="0 0 24 24" fill="currentColor" width="48" height="48">
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15l-5-5 1.41-1.41L11 14.17l7.59-7.59L20 8l-9 9z"/>
               </svg>
-              <h3>Patient Selection Required</h3>
-              <p>Please select a patient from the "Select Patient for Document" section above to create a {{ selectedDocument?.name || 'document' }}.</p>
+              <h3>Selectare Pacient Necesară</h3>
+              <p>Vă rugăm să selectați un pacient din secțiunea "Selectați Pacient pentru Document" de mai sus pentru a crea un {{ selectedDocument?.name || 'document' }}.</p>
             </div>
           </div>
         </template>
@@ -143,8 +143,8 @@
           <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
         </svg>
       </div>
-      <h3>Select a Document Template</h3>
-      <p>Choose a document template from above to start filling out the form.</p>
+      <h3>Selectați un Șablon Document</h3>
+      <p>Alegeți un șablon de document de mai sus pentru a începe completarea formularului.</p>
     </div>
   </div>
 </template>
@@ -228,32 +228,32 @@ const patientData = reactive({
 const documentTemplates = ref([
   {
     id: 'new-patient-form',
-    name: 'New Patient Form',
-    description: 'First-time patient intake form',
+    name: 'Formular Pacient Nou',
+    description: 'Formular de admitere pentru pacient nou',
     component: FirstTimeNewPatient
   },
   {
     id: 'consultation-form',
-    name: 'Consultation Form',
-    description: 'Patient consultation and diagnosis form',
+    name: 'Formular Consultație',
+    description: 'Formular de consultație și diagnostic pacient',
     component: ConsultationForm
   },
   {
     id: 'prescription-form',
-    name: 'Prescription Form',
-    description: 'Medication prescription and dosage form',
+    name: 'Formular Prescripție',
+    description: 'Formular de prescripție medicamente și dozaj',
     component: PrescriptionForm
   },
   {
     id: 'medical-report',
-    name: 'Medical Report',
-    description: 'Comprehensive medical examination report',
+    name: 'Raport Medical',
+    description: 'Raport complet de examinare medicală',
     component: MedicalReport
   },
   {
     id: 'echocardiography-form',
     name: 'Ecografie Cardiacă',
-    description: 'Echocardiography measurements with voice input',
+    description: 'Măsurători ecocardiografice cu intrare vocală',
     component: EchocardiographyForm
   }
 ])
@@ -287,8 +287,8 @@ const selectDocument = (template) => {
     
     if (existingForm) {
       toastService.warning(
-        'Form Already Exists',
-        `This patient already has a New Patient Form. Please edit the existing form or select a different patient.`
+        'Formularul Există Deja',
+        `Acest pacient are deja un Formular Pacient Nou. Vă rugăm să editați formularul existent sau să selectați un alt pacient.`
       )
       return
     }
@@ -298,6 +298,12 @@ const selectDocument = (template) => {
   const editingDocumentType = localStorage.getItem('editingDocumentType')
   
   const typeToTemplateId = {
+    'Formular Pacient Nou': 'new-patient-form',
+    'Raport Medical': 'medical-report',
+    'Formular Consultație': 'consultation-form',
+    'Formular Prescripție': 'prescription-form',
+    'Ecografie Cardiacă': 'echocardiography-form',
+    // Backward compatibility with English names
     'New Patient Form': 'new-patient-form',
     'Medical Report': 'medical-report',
     'Consultation Form': 'consultation-form',
@@ -328,7 +334,7 @@ const selectDocument = (template) => {
 
 const startEditingTitle = () => {
   if (!currentFormName.value || currentFormName.value.trim() === '') {
-    currentFormName.value = selectedDocument.value?.name || 'Untitled Form'
+    currentFormName.value = selectedDocument.value?.name || 'Formular Fără Titlu'
   }
   isEditingTitle.value = true
   setTimeout(() => {
@@ -339,7 +345,7 @@ const startEditingTitle = () => {
 const finishEditingTitle = () => {
   isEditingTitle.value = false
   if (!currentFormName.value || !currentFormName.value.trim()) {
-    currentFormName.value = selectedDocument.value?.name || 'Untitled Form'
+    currentFormName.value = selectedDocument.value?.name || 'Formular Fără Titlu'
   }
 }
 
@@ -470,7 +476,7 @@ const getPatientInitials = (name) => {
 }
 
 const navigateToPatients = () => {
-  alert('Please go to the Patients tab to create a new patient.')
+  alert('Vă rugăm să mergeți la fila Pacienți pentru a crea un pacient nou.')
 }
 
 const getTemplateCardClass = (template) => {
@@ -506,16 +512,16 @@ const handleFieldUpdate = (fieldName, value) => {
 const saveDocument = async () => {
   if (!hasFormData.value) {
     toastService.warning(
-      'No Data to Save',
-      'Please fill in some data before saving the document.'
+      'Fără Date de Salvat',
+      'Vă rugăm să completați câteva date înainte de a salva documentul.'
     )
     return
   }
   
   if (!selectedPatient.value) {
     toastService.warning(
-      'Patient Selection Required',
-      'Please select a patient from the "Select Patient for Document" section before saving the document.',
+      'Selectare Pacient Necesară',
+      'Vă rugăm să selectați un pacient din secțiunea "Selectați Pacient pentru Document" înainte de a salva documentul.',
       { position: 'top-center', duration: 5000 }
     )
     return
@@ -530,7 +536,7 @@ const saveDocument = async () => {
         if (forms && forms.length > 0) {
           const existingForm = forms[0]
           const confirmed = confirm(
-            'Warning: This patient already has a New Patient Form. Saving will replace the existing form. Do you want to continue?'
+            'Avertisment: Acest pacient are deja un Formular Pacient Nou. Salvarea va înlocui formularul existent. Doriți să continuați?'
           )
           if (!confirmed) {
             return
@@ -545,7 +551,7 @@ const saveDocument = async () => {
     let apiData
     const patientId = parseInt(selectedPatient.value.id, 10)
     if (isNaN(patientId)) {
-      toastService.error('Invalid Patient ID', 'The selected patient has an invalid ID.')
+      toastService.error('ID Pacient Invalid', 'Pacientul selectat are un ID invalid.')
       return
     }
     const customName = currentFormName.value || selectedDocument.value.name
@@ -641,16 +647,22 @@ const saveDocument = async () => {
       'echocardiography-form': 'echocardiography-forms'
     }
     
-    const endpoint = formTypeEndpoints[selectedDocument.value.id]
-    if (!endpoint) {
-      toastService.error('Unknown document type')
-      return
-    }
+                const endpoint = formTypeEndpoints[selectedDocument.value.id]
+                if (!endpoint) {
+                  toastService.error('Tip de document necunoscut')
+                  return
+                }
   
     const editingDocumentType = localStorage.getItem('editingDocumentType')
     const editingDocumentData = JSON.parse(localStorage.getItem('editingDocumentData') || '{}')
     
     const typeToTemplateId = {
+      'Formular Pacient Nou': 'new-patient-form',
+      'Raport Medical': 'medical-report',
+      'Formular Consultație': 'consultation-form',
+      'Formular Prescripție': 'prescription-form',
+      'Ecografie Cardiacă': 'echocardiography-form',
+      // Backward compatibility with English names
       'New Patient Form': 'new-patient-form',
       'Medical Report': 'medical-report',
       'Consultation Form': 'consultation-form',
@@ -672,14 +684,14 @@ const saveDocument = async () => {
       localStorage.removeItem('editingDocumentType')
       localStorage.removeItem('editingDocumentCustomName')
       
-      toastService.success(
-        'Document Updated Successfully!',
-        `"${customName}" has been updated for ${selectedPatient.value.name}.`
-      )
-      
-      setTimeout(() => {
-        alert('✓ Document has been successfully updated!')
-      }, 100)
+                    toastService.success(
+                        'Document Actualizat cu Succes!',
+                        `"${customName}" a fost actualizat pentru ${selectedPatient.value.name}.`
+                      )
+                      
+                      setTimeout(() => {
+                        alert('✓ Documentul a fost actualizat cu succes!')
+                      }, 100)
     } else {
       if (editingDocumentId) {
         console.log('Clearing stale editing flags - document type or patient mismatch')
@@ -692,23 +704,23 @@ const saveDocument = async () => {
       console.log('Creating new document')
       await apiClient.post(`/${endpoint}/`, apiData)
       
-      toastService.success(
-        'Document Saved Successfully!',
-        `"${customName}" has been saved for ${selectedPatient.value.name}.`
-      )
-      
-      setTimeout(() => {
-        alert('✓ Document has been successfully saved!')
-      }, 100)
+                    toastService.success(
+                        'Document Salvat cu Succes!',
+                        `"${customName}" a fost salvat pentru ${selectedPatient.value.name}.`
+                      )
+                      
+                      setTimeout(() => {
+                        alert('✓ Documentul a fost salvat cu succes!')
+                      }, 100)
     }
     
     console.log('Document saved successfully to backend')
   } catch (error) {
     console.error('Error saving document:', error)
-    toastService.error(
-      'Failed to save document',
-      error.message || 'An error occurred while saving the document.'
-    )
+      toastService.error(
+        'Eșec la salvarea documentului',
+        error.message || 'A apărut o eroare la salvarea documentului.'
+      )
   }
 }
 
@@ -734,6 +746,12 @@ onMounted(async () => {
       console.log('Document type:', editingDocumentType)
       
       const typeToTemplateId = {
+        'Formular Pacient Nou': 'new-patient-form',
+        'Raport Medical': 'medical-report',
+        'Formular Consultație': 'consultation-form',
+        'Formular Prescripție': 'prescription-form',
+        'Ecografie Cardiacă': 'echocardiography-form',
+        // Backward compatibility with English names
         'New Patient Form': 'new-patient-form',
         'Medical Report': 'medical-report',
         'Consultation Form': 'consultation-form',
