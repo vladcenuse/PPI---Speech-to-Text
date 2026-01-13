@@ -24,9 +24,8 @@
             :disabled="isRecording || isProcessing"
             class="model-select"
           >
-            <option value="deepgram_whisper">Whisper Deepgram</option>
-            <option value="deepgram_nova-3">Nova-3 Deepgram</option>
-            <option value="whisper_hosted_api">Whisper Personalizat</option>
+            <option value="deepgram_whisper">Whisper</option>
+            <option value="deepgram_nova-3">Nova-3</option>
           </select>
         </div>
         <button
